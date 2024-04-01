@@ -25,9 +25,9 @@ freqavg = freq.reshape(-1,2).mean(axis=1)
 for s in datastream.data:
     print(s.metadata)
     if s.metadata['seq']['Navgf'] == 1:
-        plt.plot(freq,s.data[0])
+        plt.plot(freq,s.data[0],'r.-')
     elif s.metadata['seq']['Navgf'] == 2:
-        plt.plot(freqavg,s.data[0])
+        plt.plot(freqavg,s.data[0],'b.')
     else:
         raise ValueError("Unknown Navgf")
     

@@ -66,11 +66,10 @@ def parse_metadata(binary_blob):
     };
     """
     meta_data = '<H I '+seq_state+' '+core_state_base
-    
-    print (len(binary_blob), struct.calcsize(seq_state), struct.calcsize(core_state_base), struct.calcsize(meta_data))
+
+    if len(binary_blob) != struct.calcsize(meta_data):
+        raise ValueError("Incorrect metadata size")
     values = struct.unpack(meta_data, binary_blob)
-    print (binary_blob[:10])
-    print (values[:10])
     metadata['metadata_version'] = values[0]
     metadata['unique_packet_id'] = values[1]
     metadata['seq'] = {}
