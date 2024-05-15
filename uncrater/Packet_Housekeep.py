@@ -1,6 +1,7 @@
 from .Packet import Packet
 import struct
 import numpy as np
+from .c2python import c2py
 
 class Packet_Housekeep(Packet):
     @property
@@ -12,34 +13,29 @@ class Packet_Housekeep(Packet):
         fmt = "<H I H"
         cs,ce = 0,struct.calcsize(fmt)
         self.version, self.packet_id, self.hk_type = struct.unpack(fmt, self.blob[cs:ce])
-        fmt = "<"+("h h I I I i Q"*4)         
-        cs,ce = ce, ce + struct.calcsize(fmt)
-        values = struct.unpack(fmt, self.blob[cs:ce])
-        self.adc_min = np.array(values[0::7])
-        self.adc_max = np.array(values[1::7])
-        self.valid_count = np.array(values[2::7])
-        self.invalid_count_max = np.array(values[3::7])
-        self.invalid_count_min = np.array(values[4::7])
-        self.adc_mean = np.array(values[5::7])
-        self.adc_rms = np.sqrt(np.array(values[6::7]))
-        fmt = "B B B B"
-        cs = ce
-        values = struct.unpack(fmt,self.blob[cs:cs+4])
-        self.actual_gain = ["LMH"[i] for i in values]
-        
-        
+        if self.hk_type == 1:
+            res = c2py('housekeeping_data_1', self.blob)
+            self.min = np.array([x.min for x in res.ADC_stat])
+            self.max = np.array([x.max for x in res.ADC_stat])
+            self.valid_count = np.array([x.valid_count for x in res.ADC_stat])
+            self.invalid_count_max = np.array([x.invalid_count_max for x in res.ADC_stat])
+            self.invalid_count_min = np.array([x.invalid_count_min for x in res.ADC_stat])
+            self.adc_mean = np.array([x.mean for x in res.ADC_stat])
+            self.adc_var = np.array([x.var for x in res.ADC_stat])
+            self.adc_rms = np.sqrt(self.adc_var)
+            self.version = res.version
     
     def info (self):
         self._read()
         
         desc = "House Packet Type {self.hk_type}\n"
         desc += f"Version : {self.version}\n"
-        desc += f"packet_id : {self.packet_id}\n"
+        desc += f"packet_id : {self.unique_acket_id}\n"
         if self.hk_type == 0:
             desc += f"TBC"
         elif self.hk_type == 1:
-            desc += f"adc_min : {self.adc_min}\n"            
-            desc += f"adc_max : {self.adc_max}\n"            
+            desc += f"adc_min : {self.min}\n"            
+            desc += f"adc_max : {self.max}\n"            
             desc += f"valid_count : {self.valid_count}\n"            
             desc += f"invalid_count_max : {self.invalid_count_max}\n"            
             desc += f"invalid_count_min : {self.invalid_count_min}\n"            
