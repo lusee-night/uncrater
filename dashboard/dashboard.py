@@ -2,8 +2,10 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State, ClientsideFunction
 import argparse
+import socket
 import sys
 sys.path.append('..')
+sys.path.append('.')
 import uncrater
 
 
@@ -22,7 +24,7 @@ if root_directory is None:
 
 app = dash.Dash(__name__)
 global config, collection
-config = {'cmd_clicks':0, 'cmd_subs':0, 'cdi_clicks':0, 'cdi_subs':0, 'reboot_clicks':0,
+config = {'cmd_clicks':0, 'cmd_subs':0, 'cdi_clicks':0, 'cdi_subs':0, 'cmdcmd_subs':0,
           'root':root_directory, 'uart':root_directory + '/uart.log', 'commander':root_directory + '/commander.log',
           'cdi_display': 0}
 collection = uncrater.Collection(root_directory + '/cdi_output')
@@ -39,12 +41,12 @@ app.layout = html.Div([
         ])
     ], style={'width': '100%', 'align': 'center','margin-left': 'auto', 'margin-right': 'auto', 'text-align': 'center'}),
     html.H1("Commanding CDI"),
-    html.P("Command:"),
+    html.P("CDI Command:"),
     dcc.Input(id='cdi_cmd', type='text',n_submit=0, value='10', style={'width': '5%'}),
     dcc.Input(id='cdi_arg', type='text',n_submit=0, value='0000', style={'width': '10%'}),
     html.Button('Send command', id='cmd_submit_b', n_clicks=0),  
-    html.P("Reboot:"),
-    html.Button('RESTART', id='reboot_b', n_clicks=0),  
+    html.P("Commander Command:"),
+    dcc.Input(id='cmd_cmd', type='text',n_submit=0, value='', style={'width': '50%'}),
     html.H1("Inspect CDI"),
     dcc.Input(id='cdi_inspect_t', type='text',n_submit=0, value='0', style={'width': '10%'}),
     html.Button('Inspect CDI packet', id='cdi_inspect_b', n_clicks=0),  
@@ -64,6 +66,11 @@ app.layout = html.Div([
 ])
 
 
+def commander_send(msg):
+    s = socket.socket()
+    s.connect(('localhost', 8051))
+    s.send(msg.encode())
+    s.close()  
 
 
 app.clientside_callback(
@@ -86,19 +93,20 @@ app.clientside_callback(
     Output('cdi', 'value'),
     Output('cdi_raw', 'value'),
     Output('cdi_info', 'value'),
+    Output('cmd_cmd', 'value'),
     Input('cmd_submit_b', 'n_clicks'),
     Input('cdi_arg', 'n_submit'),
     Input('cdi_inspect_b', 'n_clicks'),
     Input('cdi_inspect_t', 'n_submit'),
-    Input('reboot_b', 'n_clicks'),
+    Input('cmd_cmd', 'n_submit'),
     Input('interval-component', 'n_intervals'),
     State('cdi_cmd', 'value'),
     State('cdi_arg', 'value'),
+    State('cmd_cmd', 'value'),
     State('cdi_inspect_t', 'value'),
     prevent_initial_call=True
 )
-
-def update_output(cmd_clicks, cmd_subs, cdi_clicks, cdi_subs, reboot_clicks, n_intervals, cdi_cmd, cdi_arg, cdi_inspect_t):
+def update_output(cmd_clicks, cmd_subs, cdi_clicks, cdi_subs, cmdcmd_subs, n_intervals, cdi_cmd, cdi_arg, cmdcmd, cdi_inspect_t):
     global config, collection
     collection.refresh()
 
@@ -113,13 +121,15 @@ def update_output(cmd_clicks, cmd_subs, cdi_clicks, cdi_subs, reboot_clicks, n_i
     cdi_value = collection.list() 
     
     if cmd_clicks>config['cmd_clicks'] or cmd_subs>config['cmd_subs']:
-        print (f"##CMD## CDI {cdi_cmd} {cdi_arg}")
+        commander_send (f"# # CDI {cdi_cmd} {cdi_arg}")
         config['cmd_clicks'] = cmd_clicks
         config['cmd_subs'] = cmd_subs
 
-    if reboot_clicks>config['reboot_clicks']:
-        print (f"##REBOOT##")
-        config['reboot_clicks'] = reboot_clicks
+    if cmdcmd_subs>config['cmdcmd_subs']:
+        commander_send (cmdcmd)
+        cmdcmd=""
+        config['cmdcmd_subs'] = cmdcmd_subs
+
 
     if cdi_clicks>config['cdi_clicks'] or cdi_subs>config['cdi_subs']:
         config['cdi_clicks'] = cdi_clicks
@@ -139,7 +149,7 @@ def update_output(cmd_clicks, cmd_subs, cdi_clicks, cdi_subs, reboot_clicks, n_i
         cdi_raw_value = ""
         cdi_info_value = ""
     
-    return (uart_value, commander_value, cdi_value, cdi_raw_value, cdi_info_value)
+    return (uart_value, commander_value, cdi_value, cdi_raw_value, cdi_info_value, cmdcmd)
     
     
 
