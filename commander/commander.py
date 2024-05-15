@@ -29,8 +29,8 @@ def loop(clog, uart, uart_log,s):
     
     while True:
         if uart is not None:
-            uart.write(luseeUart.read())
-            uart.flush()
+            uart_log.write(luseeUart.read())
+            uart_log.flush()
         ready_to_read, _, _ = select.select([s], [], [], 0)
         if s in ready_to_read:
             c, addr = s.accept()
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     clog.log(f"Cleared session directory: {session} \n")
 
     uart_fn = os.path.join(session, "uart.log")
-    uart_log = open(uart_fn, "w")
+    uart_log = open(uart_fn, "wb")
     clog.log("Attempting to open UART serial...\n")
     uart = None
     luseeUart = LuSEE_UART(clog)

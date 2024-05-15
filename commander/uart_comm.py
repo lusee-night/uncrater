@@ -29,7 +29,7 @@ class LuSEE_UART:
             return False
         else:
             for i in ports:
-                self.clog.log("Found manufacturer: " + i.manufacturer + " Product: " + i.product + " at port: " + i.device + "\n")
+                self.clog.log("Found manufacturer: " + str(i.manufacturer) + " Product: " + str(i.product) + " at port: " + str(i.device) + "\n")
                 if (i.manufacturer == "Microsemi"):
                     flashpro = i
                     break
@@ -41,7 +41,7 @@ class LuSEE_UART:
         self.clog.log (f"Found {flashpro.manufacturer} {flashpro.product} at port {self.port}.\n")
         return True
 
-    def read():
+    def read(self):
         return self.connection.read()
     
     def connect_usb(self, timeout=1):
