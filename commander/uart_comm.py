@@ -14,7 +14,7 @@ class LuSEE_UART:
         self.baud = 115200
         self.timeout_reg = 0.01 #In seconds
         self.timeout_data = 2 #In seconds
-        self.parity = serial.PARITY_ODD
+        self.parity = serial.PARITY_NONE
         self.clog = clog
 
         

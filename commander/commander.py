@@ -29,7 +29,7 @@ def loop(clog, uart, uart_log,s):
     
     while True:
         if uart is not None:
-            uart_log.write(luseeUart.read())
+            uart_log.write(luseeUart.read()) # remove last new line
             uart_log.flush()
         ready_to_read, _, _ = select.select([s], [], [], 0)
         if s in ready_to_read:
@@ -65,7 +65,7 @@ if __name__ == "__main__":
            uart = LuSEE_UART
         
     s = socket.socket()
-    s.bind(('localhost', 8051))
+    s.bind(('127.0.0.1', 8051))
     s.listen(5)
     clog.log('Listening on port 8051...\n')
 

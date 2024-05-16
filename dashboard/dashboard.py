@@ -68,7 +68,12 @@ app.layout = html.Div([
 
 def commander_send(msg):
     s = socket.socket()
-    s.connect(('localhost', 8051))
+    try:
+        s.connect(('127.0.0.1', 8051))
+    except ConnectionRefusedError:
+        print (f"Cannot send command: {msg}")
+        print (f"Is commander running? Dropping bits.")
+        return
     s.send(msg.encode())
     s.close()  
 
