@@ -163,4 +163,4 @@ if __name__ == '__main__':
     root = "session/"
     config['uart'] = root + '/uart.log'
     config['commander'] = root + '/commander.log'
-    app.run_server(debug=False)
+    app.run_server(host='127.0.0.1', port='8050',debug=False)

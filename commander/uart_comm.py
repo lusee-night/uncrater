@@ -23,14 +23,18 @@ class LuSEE_UART:
 
     def get_connections(self):
         ports = list_ports.comports()
+        print (dir(ports[0]))
         flashpro = None
         if (len(ports) == 0):
-            self.clog.log ("No USB connection found: Make sure FPGA is plugged into the computer!")
+            self.clog.log ("No USB connection found: Make sure FPGA is plugged into the computer!\n")
             return False
         else:
             for i in ports:
-                self.clog.log("Found manufacturer: " + str(i.manufacturer) + " Product: " + str(i.product) + " at port: " + str(i.device) + "\n")
-                if (i.manufacturer == "Microsemi"):
+                
+                self.clog.log("Found: "+str(i.description)+"\n")
+            for i in ports:
+                #if (i.manufacturer == "Microsemi"):
+                if "Silicon Labs" in i.manufacturer and "Standard COM" in i.description:
                     flashpro = i
                     break
         if (flashpro == None):
@@ -38,7 +42,7 @@ class LuSEE_UART:
             return False
 
         self.port = flashpro.device
-        self.clog.log (f"Found {flashpro.manufacturer} {flashpro.product} at port {self.port}.\n")
+        self.clog.log (f"Using {flashpro.description} at port {self.port}.\n")
         return True
 
     def read(self):
