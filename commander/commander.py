@@ -70,7 +70,7 @@ if __name__ == "__main__":
            uart = LuSEE_UART
         
     s = socket.socket()
-    s.bind(('127.0.0.1', 8051))
+    s.bind(('172.30.192.1', 8051))
     s.listen(5)
     clog.log('Listening on port 8051...\n')
 
