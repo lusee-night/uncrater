@@ -24,12 +24,17 @@ class clogger:
         
  
 
+def remove_LR(data):
+    return data.replace(b'\x0A', b'')
+
 def loop(clog, uart, uart_log,s):
     stime = int(time.time())
     
     while True:
         if uart is not None:
-            uart_log.write(luseeUart.read()) # remove last new line
+            uart_data = luseeUart.read()
+            uart_data = remove_LR(uart_data)
+            uart_log.write(uart_data) 
             uart_log.flush()
         ready_to_read, _, _ = select.select([s], [], [], 0)
         if s in ready_to_read:
