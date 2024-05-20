@@ -7,7 +7,7 @@ class Packet_Heartbeat(Packet):
 
     def info (self):
         self._read()
-        ok = "OK" if (self.blob == b'BRNMRL') else "BAD"
+        ok = "OK" if (self.blob[:6] == b'BRNMRL') else "BAD"
         desc = "Heartbeat Packet\n"
         desc += f"Magic : {ok}\n"
         return desc

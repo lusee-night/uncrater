@@ -4,7 +4,7 @@
 #define VERSION 0.1-DEV
 // This 16 bit version ID goes with metadata and startup packets.
 // MSB is code version, LSB is metatada version
-#define VERSION_ID 0x0101
+#define VERSION_ID 0x00000100
 
 
 #include <inttypes.h>
@@ -17,7 +17,7 @@
 #define NSEQ_MAX 32
 #define DISPATCH_DELAY 10 // number of timer interrupts to wait before sending CDI
 #define RESETTLE_DELAY 2 // number of timer interrupts to wait before settling after a change
-#define HEARTBEAT_DELAY 100 // number of timer interrupts to wait before sending heartbeat
+#define HEARTBEAT_DELAY 1000 // number of timer interrupts to wait before sending heartbeat
 
 #define ADC_STAT_SAMPLES 16384
 
@@ -116,7 +116,11 @@ struct core_state {
 
 
 struct startup_hello {
-    uint16_t version; 
+    uint32_t SW_version;
+    uint32_t FW_Version;
+    uint32_t FW_ID;
+    uint32_t FW_Date;
+    uint32_t FW_Time;
     uint32_t unique_packet_id;
     uint32_t time_seconds;
     uint16_t time_subseconds;

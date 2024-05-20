@@ -3,14 +3,16 @@ import os,sys
 import struct
 import csv
 import socket
+import select
 import binascii
 
 class LuSEE_ETHERNET:
-    def __init__(self, clog):
+    def __init__(self, clog, session):
         self.version = 1.12
         self.clog = clog
+
         self.UDP_IP = "192.168.121.1"
-        self.PC_IP = "192.168.121.50"
+        self.PC_IP = "192.168.121.100"
         self.udp_timeout = 1
 
         self.FEMB_PORT_WREG = 32000
@@ -18,6 +20,7 @@ class LuSEE_ETHERNET:
         self.FEMB_PORT_RREGRESP = 32002
         self.PORT_HSDATA = 32003
         self.PORT_HK = 32003
+        self.PORT_DATA = 32004
         self.BUFFER_SIZE = 9014
 
         self.KEY1 = 0xDEAD
@@ -52,10 +55,18 @@ class LuSEE_ETHERNET:
         self.BL_JUMP = 0x1
         self.BL_PROGRAM_CHECK = 0x2
         self.BL_PROGRAM_VERIFY = 0x3
-        
+        self.sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        self.sock_read_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock_read_data.bind((self.PC_IP, self.PORT_DATA))
+
+        self.packet_count = 0
+        self.out_dir = os.path.join(session,'cdi_output')
         self.clog.log(f"Initialized LuSEE_ETHERNET with version {self.version}.\n")
         self.clog.log(f"UDP IP is {self.UDP_IP} and PC IP is {self.PC_IP}.\n")
-
+        
+        print ("logging here")
+        
     def reset(self):
         print("Python Ethernet --> Resetting, wait a few seconds")
         self.write_reg(self.spectrometer_reset,1)
@@ -82,7 +93,6 @@ class LuSEE_ETHERNET:
                 sys.exit(f"Python Ethernet --> Error in writing to DCB emulator. Register 1 is {hex(self.read_cdi_reg(self.latch_register))}")
 
     def write_reg(self, reg, data):
-        self.clogt (f"Sending CDI CMD {hex(data)} with arg {hex(reg)}\n")
         for i in range(10):
             if (i > 0):
                 print(f"Python Ethernet --> Re-attempt {i}")
@@ -126,6 +136,7 @@ class LuSEE_ETHERNET:
         return int(resp)
 
     def write_cdi_reg(self, reg, data):
+
         regVal = int(reg)
         dataVal = int(data)
         #Splits the register up, since both halves need to go through socket.htons seperately
@@ -136,18 +147,8 @@ class LuSEE_ETHERNET:
                                     socket.htons(dataValLSB),socket.htons( self.FOOTER ), 0x0, 0x0, 0x0  )
 
         #Set up socket for IPv4 and UDP, attach the correct PC IP
-        sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            sock_write.bind((self.PC_IP, 0))
-        except:
-            print("IP: {}".format(self.PC_IP))
-        sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.FEMB_PORT_WREG ))
 
-        #print ("Sent FEMB data from")
-        #print (sock_write.getsockname())
-        sock_write.close()
-        #print ("Python Ethernet --> Write: reg=%x,value=%x"%(reg,data))
-        #time.sleep(self.wait_time)
+        self.sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.FEMB_PORT_WREG ))
 
     #Read a full register from the FEMB FPGA.  Returns the 32 bits in an integer form
     def read_cdi_reg(self, reg):
@@ -283,7 +284,7 @@ class LuSEE_ETHERNET:
         header_dict["ccsds_version"] = hex(formatted_data[10] >> 13)
         header_dict["ccsds_packet_type"] = hex((formatted_data[10] >> 12) & 0x1)
         header_dict["ccsds_secheaderflag"] = hex((formatted_data[10] >> 11) & 0x1)
-        header_dict["ccsds_appid"] = hex(formatted_data[10] & 0x7FF)
+        header_dict["ccsds_appid"] = hex(formatted_data[10] & 0x07FF) 
         header_dict["ccsds_groupflags"] = hex(formatted_data[11] >> 14)
         header_dict["ccsds_sequence_cnt"] = hex(formatted_data[11] & 0x3FFF)
 
@@ -512,8 +513,38 @@ class LuSEE_ETHERNET:
         program_info_dict["default_vals_loaded"] = packet[1]
         return program_info_dict
 
+    def ListenForData(self):
+        ready = select.select([self.sock_read_data], [], [], 0.01)  # 10 milliseconds timeout
+        if ready[0]:
+            data, addr = self.sock_read_data.recvfrom(4096)  # buffer size is 4096 bytes
+            if data:
+                unpack_buffer = int((len(data))/2)
+                #Unpacking into shorts in increments of 2 bytes
+                formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
+                header_dict = self.organize_header(formatted_data)
+                appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack
+                self.clog.logt(f"Got data AppID {hex(appid)}\n")
+
+                # Now need to reoder data
+                data = data[26:]
+                cdata = bytearray(len(data))
+                cdata[::2]= data[1::2]
+                cdata[1::2] = data[::2]
+                
+                fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
+                f= open(fname,'wb')
+                f.write(cdata)
+                f.close()
+                self.packet_count += 1
+                
+                        
+                
+
+    
 if __name__ == "__main__":
     #arg = sys.argv[1]
     luseeEthernet = LuSEE_ETHERNET()
 
     print(luseeEthernet.read_cdi_reg(0x120))
+
+

@@ -25,7 +25,11 @@ class Packet_Hello(Packet):
         self._read()
         
         desc = "Hello Packet\n"
-        desc += f"Version : {self.version}\n"
+        desc += f"SW_Version : {hex(self.SW_version)}\n"
+        desc += f"FW_Version : {hex(self.FW_Version) }\n"
+        desc += f"FW_ID      : {hex(self.FW_ID) }\n"
+        desc += f"FW_Date    : {hex(self.FW_Date) }\n"
+        desc += f"FW_Time    : {hex(self.FW_Time) }\n"
         desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"time_sec : {self.time_seconds}\n"
         desc += f"time_subsec : {self.time_subseconds}\n"

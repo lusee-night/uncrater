@@ -28,9 +28,9 @@ class Packet_Housekeep(Packet):
     def info (self):
         self._read()
         
-        desc = "House Packet Type {self.hk_type}\n"
+        desc = f"House Packet Type {self.hk_type}\n"
         desc += f"Version : {self.version}\n"
-        desc += f"packet_id : {self.unique_packet_id}\n"
+        desc += f"packet_id : {self.packet_id}\n"
         if self.hk_type == 0:
             desc += f"TBC"
         elif self.hk_type == 1:

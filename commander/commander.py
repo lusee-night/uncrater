@@ -41,31 +41,36 @@ def loop(clog, uart, uart_log, ether, s):
         if s in ready_to_read:
             c, addr = s.accept()
             input_data = c.recv(1024).decode()       
-            clog.logt (f" Received: {input_data}\n")
             err =0 
             if input_data[:3]=='CMD':
                 cmd,arg = input_data.split(' ')[1:]
                 try:
-                    data = int(data)
-                    arg = int(arg)
+                    cmd = int(cmd,16)
+                    arg = int(arg,16)
                 except:
                     err = 1
-                if (err == 0)
-                    luseeUart.write_cdi_reg(cmd, arg)
+                if (err == 0):
+                    ether.write_cdi_reg(0x0002, (cmd<<16)+arg)
+                    ether.write_cdi_reg(0x0001, 0x01)
+                    ether.write_cdi_reg(0x0001, 0x00)
+                    clog.logt (f" Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
+                    
             else:
                 clog.logt(f"Unknown command: {input_data}\n")
                 err = 1
             if err:
                 clog.logt(f"Error processing command: {input_data}\n")
+        ether.ListenForData()
     
 def create_or_clear_directory(directory):
     if os.path.exists(directory):
         shutil.rmtree(directory)
 
     os.makedirs(directory)
-
+    os.makedirs(os.path.join(directory,'cdi_output'))
 
 if __name__ == "__main__":
+    print ("Starting commander.")
     session="session"
     create_or_clear_directory(session)
     commander_fn = os.path.join(session, "commander.log")
@@ -80,12 +85,11 @@ if __name__ == "__main__":
     clog.log("Attempting to open UART serial...\n")
     uart = None
     luseeUart = LuSEE_UART(clog)
-    luseeEther = LuSEE_ETHERNERT(clog)
-
     if luseeUart.get_connections():
         if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
            uart = LuSEE_UART
-        
+    luseeEther = LuSEE_ETHERNET(clog, session)
+
     s = socket.socket()
     s.bind(('172.30.192.1', 8051))
     s.listen(5)
