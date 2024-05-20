@@ -126,7 +126,7 @@ def update_output(cmd_clicks, cmd_subs, cdi_clicks, cdi_subs, cmdcmd_subs, n_int
     cdi_value = collection.list() 
     
     if cmd_clicks>config['cmd_clicks'] or cmd_subs>config['cmd_subs']:
-        commander_send (f"# # CDI {cdi_cmd} {cdi_arg}")
+        commander_send (f"CMD {cdi_cmd} {cdi_arg}")
         config['cmd_clicks'] = cmd_clicks
         config['cmd_subs'] = cmd_subs
 

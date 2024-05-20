@@ -1,4 +1,5 @@
 from uart_comm import LuSEE_UART
+from ethernet_comm import LuSEE_ETHERNET
 import os
 import sys
 import select
@@ -27,7 +28,7 @@ class clogger:
 def remove_LR(data):
     return data.replace(b'\x0A', b'')
 
-def loop(clog, uart, uart_log,s):
+def loop(clog, uart, uart_log, ether, s):
     stime = int(time.time())
     
     while True:
@@ -40,8 +41,22 @@ def loop(clog, uart, uart_log,s):
         if s in ready_to_read:
             c, addr = s.accept()
             input_data = c.recv(1024).decode()       
-            print(f"got data: {input_data}")
             clog.logt (f" Received: {input_data}\n")
+            err =0 
+            if input_data[:3]=='CMD':
+                cmd,arg = input_data.split(' ')[1:]
+                try:
+                    data = int(data)
+                    arg = int(arg)
+                except:
+                    err = 1
+                if (err == 0)
+                    luseeUart.write_cdi_reg(cmd, arg)
+            else:
+                clog.logt(f"Unknown command: {input_data}\n")
+                err = 1
+            if err:
+                clog.logt(f"Error processing command: {input_data}\n")
     
 def create_or_clear_directory(directory):
     if os.path.exists(directory):
@@ -65,6 +80,8 @@ if __name__ == "__main__":
     clog.log("Attempting to open UART serial...\n")
     uart = None
     luseeUart = LuSEE_UART(clog)
+    luseeEther = LuSEE_ETHERNERT(clog)
+
     if luseeUart.get_connections():
         if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
            uart = LuSEE_UART
@@ -76,7 +93,7 @@ if __name__ == "__main__":
 
 
     clog.log("\n\nEntering main loop.\n")   
-    loop(clog, uart, uart_log,s)
+    loop(clog, uart, uart_log,luseeEther, s)
 
     
 
