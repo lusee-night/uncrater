@@ -23,7 +23,6 @@ class LuSEE_UART:
 
     def get_connections(self):
         ports = list_ports.comports()
-        print (dir(ports[0]))
         flashpro = None
         if (len(ports) == 0):
             self.clog.log ("No USB connection found: Make sure FPGA is plugged into the computer!\n")

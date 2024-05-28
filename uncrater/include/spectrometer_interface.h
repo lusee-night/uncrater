@@ -15,8 +15,8 @@
 struct ADC_stat {
     int16_t min, max;
     uint32_t valid_count, invalid_count_max, invalid_count_min;
-    int32_t mean;
-    uint64_t var;
+    uint64_t sumv;
+    uint64_t sumv2;
 }__attribute__((packed));
 
 
@@ -27,6 +27,10 @@ void spectrometer_init();
 void spec_set_Navg1(uint32_t Navg1);
 void spec_set_spectrometer_enable(bool on);
 
+
+// Get various version ID
+// subfield s=0 (Version) 1(FW_ID) 2 (FW_Date) 3(FW_Time)
+uint32_t spec_get_version(int s);
 
 // RFS_SET_RESET  Reset default configuration (system configuration as after boot)
 void spec_set_reset();

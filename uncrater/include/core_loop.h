@@ -19,7 +19,7 @@
 #define RESETTLE_DELAY 2 // number of timer interrupts to wait before settling after a change
 #define HEARTBEAT_DELAY 1000 // number of timer interrupts to wait before sending heartbeat
 
-#define ADC_STAT_SAMPLES 16384
+#define ADC_STAT_SAMPLES 8000
 
 // note that gain auto is missing here, since these are actual spectrometer set gains
 enum gain_state{

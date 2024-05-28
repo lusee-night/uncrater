@@ -15,15 +15,22 @@ class Packet_Housekeep(Packet):
         self.version, self.packet_id, self.hk_type = struct.unpack(fmt, self.blob[cs:ce])
         if self.hk_type == 1:
             res = c2py('housekeeping_data_1', self.blob)
-            self.min = np.array([x.min for x in res.ADC_stat])
-            self.max = np.array([x.max for x in res.ADC_stat])
+            self.min = np.array([x.min-0x1fff for x in res.ADC_stat])
+            self.max = np.array([x.max-0x1fff for x in res.ADC_stat])
             self.valid_count = np.array([x.valid_count for x in res.ADC_stat])
             self.invalid_count_max = np.array([x.invalid_count_max for x in res.ADC_stat])
             self.invalid_count_min = np.array([x.invalid_count_min for x in res.ADC_stat])
-            self.adc_mean = np.array([x.mean for x in res.ADC_stat])
-            self.adc_var = np.array([x.var for x in res.ADC_stat])
+            sumx = np.array([x.sumv for x in res.ADC_stat])
+            sumxx = np.array([x.sumv2 for x in res.ADC_stat])
+            print (sumx, sumxx)
+            self.adc_mean = sumx/self.valid_count-0x1fff
+            self.adc_var = sumxx/self.valid_count-(sumx/self.valid_count)**2
+            self.adc_mean[self.valid_count == 0] = 0 
+            self.adc_var[self.valid_count ==0 ] = 0
             self.adc_rms = np.sqrt(self.adc_var)
             self.version = res.version
+            print ("I am here", self.min)
+    
     
     def info (self):
         self._read()

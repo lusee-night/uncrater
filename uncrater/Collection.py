@@ -25,8 +25,11 @@ class Collection:
             _Packet = PacketDict.get(appid,Packet)
             self.cont.append(_Packet(appid, blob_fn = fn))
             self.time.append(os.path.getmtime(fn))
-            dt= self.time[-1]-self.time[0]
-            self.desc.append(f"{i:4d} : +{dt:4.1f}s : 0x{appid:0x} : {self.cont[-1].desc}")
+            try:
+                dt= self.time[-1]-self.time[0]
+                self.desc.append(f"{i:4d} : +{dt:4.1f}s : 0x{appid:0x} : {self.cont[-1].desc}")
+            except:
+                pass
 
     def __len__(self):
         return len(self.cont)

@@ -57,6 +57,9 @@ class LuSEE_ETHERNET:
         self.BL_PROGRAM_VERIFY = 0x3
         self.sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+        self.sock_read_hk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock_read_hk.bind((self.PC_IP, self.PORT_HK))
+
         self.sock_read_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_read_data.bind((self.PC_IP, self.PORT_DATA))
 
@@ -64,10 +67,11 @@ class LuSEE_ETHERNET:
         self.out_dir = os.path.join(session,'cdi_output')
         self.clog.log(f"Initialized LuSEE_ETHERNET with version {self.version}.\n")
         self.clog.log(f"UDP IP is {self.UDP_IP} and PC IP is {self.PC_IP}.\n")
+        self.clog.log(f"Listening on ports {self.PORT_DATA}\n")
         
         print ("logging here")
         
-    def reset(self):
+    def reset(self, clog):
         print("Python Ethernet --> Resetting, wait a few seconds")
         self.write_reg(self.spectrometer_reset,1)
         time.sleep(3)
@@ -79,6 +83,8 @@ class LuSEE_ETHERNET:
         time.sleep(1)
         self.write_cdi_reg(self.latch_register, 0)
         time.sleep(self.wait_time)
+        self.clog = clog
+        self.packet_count = 0 
 
     def toggle_cdi_latch(self):
         self.write_cdi_reg(self.latch_register, 1)
@@ -514,28 +520,29 @@ class LuSEE_ETHERNET:
         return program_info_dict
 
     def ListenForData(self):
-        ready = select.select([self.sock_read_data], [], [], 0.01)  # 10 milliseconds timeout
-        if ready[0]:
-            data, addr = self.sock_read_data.recvfrom(4096)  # buffer size is 4096 bytes
-            if data:
-                unpack_buffer = int((len(data))/2)
-                #Unpacking into shorts in increments of 2 bytes
-                formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
-                header_dict = self.organize_header(formatted_data)
-                appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack
-                self.clog.logt(f"Got data AppID {hex(appid)}\n")
+        for sock_read,port in [(self.sock_read_hk,self.PORT_HK), (self.sock_read_data,self.PORT_DATA)]:
+            ready = select.select([sock_read], [], [], 0.01)  # 10 milliseconds timeout
+            if ready[0]:
+                data, addr = sock_read.recvfrom(4*4096)  # arg is buffer size
+                if data:
+                    unpack_buffer = int((len(data))/2)
+                    #Unpacking into shorts in increments of 2 bytes
+                    formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
+                    header_dict = self.organize_header(formatted_data)
+                    appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack
+                    self.clog.logt(f"Got data AppID {hex(appid)} on port {port}\n")
 
-                # Now need to reoder data
-                data = data[26:]
-                cdata = bytearray(len(data))
-                cdata[::2]= data[1::2]
-                cdata[1::2] = data[::2]
-                
-                fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
-                f= open(fname,'wb')
-                f.write(cdata)
-                f.close()
-                self.packet_count += 1
+                    # Now need to reoder data
+                    data = data[26:]
+                    cdata = bytearray(len(data))
+                    cdata[::2]= data[1::2]
+                    cdata[1::2] = data[::2]
+                    
+                    fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
+                    f= open(fname,'wb')
+                    f.write(cdata)
+                    f.close()
+                    self.packet_count += 1
                 
                         
                 

@@ -60,7 +60,7 @@ app.layout = html.Div([
     ], style={'width': '100%', 'align': 'center','margin-left': 'auto', 'margin-right': 'auto', 'text-align': 'center'}),
     dcc.Interval(
             id='interval-component',
-            interval=1*1000, # in milliseconds
+            interval=1*100, # in milliseconds
             n_intervals=0
         )
 ])
