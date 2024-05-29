@@ -15,16 +15,22 @@ class Scripter:
         open(fname,'w').writelines(self.script)
 
     def add_reset(self):
-        self.script.append(f"reset\n")
+        self.script.append(f"{self.default_dt:5.1f} reset\n")
     
     def add_save(self,name):
-        self.script.append(f"save {name}\n")
+        self.script.append(f"{self.default_dt:5.1f} save {name}\n")
 
     def add_command(self, cmd, arg, dt=None):
         if dt is None:
             dt = self.default_dt
-        self.script.append(f"CMD {dt:5.1f} {cmd:02x} {arg:04x} \n")
+        self.script.append(f"{dt:5.1f} CMD {cmd:02x} {arg:04x} \n")
 
+
+    def add_spectrometer_command(self,cmd,arg,dt=None):
+        assert(arg<256)
+        assert(cmd<256)
+        self.add_command(0x10,(cmd<<8)+arg)     
+           
     def add_route(self, ch, plus, min=None, dt=None):
         assert ((ch>=0) and (ch<4))
         cmd = lc.RFS_SET_ROUTE_SET1+ch
@@ -34,7 +40,7 @@ class Scripter:
             plus = 4
 
         arg = (plus<<3)+min
-        self.add_command(cmd, arg, dt)
+        self.add_spectrometer_command(cmd, arg, dt)
 
     def add_ana_gain(self, gains, dt=None):
         assert(len(gains)==4)
@@ -42,14 +48,13 @@ class Scripter:
         arg = 0
         for c in gains[::-1]:
             assert c in "LMHA"
-            arg+= "LMHA".index(c)
-            arg = (arg<<2)
-        self.add_command(cmd, arg, dt)
+            arg = (arg<<2)+"LMHA".index(c)
+        self.add_spectrometer_command(cmd, arg, dt)
 
     def add_range_adc(self, dt=None):
         cmd = lc.RFS_SET_RANGE_ADC
         arg = 0
-        self.add_command(cmd, arg, dt)
+        self.add_spectrometer_command(cmd, arg, dt)
 
     
 

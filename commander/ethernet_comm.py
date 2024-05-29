@@ -72,17 +72,18 @@ class LuSEE_ETHERNET:
         print ("logging here")
         
     def reset(self, clog):
-        print("Python Ethernet --> Resetting, wait a few seconds")
-        self.write_reg(self.spectrometer_reset,1)
-        time.sleep(3)
-        self.write_reg(self.spectrometer_reset,0)
-        time.sleep(2)
-        self.write_cdi_reg(self.cdi_reset,1)
-        time.sleep(2)
-        self.write_cdi_reg(self.cdi_reset,0)
-        time.sleep(1)
-        self.write_cdi_reg(self.latch_register, 0)
-        time.sleep(self.wait_time)
+        #print("Python Ethernet --> Resetting, wait a few seconds")
+        #self.write_reg(self.spectrometer_reset,1)
+        #time.sleep(3)
+        #self.write_reg(self.spectrometer_reset,0)
+        #time.sleep(2)
+        #self.write_cdi_reg(self.cdi_reset,1)
+        #time.sleep(2)
+        #self.write_cdi_reg(self.cdi_reset,0)
+        #time.sleep(1)
+        #self.write_cdi_reg(self.latch_register, 0)
+        #time.sleep(self.wait_time)
+        self.cdi_command(0x10, 0x0200)
         self.clog = clog
         self.packet_count = 0 
 

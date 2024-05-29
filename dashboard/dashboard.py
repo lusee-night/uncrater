@@ -98,7 +98,7 @@ app.clientside_callback(
     Output('cdi', 'value'),
     Output('cdi_raw', 'value'),
     Output('cdi_info', 'value'),
-    Output('cmd_cmd', 'value'),
+    #Output('cmd_cmd', 'value'),
     Input('cmd_submit_b', 'n_clicks'),
     Input('cdi_arg', 'n_submit'),
     Input('cdi_inspect_b', 'n_clicks'),
@@ -154,7 +154,7 @@ def update_output(cmd_clicks, cmd_subs, cdi_clicks, cdi_subs, cmdcmd_subs, n_int
         cdi_raw_value = ""
         cdi_info_value = ""
     
-    return (uart_value, commander_value, cdi_value, cdi_raw_value, cdi_info_value, cmdcmd)
+    return (uart_value, commander_value, cdi_value, cdi_raw_value, cdi_info_value)
     
     
 

@@ -33,7 +33,7 @@ def remove_LR(data):
 def read_script(fname):
     script = []
     try:
-        f = open(fname)
+        f = open(os.path.join("scripts",fname+".scr"))
     except:
         return []
     for line in f.readlines():
@@ -41,7 +41,7 @@ def read_script(fname):
         line = line.split("#")[0]
         line = line.split()
         if len(line)>0:
-            script.append((int(line[0]), line[1:]))
+            script.append((float(line[0]), line[1:]))
     return script
 
 class Commander:
@@ -70,8 +70,7 @@ class Commander:
        self.clog.logt('Resetting....') 
        
        self.prepare_directory()
-       self.cdi_command(0x02, 0)
-       #self.ether.reset(self.clog)
+       self.ether.reset(self.clog)
         
     def run(self):
         self.clog.log("\n\nEntering main loop.\n")   
@@ -81,9 +80,13 @@ class Commander:
         while True:
 
             if self.uart is not None:
-                uart_data = self.uart.read()
-                uart_data = remove_LR(uart_data)
-                self.uart_log.write(uart_data) 
+                while True:
+                    uart_data = self.uart.read()
+                    if len(uart_data)==0:
+                        break
+                    uart_data = remove_LR(uart_data)
+                    self.uart_log.write(uart_data) 
+                
                 self.uart_log.flush()
             ready_to_read, _, _ = select.select([self.s], [], [], 0)
 
@@ -115,14 +118,15 @@ class Commander:
                     except:
                         err = 1
                     if (err == 0):
-                        self.ether cdi_command(cmd, arg)
+                        self.ether.cdi_command(cmd, arg)
                         self.clog.logt (f" Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
                 elif cmd == 'reset':
                     self.reset()
                 elif cmd == 'save':
+                    self.clog.logt(f"Saving to {input_data[1]}")
                     os.system(f'cp -r {self.session} {input_data[1]}')
                 elif input_data[0] == 'script':
-                    script = read_script(input_data[1])) +script
+                    script = read_script(input_data[1]) +script
                     script_last = time.time()
                 else:
                     self.clog.logt(f"Unknown command: {input_data}\n")
