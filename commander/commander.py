@@ -30,7 +30,19 @@ class clogger:
 def remove_LR(data):
     return data.replace(b'\x0A', b'')
 
-
+def read_script(fname):
+    script = []
+    try:
+        f = open(fname)
+    except:
+        return []
+    for line in f.readlines():
+        line = line.strip()
+        line = line.split("#")[0]
+        line = line.split()
+        if len(line)>0:
+            script.append((int(line[0]), line[1:]))
+    return script
 
 class Commander:
     
@@ -58,28 +70,44 @@ class Commander:
        self.clog.logt('Resetting....') 
        
        self.prepare_directory()
-       self.ether.reset(self.clog)
+       self.cdi_command(0x02, 0)
+       #self.ether.reset(self.clog)
         
     def run(self):
         self.clog.log("\n\nEntering main loop.\n")   
 
         stime = int(time.time())
-        
+        script = []
         while True:
+
             if self.uart is not None:
                 uart_data = self.uart.read()
                 uart_data = remove_LR(uart_data)
                 self.uart_log.write(uart_data) 
                 self.uart_log.flush()
             ready_to_read, _, _ = select.select([self.s], [], [], 0)
+
+            have_cmd = False
             if self.s in ready_to_read:
                 c, addr = self.s.accept()
                 input_data = c.recv(1024).decode()       
+                input_data = input_data.split() 
+                have_cmd = True
+            else:
+                if len(script)>0:
+                    dt, cmd = script[0]
+                    ctime = time.time()
+                    if ctime-script_last>dt:
+                        input_data = cmd
+                        have_cmd = True
+                        script.pop(0)
+                        script_last = ctime
+            if have_cmd:
                 err =0 
-                input_data = input_data.split()
                 if len(input_data)==0:
                     input_data=[""]
-                if input_data[0]=='CMD':
+                cmd = input_data[0]
+                if cmd=='CMD':
                     cmd,arg = input_data[1:]
                     try:
                         cmd = int(cmd,16)
@@ -87,19 +115,29 @@ class Commander:
                     except:
                         err = 1
                     if (err == 0):
-                        self.ether.write_cdi_reg(0x0002, (cmd<<16)+arg)
-                        self.ether.write_cdi_reg(0x0001, 0x01)
-                        self.ether.write_cdi_reg(0x0001, 0x00)
+                        self.ether cdi_command(cmd, arg)
                         self.clog.logt (f" Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
-                elif input_data[0]=='reset':
+                elif cmd == 'reset':
                     self.reset()
-
+                elif cmd == 'save':
+                    os.system(f'cp -r {self.session} {input_data[1]}')
+                elif input_data[0] == 'script':
+                    script = read_script(input_data[1])) +script
+                    script_last = time.time()
                 else:
                     self.clog.logt(f"Unknown command: {input_data}\n")
                     err = 1
                 if err:
                     self.clog.logt(f"Error processing command: {input_data}\n")
             self.ether.ListenForData()
+
+
+            if len(script)>0:
+                ctime = time.time()
+
+
+
+
         
     def prepare_directory(self):
         if hasattr(self,"clog"):

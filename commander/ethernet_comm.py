@@ -156,6 +156,13 @@ class LuSEE_ETHERNET:
 
         self.sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.FEMB_PORT_WREG ))
 
+    def cdi_command(self,cmd,arg):
+        self.write_cdi_reg(0x0002, (cmd<<16)+arg)
+        self.write_cdi_reg(0x0001, 0x01)
+        self.write_cdi_reg(0x0001, 0x00)
+
+
+
     #Read a full register from the FEMB FPGA.  Returns the 32 bits in an integer form
     def read_cdi_reg(self, reg):
         regVal = int(reg)
