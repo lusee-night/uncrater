@@ -31,15 +31,15 @@ class Scripter:
         assert(cmd<256)
         self.add_command(0x10,(cmd<<8)+arg)     
            
-    def add_route(self, ch, plus, min=None, dt=None):
+    def add_route(self, ch, plus, minus=None, dt=None):
         assert ((ch>=0) and (ch<4))
         cmd = lc.RFS_SET_ROUTE_SET1+ch
-        if min is None:
-            min = 4
+        if minus is None:
+            minus = 4
         if plus is None:
             plus = 4
-
-        arg = (plus<<3)+min
+        print ("route", plus, minus,ch)
+        arg = (minus<<3)+plus
         self.add_spectrometer_command(cmd, arg, dt)
 
     def add_ana_gain(self, gains, dt=None):

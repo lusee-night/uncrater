@@ -123,8 +123,11 @@ class Commander:
                 elif cmd == 'reset':
                     self.reset()
                 elif cmd == 'save':
+                    tgt = input_data[1]
                     self.clog.logt(f"Saving to {input_data[1]}")
-                    os.system(f'cp -r {self.session} {input_data[1]}')
+                    if os.path.exists(tgt):
+                        os.system(f'rm -rf {tgt}')
+                    os.system(f'cp -r {self.session} {tgt}')
                 elif input_data[0] == 'script':
                     script = read_script(input_data[1]) +script
                     script_last = time.time()
