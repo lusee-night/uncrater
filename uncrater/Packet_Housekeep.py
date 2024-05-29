@@ -22,16 +22,13 @@ class Packet_Housekeep(Packet):
             self.invalid_count_min = np.array([x.invalid_count_min for x in res.ADC_stat])
             sumx = np.array([x.sumv for x in res.ADC_stat])
             sumxx = np.array([x.sumv2 for x in res.ADC_stat])
-            print (sumx, sumxx)
             self.adc_mean = sumx/self.valid_count-0x1fff
             self.adc_var = sumxx/self.valid_count-(sumx/self.valid_count)**2
             self.adc_mean[self.valid_count == 0] = 0 
             self.adc_var[self.valid_count ==0 ] = 0
             self.adc_rms = np.sqrt(self.adc_var)
             self.version = res.version
-            print ("I am here", self.min)
-    
-    
+
     def info (self):
         self._read()
         

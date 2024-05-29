@@ -14,6 +14,9 @@ class Packet:
         if self.blob is None:
             self.blob = open(self.blob_fn,"rb").read()    
 
+    def read(self):
+        self._read()
+
     def xxd(self):
         """ xxd style dump of the contents"""
         self._read()
