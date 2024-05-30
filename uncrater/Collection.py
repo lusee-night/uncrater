@@ -20,7 +20,8 @@ class Collection:
         self.cont = []
         self.time = []
         self.desc = []
-        for i,fn in enumerate(sorted(glob.glob(os.path.join(self.dir, '*.bin')))):
+        flist = sorted(glob.glob(os.path.join(self.dir, '*.bin')))
+        for i,fn in enumerate(flist):
             appid = int(fn.replace('.bin','').split("_")[-1],16)
             _Packet = PacketDict.get(appid,Packet)
             self.cont.append(_Packet(appid, blob_fn = fn))

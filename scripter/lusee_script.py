@@ -29,7 +29,7 @@ class Scripter:
     def add_spectrometer_command(self,cmd,arg,dt=None):
         assert(arg<256)
         assert(cmd<256)
-        self.add_command(0x10,(cmd<<8)+arg)     
+        self.add_command(0x10,(cmd<<8)+arg,dt)     
            
     def add_route(self, ch, plus, minus=None, dt=None):
         assert ((ch>=0) and (ch<4))
@@ -56,7 +56,15 @@ class Scripter:
         arg = 0
         self.add_spectrometer_command(cmd, arg, dt)
 
+    def add_start(self,dt=None):
+        cmd = lc.RFS_SET_START
+        arg = 0
+        self.add_spectrometer_command(cmd, arg, dt)
+        
+    def add_stop(self,dt=None):
+        cmd = lc.RFS_SET_STOP
+        arg = 0
+        self.add_spectrometer_command(cmd, arg, dt)
     
-
 
     

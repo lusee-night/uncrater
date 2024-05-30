@@ -529,31 +529,41 @@ class LuSEE_ETHERNET:
 
     def ListenForData(self):
         for sock_read,port in [(self.sock_read_hk,self.PORT_HK), (self.sock_read_data,self.PORT_DATA)]:
-            ready = select.select([sock_read], [], [], 0.01)  # 10 milliseconds timeout
-            if ready[0]:
-                data, addr = sock_read.recvfrom(4*4096)  # arg is buffer size
-                if data:
-                    unpack_buffer = int((len(data))/2)
-                    #Unpacking into shorts in increments of 2 bytes
-                    formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
-                    header_dict = self.organize_header(formatted_data)
-                    appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack
-                    self.clog.logt(f"Got data AppID {hex(appid)} on port {port}\n")
-
-                    # Now need to reoder data
-                    data = data[26:]
-                    cdata = bytearray(len(data))
-                    cdata[::2]= data[1::2]
-                    cdata[1::2] = data[::2]
-                    
-                    fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
-                    f= open(fname,'wb')
-                    f.write(cdata)
-                    f.close()
-                    self.packet_count += 1
-                
+            full_packet = {}
+            while True:
+                ready = select.select([sock_read], [], [], 0.01)  # 10 milliseconds timeout
+                if ready[0]:
+                    data, addr = sock_read.recvfrom(4*4096)  # arg is buffer size
+                    if data:
+                        unpack_buffer = int((len(data))/2)
+                        #Unpacking into shorts in increments of 2 bytes
+                        formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
+                        header_dict = self.organize_header(formatted_data)
+                        appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack                            
                         
-                
+                        last_packet = (len(data) < 4112)
+                        # Now need to reoder data
+                        data = data[26:]                        
+                        cdata = bytearray(len(data))
+                        cdata[::2]= data[1::2]
+                        cdata[1::2] = data[::2]
+                        if not appid in full_packet: 
+                            full_packet[appid] = bytearray(0)
+                        full_packet[appid] = full_packet[appid]+cdata
+                        if last_packet:
+                            fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
+                            towrite = full_packet[appid][:-2] ## now chop last two bytes
+                            f= open(fname,'wb')
+                            f.write(towrite) 
+                            f.close()
+                            self.clog.logt(f"Stored AppID {hex(appid)} len={len(towrite)}\n")    
+                            self.packet_count += 1
+                            full_packet [appid]= bytearray(0)
+                            
+                else:
+                    break    
+                            
+                    
 
     
 if __name__ == "__main__":
