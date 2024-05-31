@@ -5,9 +5,12 @@ from .Packet import Packet
 from .Packet_Hello import Packet_Hello
 from .Packet_Heartbeat import Packet_Heartbeat
 from .Packet_Housekeep import Packet_Housekeep
+from .Packet_Spectrum import Packet_Spectrum, Packet_Metadata
 from datetime import datetime
 
-PacketDict = {0x206:Packet_Housekeep, 0x209:Packet_Hello, 0x20A:Packet_Heartbeat}
+PacketDict = {0x206:Packet_Housekeep, 0x209:Packet_Hello, 0x20A:Packet_Heartbeat, 0X20F:Packet_Metadata}
+for i in range(16):
+    PacketDict[0x210+i] = Packet_Spectrum
 
 
 class Collection:
@@ -20,11 +23,25 @@ class Collection:
         self.cont = []
         self.time = []
         self.desc = []
+        self.spectra = []
         flist = sorted(glob.glob(os.path.join(self.dir, '*.bin')))
         for i,fn in enumerate(flist):
             appid = int(fn.replace('.bin','').split("_")[-1],16)
             _Packet = PacketDict.get(appid,Packet)
-            self.cont.append(_Packet(appid, blob_fn = fn))
+            packet = _Packet(appid, blob_fn = fn)
+            if appid==0x20F:
+                packet.read()
+                format, expected_packet_id = packet.format, packet.packet_id
+                cspectrum = {'meta':packet}
+                
+            if appid>=0x210 and appid<=0x21F:
+                packet.set_expected(format, expected_packet_id)
+                cspectrum[appid-0x210] = packet
+                if appid==0x21F:
+                    self.spectra.append(cspectrum)
+
+            self.cont.append(packet)
+
             self.time.append(os.path.getmtime(fn))
             try:
                 dt= self.time[-1]-self.time[0]
@@ -54,3 +71,7 @@ class Collection:
         if intro:
             return self._intro(i) + self.cont[i].xxd()
         return self.cont[i].xxd()
+    
+    
+
+
