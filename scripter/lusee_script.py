@@ -31,6 +31,9 @@ class Scripter:
         assert(cmd<256)
         self.add_command(0x10,(cmd<<8)+arg,dt)     
            
+    def add_adc_range(self,dt=None):
+        self.add_spectrometer_command(lc.RFS_SET_RANGE_ADC,0x0, dt)
+        
     def add_route(self, ch, plus, minus=None, dt=None):
         assert ((ch>=0) and (ch<4))
         cmd = lc.RFS_SET_ROUTE_SET1+ch

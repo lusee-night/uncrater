@@ -19,6 +19,7 @@ class Packet_Metadata(Packet):
 
     def info (self):
         self._read()
+        desc = ""
         desc += f"Version : {self.version}\n"
         desc += f"packet_id : {self.packet_id}\n"
         return desc
@@ -59,7 +60,8 @@ class Packet_Spectrum(Packet):
 
     def info (self):
         self._read()
+        desc = ""
         desc += f"packet_id : {self.packet_id}\n"
         desc += f"crc : {self.crc}\n" 
-        desc += f"Npoints: {len(self.spectrum)}\n"  
+        desc += f"Npoints: {len(self.data)}\n"  
         return desc

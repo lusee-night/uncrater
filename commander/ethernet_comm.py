@@ -63,11 +63,14 @@ class LuSEE_ETHERNET:
         self.sock_read_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_read_data.bind((self.PC_IP, self.PORT_DATA))
 
+        self.data_ports = [(self.sock_read_hk,self.PORT_HK), (self.sock_read_data,self.PORT_DATA)]
+
         self.packet_count = 0
         self.out_dir = os.path.join(session,'cdi_output')
         self.clog.log(f"Initialized LuSEE_ETHERNET with version {self.version}.\n")
         self.clog.log(f"UDP IP is {self.UDP_IP} and PC IP is {self.PC_IP}.\n")
         self.clog.log(f"Listening on ports {self.PORT_DATA}\n")
+        self.etherStop = False
         
         print ("logging here")
         
@@ -527,41 +530,37 @@ class LuSEE_ETHERNET:
         program_info_dict["default_vals_loaded"] = packet[1]
         return program_info_dict
 
-    def ListenForData(self):
-        for sock_read,port in [(self.sock_read_hk,self.PORT_HK), (self.sock_read_data,self.PORT_DATA)]:
-            full_packet = {}
-            while True:
-                ready = select.select([sock_read], [], [], 0.01)  # 10 milliseconds timeout
-                if ready[0]:
-                    data, addr = sock_read.recvfrom(4*4096)  # arg is buffer size
-                    if data:
-                        unpack_buffer = int((len(data))/2)
-                        #Unpacking into shorts in increments of 2 bytes
-                        formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
-                        header_dict = self.organize_header(formatted_data)
-                        appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack                            
-                        
-                        last_packet = (len(data) < 4112)
-                        # Now need to reoder data
-                        data = data[26:]                        
-                        cdata = bytearray(len(data))
-                        cdata[::2]= data[1::2]
-                        cdata[1::2] = data[::2]
-                        if not appid in full_packet: 
-                            full_packet[appid] = bytearray(0)
-                        full_packet[appid] = full_packet[appid]+cdata
-                        if last_packet:
-                            fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
-                            towrite = full_packet[appid][:-2] ## now chop last two bytes
-                            f= open(fname,'wb')
-                            f.write(towrite) 
-                            f.close()
-                            self.clog.logt(f"Stored AppID {hex(appid)} len={len(towrite)}\n")    
-                            self.packet_count += 1
-                            full_packet [appid]= bytearray(0)
+    def ListenForData(self, port_id = 0):
+        sock_read,port = self.data_ports[port_id]
+        full_packet = {}
+        while not self.etherStop:
+            data, addr = sock_read.recvfrom(5000)  # arg is buffer size
+            if data:
+                unpack_buffer = int((len(data))/2)
+                #Unpacking into shorts in increments of 2 bytes
+                formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
+                header_dict = self.organize_header(formatted_data)
+                appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack                            
+                
+                last_packet = (len(data) < 4112)
+                # Now need to reoder data
+                data = data[26:]                        
+                cdata = bytearray(len(data))
+                cdata[::2]= data[1::2]
+                cdata[1::2] = data[::2]
+                if not appid in full_packet: 
+                    full_packet[appid] = bytearray(0)
+                full_packet[appid] = full_packet[appid]+cdata
+                if last_packet:
+                    fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
+                    towrite = full_packet[appid][:-2] ## now chop last two bytes
+                    f= open(fname,'wb')
+                    f.write(towrite) 
+                    f.close()
+                    self.clog.logt(f"Stored AppID {hex(appid)} len={len(towrite)}\n")    
+                    self.packet_count += 1
+                    full_packet [appid]= bytearray(0)
                             
-                else:
-                    break    
                             
                     
 

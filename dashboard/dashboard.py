@@ -65,6 +65,8 @@ app.layout = html.Div([
         )
 ])
 
+def remove_LR(data):
+    return data.replace(b'\x0A', b'')
 
 def commander_send(msg):
     s = socket.socket()
@@ -115,10 +117,10 @@ def update_output(cmd_clicks, cmd_subs, cdi_clicks, cdi_subs, cmdcmd_subs, n_int
     global config, collection
     collection.refresh()
 
-    try:
-        uart_value = open(config['uart']).read()
-    except:
-        uart_value = ""
+    #try:
+    uart_value = remove_LR(open(config['uart'],'rb').read()).decode('UTF-8')
+    #except:
+    #    uart_value = ""
     try:
         commander_value = open(config['commander']).read()
     except:

@@ -6,26 +6,26 @@ gains = ["LLLL","MMMM", "HHHH"]
 S = lusee_script.Scripter()
 
 
-
-
-#S.add_route(2,3,1)
-#S.write_script("test1")
-#sys.exit(1)
-
-
-
 S.add_reset()
+
+for i in range(4):
+    S.add_route(i,1,None)
+
+
 S.add_ana_gain("LLLL")
-S.add_start()
-S.add_stop(10) ## 10 seconds
+S.add_adc_range(dt=1)
+S.add_start(dt=1)
+S.add_stop(15) ## 10 seconds
 
 S.add_ana_gain("MMMM")
-S.add_start()
-S.add_stop(10) ## 10 seconds
+S.add_adc_range(dt=1)
+S.add_start(dt=1)
+S.add_stop(15) ## 10 seconds
 
 S.add_ana_gain("HHHH")
-S.add_start()
-S.add_stop(10) ## 10 seconds
+S.add_adc_range(dt=1)
+S.add_start(dt=1)
+S.add_stop(15) ## 10 seconds
 
 
 #for i in range(4):

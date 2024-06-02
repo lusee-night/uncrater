@@ -7,6 +7,7 @@ import sys
 import time 
 import socket
 import shutil
+import threading
 
 
 class clogger:
@@ -27,9 +28,6 @@ class clogger:
         self.f.close()
         
 
-def remove_LR(data):
-    return data.replace(b'\x0A', b'')
-
 def read_script(fname):
     script = []
     try:
@@ -46,9 +44,18 @@ def read_script(fname):
 
 class Commander:
     
-    def __init__ (self):
+    def __init__ (self, session = "session", script = None):
         print ("Starting commander.")
-        self.session="session"
+        self.session=session
+        if script is None:
+            script = []
+        elif type(script)==str:
+            script = read_script(script)
+        else:
+            assert(type(script)==list) ## oterhwise better be script.
+        
+        self.script = script
+            
         self.prepare_directory()
 
 
@@ -72,24 +79,32 @@ class Commander:
        self.prepare_directory()
        self.ether.reset(self.clog)
         
+        
+    def uart_thread (self):
+        if self.uart is not None:
+            while not self.uartStop:
+                uart_data = self.uart.read()
+                if not self.uart_log.closed:
+                    self.uart_log.write(uart_data) 
+                    self.uart_log.flush()
+    
     def run(self):
-        self.clog.log("\n\nEntering main loop.\n")   
+        self.clog.log('Starting UART thread \n')
+        tu = threading.Thread (target = self.uart_thread, daemon = True)
+        self.uartStop = False
+        tu.start()    
+        self.clog.log("\n\nStarting data collection threads.\n")   
+        te1 = threading.Thread(target = self.ether.ListenForData, args = (0,), daemon=True)
+        te2 = threading.Thread(target = self.ether.ListenForData, args = (1,), daemon=True)
+        te1.start()
+        te2.start()
+        
+        
 
         stime = int(time.time())
-        script = []
         while True:
 
-            if self.uart is not None:
-                while True:
-                    uart_data = self.uart.read()
-                    if len(uart_data)==0:
-                        break
-                    uart_data = remove_LR(uart_data)
-                    self.uart_log.write(uart_data) 
-                
-                self.uart_log.flush()
             ready_to_read, _, _ = select.select([self.s], [], [], 0)
-
             have_cmd = False
             if self.s in ready_to_read:
                 c, addr = self.s.accept()
@@ -97,13 +112,13 @@ class Commander:
                 input_data = input_data.split() 
                 have_cmd = True
             else:
-                if len(script)>0:
-                    dt, cmd = script[0]
+                if len(self.script)>0:
+                    dt, cmd = self.script[0]
                     ctime = time.time()
                     if ctime-script_last>dt:
                         input_data = cmd
                         have_cmd = True
-                        script.pop(0)
+                        self.script.pop(0)
                         script_last = ctime
             if have_cmd:
                 err =0 
@@ -128,20 +143,20 @@ class Commander:
                     if os.path.exists(tgt):
                         os.system(f'rm -rf {tgt}')
                     os.system(f'cp -r {self.session} {tgt}')
-                elif input_data[0] == 'script':
-                    script = read_script(input_data[1]) +script
+                elif cmd == 'script':
+                    self.script = read_script(input_data[1]) + self.script
                     script_last = time.time()
+                elif cmd == 'exit':
+                    break
                 else:
                     self.clog.logt(f"Unknown command: {input_data}\n")
                     err = 1
                 if err:
                     self.clog.logt(f"Error processing command: {input_data}\n")
-            self.ether.ListenForData()
-
-
-            if len(script)>0:
-                ctime = time.time()
-
+        
+        self.uartStop = True
+        self.ether.etherStop = True
+        print ('Exiting commander.')
 
 
 
