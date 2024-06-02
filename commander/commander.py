@@ -99,9 +99,8 @@ class Commander:
         te1.start()
         te2.start()
         
-        
-
         stime = int(time.time())
+        script_last = time.time()
         while True:
 
             ready_to_read, _, _ = select.select([self.s], [], [], 0)

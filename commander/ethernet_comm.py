@@ -560,6 +560,7 @@ class LuSEE_ETHERNET:
                     self.clog.logt(f"Stored AppID {hex(appid)} len={len(towrite)}\n")    
                     self.packet_count += 1
                     full_packet [appid]= bytearray(0)
+        
                             
                             
                     

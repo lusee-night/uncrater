@@ -14,60 +14,82 @@ class Scripter:
         fname = "scripts/"+name+".scr"
         open(fname,'w').writelines(self.script)
 
-    def add_reset(self):
-        self.script.append(f"{self.default_dt:5.1f} reset\n")
-    
-    def add_save(self,name):
-        self.script.append(f"{self.default_dt:5.1f} save {name}\n")
+    def reset(self,dt=None):
+        if dt is None:
+            dt=self.default_dt
 
-    def add_command(self, cmd, arg, dt=None):
+        self.script.append(f"{dt:5.1f} reset\n")
+    
+    def save(self,name,dt=None):
+        if dt is None:
+            dt=self.default_dt
+        self.script.append(f"{dt:5.1f} save {name}\n")
+
+    def exit(self,dt=None):
+        if dt is None:
+            dt=self.default_dt
+        self.script.append(f"{dt:5.1f} exit\n")
+
+    def command(self, cmd, arg, dt=None):
         if dt is None:
             dt = self.default_dt
         self.script.append(f"{dt:5.1f} CMD {cmd:02x} {arg:04x} \n")
 
 
-    def add_spectrometer_command(self,cmd,arg,dt=None):
+    def spectrometer_command(self,cmd,arg,dt=None):
         assert(arg<256)
         assert(cmd<256)
-        self.add_command(0x10,(cmd<<8)+arg,dt)     
+        self.command(0x10,(cmd<<8)+arg,dt)     
            
-    def add_adc_range(self,dt=None):
-        self.add_spectrometer_command(lc.RFS_SET_RANGE_ADC,0x0, dt)
+    def adc_range(self,dt=None):
+        self.spectrometer_command(lc.RFS_SET_RANGE_ADC,0x0, dt)
         
-    def add_route(self, ch, plus, minus=None, dt=None):
+    def route(self, ch, plus, minus=None, gain = 'M', dt=None):
         assert ((ch>=0) and (ch<4))
         cmd = lc.RFS_SET_ROUTE_SET1+ch
         if minus is None:
             minus = 4
         if plus is None:
             plus = 4
-        print ("route", plus, minus,ch)
-        arg = (minus<<3)+plus
-        self.add_spectrometer_command(cmd, arg, dt)
+        print ("route", plus, minus, gain, ch)
+        assert (gain in "LMHD")
+        gain = "LMHD".index(gain)
+        arg = (gain<<6) + (minus<<3)+plus
+        self.spectrometer_command(cmd, arg, dt)
 
-    def add_ana_gain(self, gains, dt=None):
+    def ana_gain(self, gains, dt=None):
         assert(len(gains)==4)
         cmd = lc.RFS_SET_GAIN_ANA_SET
         arg = 0
         for c in gains[::-1]:
             assert c in "LMHA"
             arg = (arg<<2)+"LMHA".index(c)
-        self.add_spectrometer_command(cmd, arg, dt)
+        self.spectrometer_command(cmd, arg, dt)
+        
+    def waveform(self,ch,dt=None):
+        arg = ch
+        self.spectrometer_command(lc.RFS_SET_WAVEFORM,arg,dt)
+        
+    def disable_ADC(self, bitmask=None, dt=None):
+        if bitmask is None:
+            bitmask = 0b1111
+        self.spectrometer_command(lc.RFS_SET_DISABLE_ADC,bitmask)
+            
 
-    def add_range_adc(self, dt=None):
+    def range_ADC(self, dt=None):
         cmd = lc.RFS_SET_RANGE_ADC
         arg = 0
-        self.add_spectrometer_command(cmd, arg, dt)
+        self.spectrometer_command(cmd, arg, dt)
 
-    def add_start(self,dt=None):
+    def start(self,dt=None):
         cmd = lc.RFS_SET_START
         arg = 0
-        self.add_spectrometer_command(cmd, arg, dt)
+        self.spectrometer_command(cmd, arg, dt)
         
-    def add_stop(self,dt=None):
+    def stop(self,dt=None):
         cmd = lc.RFS_SET_STOP
         arg = 0
-        self.add_spectrometer_command(cmd, arg, dt)
+        self.spectrometer_command(cmd, arg, dt)
     
 
     

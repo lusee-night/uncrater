@@ -6,12 +6,19 @@ from .Packet_Hello import Packet_Hello
 from .Packet_Heartbeat import Packet_Heartbeat
 from .Packet_Housekeep import Packet_Housekeep
 from .Packet_Spectrum import Packet_Spectrum, Packet_Metadata
+from .Packet_Waveform import Packet_Waveform
+
 from datetime import datetime
 
 PacketDict = {0x206:Packet_Housekeep, 0x209:Packet_Hello, 0x20A:Packet_Heartbeat, 0X20F:Packet_Metadata}
 for i in range(16):
     PacketDict[0x210+i] = Packet_Spectrum
 
+for i in range(4):
+    PacketDict[0x2f0+i] = Packet_Waveform
+
+
+PacketDict[0x4f0] = Packet_Waveform
 
 class Collection:
 

@@ -22,11 +22,12 @@ class Packet_Housekeep(Packet):
             self.invalid_count_min = np.array([x.invalid_count_min for x in res.ADC_stat])
             sumx = np.array([x.sumv for x in res.ADC_stat])
             sumxx = np.array([x.sumv2 for x in res.ADC_stat])
-            self.adc_mean = sumx/self.valid_count-0x1fff
-            self.adc_var = sumxx/self.valid_count-(sumx/self.valid_count)**2
-            self.adc_mean[self.valid_count == 0] = 0 
-            self.adc_var[self.valid_count ==0 ] = 0
-            self.adc_rms = np.sqrt(self.adc_var)
+            self.mean = sumx/self.valid_count-0x1fff
+            self.var = sumxx/self.valid_count-(sumx/self.valid_count)**2
+            self.mean[self.valid_count == 0] = 0 
+            self.var[self.valid_count ==0 ] = 0
+            self.total_count = self.valid_count+self.invalid_count_min+self.invalid_count_max
+            self.rms = np.sqrt(self.var)
             self.version = res.version
 
     def info (self):
@@ -42,8 +43,9 @@ class Packet_Housekeep(Packet):
             desc += f"adc_max : {self.max}\n"            
             desc += f"valid_count : {self.valid_count}\n"            
             desc += f"invalid_count_max : {self.invalid_count_max}\n"            
-            desc += f"invalid_count_min : {self.invalid_count_min}\n"            
-            desc += f"adc_mean : {self.adc_mean}\n"            
-            desc += f"adc_rms : {self.adc_rms}\n"            
+            desc += f"invalid_count_min : {self.invalid_count_min}\n"  
+            desc += f"total_count : {self.total_count}\n"                        
+            desc += f"adc_mean : {self.mean}\n"            
+            desc += f"adc_rms : {self.rms}\n"            
         return desc
     
