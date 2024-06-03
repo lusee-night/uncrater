@@ -21,8 +21,8 @@ class Packet_Waveform(Packet):
     def info (self):
         self._read()
         desc = f"Raw waveform for channel {self.ch}\n"        
-        desc += f"Min value: {self.waveform.min()}"
-        desc += f"Max value: {self.waveform.max()}"
-        desc += f"Mean value: {self.waveform.mean()}"
+        desc += f"Min value: {self.waveform.min()}\n"
+        desc += f"Max value: {self.waveform.max()}\n"
+        desc += f"Mean value: {self.waveform.mean()}\n"
         return desc
     
