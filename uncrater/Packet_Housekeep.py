@@ -10,9 +10,9 @@ class Packet_Housekeep(Packet):
 
     def _read(self):
         super()._read()
-        fmt = "<H I H"
+        fmt = "<H I I H"
         cs,ce = 0,struct.calcsize(fmt)
-        self.version, self.packet_id, self.hk_type = struct.unpack(fmt, self.blob[cs:ce])
+        self.version, self.packet_id, self.error_mask, self.hk_type = struct.unpack(fmt, self.blob[cs:ce])
         if self.hk_type == 1:
             res = c2py('housekeeping_data_1', self.blob)
             self.min = np.array([x.min-0x1fff for x in res.ADC_stat])
@@ -29,6 +29,7 @@ class Packet_Housekeep(Packet):
             self.total_count = self.valid_count+self.invalid_count_min+self.invalid_count_max
             self.rms = np.sqrt(self.var)
             self.version = res.version
+            self.error_mask = res.errors
             self.actual_gain = ["LMH"[i] for i in res.actual_gain]
 
     def info (self):
@@ -37,6 +38,7 @@ class Packet_Housekeep(Packet):
         desc = f"House Packet Type {self.hk_type}\n"
         desc += f"Version : {self.version}\n"
         desc += f"packet_id : {self.packet_id}\n"
+        desc += f"error_mask: {self.error_mask}\n"
         if self.hk_type == 0:
             desc += f"TBC"
         elif self.hk_type == 1:

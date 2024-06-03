@@ -15,7 +15,7 @@
 
 // Constants
 #define NSEQ_MAX 32
-#define DISPATCH_DELAY 10 // number of timer interrupts to wait before sending CDI
+#define DISPATCH_DELAY 3 // number of timer interrupts to wait before sending CDI
 #define RESETTLE_DELAY 2 // number of timer interrupts to wait before settling after a change
 #define HEARTBEAT_DELAY 1000 // number of timer interrupts to wait before sending heartbeat
 
@@ -26,6 +26,7 @@ enum gain_state{
     GAIN_LOW,
     GAIN_MED,
     GAIN_HIGH,
+    GAIN_DISABLE,
     GAIN_AUTO};
 
 enum output_format {
@@ -137,6 +138,7 @@ struct meta_data {
 struct housekeeping_data_0 {
     uint16_t version; 
     uint32_t unique_packet_id;
+    uint32_t errors;
     uint16_t housekeeping_type;
     struct core_state core_state;
 }__attribute__((packed));
@@ -144,6 +146,7 @@ struct housekeeping_data_0 {
 struct housekeeping_data_1 {
     uint16_t version; 
     uint32_t unique_packet_id;
+    uint32_t errors;
     uint16_t housekeeping_type;
     struct ADC_stat ADC_stat[NINPUT];
     uint8_t actual_gain[NINPUT];
@@ -152,6 +155,7 @@ struct housekeeping_data_1 {
 
 
 extern struct core_state state;
+extern bool soft_reset_flag;
 
 void core_loop();
 
