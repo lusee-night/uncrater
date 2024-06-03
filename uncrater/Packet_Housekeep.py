@@ -29,6 +29,7 @@ class Packet_Housekeep(Packet):
             self.total_count = self.valid_count+self.invalid_count_min+self.invalid_count_max
             self.rms = np.sqrt(self.var)
             self.version = res.version
+            self.actual_gain = ["LMH"[i] for i in res.actual_gain]
 
     def info (self):
         self._read()
