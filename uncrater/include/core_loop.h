@@ -60,14 +60,11 @@ struct sequencer_state {
 
 
 struct sequencer_program {
-    uint8_t sequencer_counter; // number of total cycles in the sequencer.
-    uint8_t sequencer_step; // normally 00 to start, but can imagine storing an intermediate state
-    uint8_t sequencer_substep; // counting seq_times;
-    uint16_t sequencer_repeat; // number of sequencer repeats remaining, 00 for infinite (RFS_SET_SEQ_REP)
-    struct sequencer_state seq_program[NSEQ_MAX]; // sequencer states
+    uint8_t Nseq; // Number of sequencer steps in a cycle (See RFS_SET_SEQ_CYC)
+    struct sequencer_state seq[NSEQ_MAX]; // sequencer states
     uint16_t seq_times[NSEQ_MAX]; // steps in each sequencer state;
+    uint16_t sequencer_repeat; // number of sequencer repeats, 00 for infinite 
 }__attribute__((packed));
-
 
 
 // core state base contains additional information that will be dumped with every metadata packet
@@ -76,16 +73,16 @@ struct core_state_base {
     uint16_t time_subseconds;
     uint16_t TVS_sensors[4]; // temperature and voltage sensors, registers 1.0V, 1.8V, 2.5V and Temp
     uint32_t errors;
+    uint16_t corr_products_mask; // which of 16 products to be used, starting with LSB
     uint8_t actual_gain[NINPUT]; // this defines the actual gain state (can only be low, med, high);
     uint8_t actual_bitslice[NSPECTRA];
     uint16_t spec_overflow;  // mean specta overflow mask
     uint16_t notch_overflow; // notch filter overflow mask
     struct ADC_stat ADC_stat[4];    
     bool spectrometer_enable;
-    uint8_t sequencer_counter; // number of total cycles in the sequencer.
-    uint8_t sequencer_step; // 0xFF is sequencer is disabled
-    uint8_t sequencer_substep; // counting seq_times;
-    uint16_t sequencer_repeat; // number of sequencer repeats remaining, 00 for infinite (RFS_SET_SEQ_REP)
+    uint8_t sequencer_counter; // number of total cycles in the sequencer (up to sequencer_repeat)
+    uint8_t sequencer_step; // 0xFF is sequencer is disabled (up to Nseq)
+    uint8_t sequencer_substep; // counting seq_times (up to seq_times[i])
 }__attribute__((packed));
 
 
@@ -95,8 +92,8 @@ struct delayed_cdi_sending {
     uint16_t int_counter; // counter that will be decremented every timer interrupt
     uint8_t format;
     uint8_t prod_count; // product ID that needs to be sent
+    uint8_t Nfreq; // number of frequencies that actually need to be sent
     uint32_t packet_id;
-
 } __attribute__((packed));
 
 // core state cointains the seuqencer state and the base state and a number of utility variables
@@ -110,9 +107,7 @@ struct core_state {
     uint16_t Nfreq; // number of frequency bins after taking into account averaging
     uint16_t gain_auto_max[NINPUT];
     bool sequencer_enabled;
-    uint8_t Nseq; // Number of sequencer steps in a cycle (See RFS_SET_SEQ_CYC)
-    struct sequencer_state seq_program[NSEQ_MAX]; // sequencer states
-    uint16_t seq_times[NSEQ_MAX]; // steps in each sequencer state;
+    struct sequencer_program program;
 }__attribute__((packed));
 
 
