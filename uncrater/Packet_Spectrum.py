@@ -16,12 +16,14 @@ class Packet_Metadata(Packet):
         self.packet_id = res.unique_packet_id
         self.format = res.seq.format
         self.time_seconds = res.base.time_seconds
+        self.errormask = res.base.errors
 
     def info (self):
         self._read()
         desc = ""
         desc += f"Version : {self.version}\n"
         desc += f"packet_id : {self.packet_id}\n"
+        desc += f"Errormask: {self.errormask}\n"  
         return desc
 
 class Packet_Spectrum(Packet):

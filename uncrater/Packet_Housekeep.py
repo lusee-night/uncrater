@@ -30,7 +30,7 @@ class Packet_Housekeep(Packet):
             self.rms = np.sqrt(self.var)
             self.version = res.version
             self.error_mask = res.errors
-            self.actual_gain = ["LMH"[i] for i in res.actual_gain]
+            self.actual_gain = ["LMHD"[i] for i in res.actual_gain]
 
     def info (self):
         self._read()

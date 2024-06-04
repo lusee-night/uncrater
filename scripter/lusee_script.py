@@ -81,6 +81,17 @@ class Scripter:
         arg = 0
         self.spectrometer_command(cmd, arg, dt)
 
+    def select_products(self, mask, dt=None):
+        assert(type(mask)==int) ## can support other way as well.
+        low = (mask & 0x00FF)
+        high = ((mask & 0xFF00) >> 8)
+        self.spectrometer_command  (lc.RFS_SET_PRODMASK_LOW, low, dt=dt)    
+        self.spectrometer_command  (lc.RFS_SET_PRODMASK_HIGH, high, dt=0)
+        
+    def set_Navg(self,Navg1,Navg2,dt=None):
+        val = Navg1+(Navg2<<4)
+        self.spectrometer_command(lc.RFS_SET_AVG_SET, val)
+
     def start(self,dt=None):
         cmd = lc.RFS_SET_START
         arg = 0
