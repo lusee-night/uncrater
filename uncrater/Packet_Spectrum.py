@@ -36,6 +36,11 @@ class Packet_Spectrum(Packet):
     @property
     def desc(self):
         return  "Data Product Metadata"
+    
+    @property
+    def data(self):
+        self._read()
+        return self._data
 
     @property
     def power(self):
@@ -43,7 +48,7 @@ class Packet_Spectrum(Packet):
         return self.data
     
     def _read(self):
-        if hasattr(self, 'spectrum'):
+        if hasattr(self, '_data'):
             return
         super()._read()
         self.packet_id, self.crc = struct.unpack('<II', self.blob[:8])
@@ -57,7 +62,8 @@ class Packet_Spectrum(Packet):
             data = struct.unpack(f'<{Ndata}i', self.blob[8:])
         else:
             raise NotImplementedError("Only format 0 is supported")
-        self.data = np.array(data, dtype=np.int32).astype(np.float32)
+        self._data = np.array(data, dtype=np.int32).astype(np.float32)
+        
 
 
     def info (self):

@@ -6,6 +6,7 @@ sys.path.append('./commander/')
 from  lusee_script import Scripter
 from commander import Commander
 import argparse
+import numpy as np
 
 
 def run(args):
@@ -39,7 +40,7 @@ def run(args):
         
     S.start()
 
-    S.exit(dt=30)    
+    S.exit(dt=args.time)    
     S.write_script("test_spec")
     C = Commander(session="session_test_spec", script='test_spec')
     C.run()
@@ -54,11 +55,22 @@ def analyze():
     import matplotlib.pyplot as plt
     
     C = Collection('session_test_spec/cdi_output')
-    print (C.cont)
+    print (C.list())
     stat=None
     for p in C.cont:
         if type(p)==uncrater.Packet_Metadata:
             print (p.info()) 
+    
+    import matplotlib.pyplot as plt            
+    fig, ax= plt.subplots(1,4,figsize=(12,6))
+    freq=np.arange(2048)*0.025
+    print (C.spectra[0][1].data)
+    for sp in C.spectra:
+        for i in range(4):            
+            ax[i].plot(freq,sp[i].data)            
+            ax[i].set_yscale('log')
+    plt.show()
+            
 
 def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -69,6 +81,7 @@ def main():
     parser.add_argument('-c', '--channel_config', type=str, default='D00:D00:D00:D00', help='channel gain:route configuration')
     parser.add_argument('--Navg1', type=int, default='14', help='Navg1 shift');
     parser.add_argument('--Navg2', type=int, default='3', help='Navg2 shift');
+    parser.add_argument('--time', type=int, default='15', help='Integration time after setup');
     
     
 

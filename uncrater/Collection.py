@@ -33,19 +33,18 @@ class Collection:
         self.spectra = []
         flist = sorted(glob.glob(os.path.join(self.dir, '*.bin')))
         for i,fn in enumerate(flist):
+            print ("reading ",fn)
             appid = int(fn.replace('.bin','').split("_")[-1],16)
             _Packet = PacketDict.get(appid,Packet)
             packet = _Packet(appid, blob_fn = fn)
             if appid==0x20F:
                 packet.read()
                 format, expected_packet_id = packet.format, packet.packet_id
-                cspectrum = {'meta':packet}
+                self.spectra.append({'meta':packet})
                 
             if appid>=0x210 and appid<=0x21F:
                 packet.set_expected(format, expected_packet_id)
-                cspectrum[appid-0x210] = packet
-                if appid==0x21F:
-                    self.spectra.append(cspectrum)
+                self.spectra[-1][appid-0x210] = packet
 
             self.cont.append(packet)
 
