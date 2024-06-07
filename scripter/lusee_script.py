@@ -75,6 +75,23 @@ class Scripter:
             bitmask = 0b1111
         self.spectrometer_command(lc.RFS_SET_DISABLE_ADC,bitmask)
             
+    def set_bitslice (self, ch, value, dt=None):
+        assert (value<32)
+        if ch<8:
+            cmd = lc.RFS_SET_BITSLICE_LOW 
+        else:
+            cmd = lc.RFS_SET_BITSLICE_HIGH
+            ch-=8
+            
+        arg = ch+(value << 3)
+        self.spectrometer_command(cmd, arg, dt = dt)
+        
+    def set_bitslice_auto (self, keep_bits, dt = None):
+        cmd = lc.RFS_SET_BITSLICE_AUTO
+        if keep_bits == False:
+            keep_bits = 0
+        arg = keep_bits
+        self.spectrometer_command(cmd, arg, dt= dt)
 
     def range_ADC(self, dt=None):
         cmd = lc.RFS_SET_RANGE_ADC

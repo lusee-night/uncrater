@@ -14,6 +14,8 @@ def run(args):
     autorange = args.gain_autorange
     just_auto = args.just_auto
     Navg1, Navg2= args.Navg1, args.Navg2
+    slice_config = args.slice_config
+    slice_autorange = args.slice_autorange
     
     S = Scripter()
     S.reset()
@@ -38,12 +40,22 @@ def run(args):
     if just_auto:
         S.select_products(0b1111) # just auto
         
+    if len(slice_config)>0:
+        for i, val in enumerate(slice_config.split(':')):
+            S.set_bitslice(i,int(val))
+        
+    if slice_autorange:
+        S.set_bitslice_auto(10)
+        
     S.start()
 
     S.exit(dt=args.time)    
     S.write_script("test_spec")
     C = Commander(session="session_test_spec", script='test_spec')
     C.run()
+    
+def nbits (v):
+    return int(np.log(v)/np.log(2)+1) if v>0 else 0
     
 def analyze():
     try:
@@ -66,9 +78,12 @@ def analyze():
     freq=np.arange(2048)*0.025
     print (C.spectra[0][1].data)
     for sp in C.spectra:
+        print ('--------------------------')
         for i in range(4):            
-            ax[i].plot(freq,sp[i].data)            
+            data = sp[i].data
+            ax[i].plot(freq,data)            
             ax[i].set_yscale('log')
+            print (f"Range: {data.min()} - {data.max()} ; Bits: {nbits(data.min())} - {nbits(data.max())}")
     plt.show()
             
 
@@ -76,9 +91,11 @@ def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-r', '--run', action='store_true', help='Run the program')
     parser.add_argument('-a', '--analyze', action='store_true', help='Analyze the program')
-    parser.add_argument('-g', '--gain_autorange', action='store_true', help='Autorange gains before doing sampling.')
+    parser.add_argument('-G', '--gain_autorange', action='store_true', help='Autorange gains before doing sampling.')
     parser.add_argument('-A', '--just_auto', action='store_true', help='Just pass auto-spectra');
     parser.add_argument('-c', '--channel_config', type=str, default='D00:D00:D00:D00', help='channel gain:route configuration')
+    parser.add_argument('-s', '--slice_config', type=str, default="", help='bit-slicer config for auto-channels')
+    parser.add_argument('-S', '--slice_autorange', action='store_true', help='Enable automatic bit-slicing')
     parser.add_argument('--Navg1', type=int, default='14', help='Navg1 shift');
     parser.add_argument('--Navg2', type=int, default='3', help='Navg2 shift');
     parser.add_argument('--time', type=int, default='15', help='Integration time after setup');

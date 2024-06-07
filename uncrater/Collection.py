@@ -33,7 +33,7 @@ class Collection:
         self.spectra = []
         flist = sorted(glob.glob(os.path.join(self.dir, '*.bin')))
         for i,fn in enumerate(flist):
-            print ("reading ",fn)
+            #print ("reading ",fn)
             appid = int(fn.replace('.bin','').split("_")[-1],16)
             _Packet = PacketDict.get(appid,Packet)
             packet = _Packet(appid, blob_fn = fn)
