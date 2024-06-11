@@ -98,7 +98,7 @@ def analyze():
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser(description='Test ADC.')
     parser.add_argument('-r', '--run', action='store_true', help='Run the program')
     parser.add_argument('-a', '--analyze', action='store_true', help='Analyze the program')
     parser.add_argument('-g', '--gain_autorange', action='store_true', help='Autorange gains before doing sampling.')
