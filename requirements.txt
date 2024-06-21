@@ -1,0 +1,8 @@
+cppyy==3.1.2
+cppyy-backend==1.15.2
+cppyy-cling==6.30.0
+CPyCppyy==1.12.16
+hexdump==3.3
+numpy==2.0.0
+setuptools==69.5.1
+wheel==0.43.0
