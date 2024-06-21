@@ -11,6 +11,8 @@
 #include "spectrometer_interface.h"
 #include "core_loop_errors.h"
 
+// pack all structs
+#pragma pack(1)
 
 
 // Constants
