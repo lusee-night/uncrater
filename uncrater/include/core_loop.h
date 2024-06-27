@@ -132,6 +132,13 @@ struct meta_data {
     struct core_state_base base;
 } __attribute__((packed));
 
+struct housekeeping_data {
+    uint16_t version; 
+    uint32_t unique_packet_id;
+    uint32_t errors;
+    uint16_t housekeeping_type;
+}__attribute__((packed));
+
 struct housekeeping_data_0 {
     uint16_t version; 
     uint32_t unique_packet_id;

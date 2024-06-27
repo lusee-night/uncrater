@@ -902,27 +902,27 @@ struct_ADC_stat._fields_ = [
     ('sumv2', uint64_t),
 ]
 
-enum_gain_state = c_int# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 25
+enum_gain_state = c_int# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 27
 
-GAIN_LOW = 0# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 25
+GAIN_LOW = 0# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 27
 
-GAIN_MED = (GAIN_LOW + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 25
+GAIN_MED = (GAIN_LOW + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 27
 
-GAIN_HIGH = (GAIN_MED + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 25
+GAIN_HIGH = (GAIN_MED + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 27
 
-GAIN_DISABLE = (GAIN_HIGH + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 25
+GAIN_DISABLE = (GAIN_HIGH + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 27
 
-GAIN_AUTO = (GAIN_DISABLE + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 25
+GAIN_AUTO = (GAIN_DISABLE + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 27
 
-enum_output_format = c_int# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 32
+enum_output_format = c_int# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 34
 
-OUTPUT_32BIT = 0# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 32
+OUTPUT_32BIT = 0# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 34
 
-OUTPUT_16BIT_UPDATES = (OUTPUT_32BIT + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 32
+OUTPUT_16BIT_UPDATES = (OUTPUT_32BIT + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 34
 
-OUTPUT_16BIT_FLOAT1 = (OUTPUT_16BIT_UPDATES + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 32
+OUTPUT_16BIT_FLOAT1 = (OUTPUT_16BIT_UPDATES + 1)# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 34
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 42
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 44
 class struct_route_state(Structure):
     pass
 
@@ -936,7 +936,7 @@ struct_route_state._fields_ = [
     ('minus', uint8_t),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 48
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 50
 class struct_sequencer_state(Structure):
     pass
 
@@ -968,7 +968,7 @@ struct_sequencer_state._fields_ = [
     ('format', uint8_t),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 62
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 64
 class struct_sequencer_program(Structure):
     pass
 
@@ -986,7 +986,7 @@ struct_sequencer_program._fields_ = [
     ('sequencer_repeat', uint16_t),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 71
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 73
 class struct_core_state_base(Structure):
     pass
 
@@ -1024,7 +1024,7 @@ struct_core_state_base._fields_ = [
     ('sequencer_substep', uint8_t),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 90
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 92
 class struct_delayed_cdi_sending(Structure):
     pass
 
@@ -1046,7 +1046,7 @@ struct_delayed_cdi_sending._fields_ = [
     ('packet_id', uint32_t),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 100
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 102
 class struct_core_state(Structure):
     pass
 
@@ -1076,7 +1076,7 @@ struct_core_state._fields_ = [
     ('program', struct_sequencer_program),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 114
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 116
 class struct_startup_hello(Structure):
     pass
 
@@ -1102,7 +1102,7 @@ struct_startup_hello._fields_ = [
     ('time_subseconds', uint16_t),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 126
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 128
 class struct_meta_data(Structure):
     pass
 
@@ -1120,7 +1120,25 @@ struct_meta_data._fields_ = [
     ('base', struct_core_state_base),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 133
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 135
+class struct_housekeeping_data(Structure):
+    pass
+
+struct_housekeeping_data._pack_ = 1
+struct_housekeeping_data.__slots__ = [
+    'version',
+    'unique_packet_id',
+    'errors',
+    'housekeeping_type',
+]
+struct_housekeeping_data._fields_ = [
+    ('version', uint16_t),
+    ('unique_packet_id', uint32_t),
+    ('errors', uint32_t),
+    ('housekeeping_type', uint16_t),
+]
+
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 142
 class struct_housekeeping_data_0(Structure):
     pass
 
@@ -1140,7 +1158,7 @@ struct_housekeeping_data_0._fields_ = [
     ('core_state', struct_core_state),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 141
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 150
 class struct_housekeeping_data_1(Structure):
     pass
 
@@ -1162,7 +1180,7 @@ struct_housekeeping_data_1._fields_ = [
     ('actual_gain', uint8_t * int(4)),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 152
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 161
 for _lib in _libs.values():
     try:
         state = (struct_core_state).in_dll(_lib, "state")
@@ -1170,7 +1188,7 @@ for _lib in _libs.values():
     except:
         pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 153
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 162
 for _lib in _libs.values():
     try:
         soft_reset_flag = (c_bool).in_dll(_lib, "soft_reset_flag")
@@ -1178,7 +1196,7 @@ for _lib in _libs.values():
     except:
         pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 155
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 164
 for _lib in _libs.values():
     if not _lib.has("core_loop", "cdecl"):
         continue
@@ -1193,55 +1211,57 @@ try:
 except:
     pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 17
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 19
 try:
     NSEQ_MAX = 32
 except:
     pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 18
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 20
 try:
     DISPATCH_DELAY = 3
 except:
     pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 19
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 21
 try:
     RESETTLE_DELAY = 2
 except:
     pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 20
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 22
 try:
     HEARTBEAT_DELAY = 1000
 except:
     pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 22
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 24
 try:
     ADC_STAT_SAMPLES = 8000
 except:
     pass
 
-route_state = struct_route_state# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 42
+route_state = struct_route_state# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 44
 
-sequencer_state = struct_sequencer_state# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 48
+sequencer_state = struct_sequencer_state# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 50
 
-sequencer_program = struct_sequencer_program# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 62
+sequencer_program = struct_sequencer_program# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 64
 
-core_state_base = struct_core_state_base# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 71
+core_state_base = struct_core_state_base# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 73
 
-delayed_cdi_sending = struct_delayed_cdi_sending# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 90
+delayed_cdi_sending = struct_delayed_cdi_sending# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 92
 
-core_state = struct_core_state# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 100
+core_state = struct_core_state# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 102
 
-startup_hello = struct_startup_hello# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 114
+startup_hello = struct_startup_hello# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 116
 
-meta_data = struct_meta_data# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 126
+meta_data = struct_meta_data# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 128
 
-housekeeping_data_0 = struct_housekeeping_data_0# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 133
+housekeeping_data = struct_housekeeping_data# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 135
 
-housekeeping_data_1 = struct_housekeeping_data_1# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 141
+housekeeping_data_0 = struct_housekeeping_data_0# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 142
+
+housekeeping_data_1 = struct_housekeeping_data_1# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 150
 
 # No inserted files
 
