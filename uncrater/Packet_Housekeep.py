@@ -2,7 +2,7 @@ from .Packet import Packet
 import struct
 import numpy as np
 from .c2python import c2py, copy_attrs
-from .core_loop import housekeeping_data, housekeeping_data_0, housekeeping_data_1
+from .core_loop import housekeeping_data_base, housekeeping_data_0, housekeeping_data_1
 
 class Packet_Housekeep(Packet):
     @property
@@ -14,8 +14,8 @@ class Packet_Housekeep(Packet):
         # fmt = "<H I I H"
         # cs,ce = 0,struct.calcsize(fmt)
         # self.version, self.unique_packet_id, self.errors, self.housekeeping_type = struct.unpack(fmt, self.blob[cs:ce])
-        copy_attrs(housekeeping_data.from_buffer_copy(self.blob), self)
-        if self.housekeeping_type == 1:
+        temp = housekeeping_data_base.from_buffer_copy(self.blob)
+        if temp.housekeeping_type == 1:
             copy_attrs(housekeeping_data_1.from_buffer_copy(self.blob), self)
             self.min = np.array([x.min-0x1fff for x in self.ADC_stat])
             self.max = np.array([x.max-0x1fff for x in self.ADC_stat])
@@ -33,7 +33,7 @@ class Packet_Housekeep(Packet):
             self.version = self.version
             self.error_mask = self.errors
             self.actual_gain = ["LMHD"[i] for i in self.actual_gain]
-        elif self.housekeeping_type == 0:
+        elif temp.housekeeping_type == 0:
             copy_attrs(housekeeping_data_0.from_buffer_copy(self.blob), self)
 
     def info (self):

@@ -11,7 +11,7 @@ def c2py (struct, data):
     return s
 
 def copy_attrs (src, dst):
-    for attrs in dir(src): 
-        if "__" in attrs:
+    for attr in dir(src): 
+        if "__" in attr:
             continue
-        setattr(dst, attrs, getattr(src, attrs))
+        setattr(dst, attr, getattr(src, attr))

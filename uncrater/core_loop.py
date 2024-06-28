@@ -1121,17 +1121,17 @@ struct_meta_data._fields_ = [
 ]
 
 # /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 135
-class struct_housekeeping_data(Structure):
+class struct_housekeeping_data_base(Structure):
     pass
 
-struct_housekeeping_data._pack_ = 1
-struct_housekeeping_data.__slots__ = [
+struct_housekeeping_data_base._pack_ = 1
+struct_housekeeping_data_base.__slots__ = [
     'version',
     'unique_packet_id',
     'errors',
     'housekeeping_type',
 ]
-struct_housekeeping_data._fields_ = [
+struct_housekeeping_data_base._fields_ = [
     ('version', uint16_t),
     ('unique_packet_id', uint32_t),
     ('errors', uint32_t),
@@ -1144,43 +1144,31 @@ class struct_housekeeping_data_0(Structure):
 
 struct_housekeeping_data_0._pack_ = 1
 struct_housekeeping_data_0.__slots__ = [
-    'version',
-    'unique_packet_id',
-    'errors',
-    'housekeeping_type',
+    'data',
     'core_state',
 ]
 struct_housekeeping_data_0._fields_ = [
-    ('version', uint16_t),
-    ('unique_packet_id', uint32_t),
-    ('errors', uint32_t),
-    ('housekeeping_type', uint16_t),
+    ('data', struct_housekeeping_data_base),
     ('core_state', struct_core_state),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 150
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 147
 class struct_housekeeping_data_1(Structure):
     pass
 
 struct_housekeeping_data_1._pack_ = 1
 struct_housekeeping_data_1.__slots__ = [
-    'version',
-    'unique_packet_id',
-    'errors',
-    'housekeeping_type',
+    'data',
     'ADC_stat',
     'actual_gain',
 ]
 struct_housekeeping_data_1._fields_ = [
-    ('version', uint16_t),
-    ('unique_packet_id', uint32_t),
-    ('errors', uint32_t),
-    ('housekeeping_type', uint16_t),
+    ('data', struct_housekeeping_data_base),
     ('ADC_stat', struct_ADC_stat * int(4)),
     ('actual_gain', uint8_t * int(4)),
 ]
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 161
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 155
 for _lib in _libs.values():
     try:
         state = (struct_core_state).in_dll(_lib, "state")
@@ -1188,7 +1176,7 @@ for _lib in _libs.values():
     except:
         pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 162
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 156
 for _lib in _libs.values():
     try:
         soft_reset_flag = (c_bool).in_dll(_lib, "soft_reset_flag")
@@ -1196,7 +1184,7 @@ for _lib in _libs.values():
     except:
         pass
 
-# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 164
+# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 158
 for _lib in _libs.values():
     if not _lib.has("core_loop", "cdecl"):
         continue
@@ -1257,11 +1245,11 @@ startup_hello = struct_startup_hello# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/
 
 meta_data = struct_meta_data# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 128
 
-housekeeping_data = struct_housekeeping_data# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 135
+housekeeping_data_base = struct_housekeeping_data_base# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 135
 
 housekeeping_data_0 = struct_housekeeping_data_0# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 142
 
-housekeeping_data_1 = struct_housekeeping_data_1# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 150
+housekeeping_data_1 = struct_housekeeping_data_1# /mnt/c/dev/BNL/cosmo/lusee-night/uncrater/uncrater/include/core_loop.h: 147
 
 # No inserted files
 
