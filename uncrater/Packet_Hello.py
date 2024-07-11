@@ -1,5 +1,5 @@
 from .Packet import Packet
-from .c2python import c2py, copy_attrs
+from .c2python import copy_attrs
 from .core_loop import startup_hello
 import struct
 

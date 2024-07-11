@@ -1,7 +1,7 @@
 from .Packet import Packet
 import struct
 import numpy as np
-from .c2python import c2py, copy_attrs
+from .c2python import copy_attrs
 from .core_loop import housekeeping_data_base, housekeeping_data_0, housekeeping_data_1
 
 class Packet_Housekeep(Packet):
