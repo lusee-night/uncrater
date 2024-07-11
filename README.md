@@ -6,4 +6,4 @@ LuSEE Night binary blob unpackager
 ```bash
 ctypesgen include/core_loop.h > core_loop.py
 ```
-if `core_loop.h` is ever updated.
+if `core_loop.h` is ever updated. This converts the C structs into Python classes that the various `Packet_*.py` files use to read binary blobs into Python objects.
