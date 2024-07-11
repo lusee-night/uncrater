@@ -2,7 +2,8 @@ from .Packet import Packet
 import struct
 import numpy as np
 import binascii
-from .c2python import c2py
+from .c2python import copy_attrs
+from .core_loop import meta_data
 
 class Packet_Metadata(Packet):
     @property
@@ -11,18 +12,17 @@ class Packet_Metadata(Packet):
 
     def _read(self):
         super()._read()
-        res = c2py('meta_data', self.blob)
-        self.version = res.version
-        self.packet_id = res.unique_packet_id
-        self.format = res.seq.format
-        self.time_seconds = res.base.time_seconds
-        self.errormask = res.base.errors
+        # TODO: check if this actually works
+        copy_attrs(meta_data.from_buffer_copy(self.blob), self)
+        self.format = self.seq.format
+        self.time_seconds = self.base.time_seconds
+        self.errormask = self.base.errors
 
     def info (self):
         self._read()
         desc = ""
         desc += f"Version : {self.version}\n"
-        desc += f"packet_id : {self.packet_id}\n"
+        desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"Errormask: {self.errormask}\n"  
         return desc
 
