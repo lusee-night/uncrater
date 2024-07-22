@@ -1,9 +1,20 @@
-from .Packet import Packet
+from .Packet import Packet,  copy_attrs, struct
 import struct
 import numpy as np
 import binascii
-from .c2python import copy_attrs
-from .core_loop import meta_data
+
+if os.environ.get('CORELOOP_DIR') is not None:
+    sys.path.append(os.environ.get('CORELOOP_DIR'))
+
+# now try to import pycoreloop
+try:
+    from pycoreloop import appId as id
+except ImportError:
+    print ("Can't import pycoreloop\n")
+    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
+    sys.exit(1)
+
+
 
 class Packet_Metadata(Packet):
     @property
@@ -13,7 +24,7 @@ class Packet_Metadata(Packet):
     def _read(self):
         super()._read()
         # TODO: check if this actually works
-        copy_attrs(meta_data.from_buffer_copy(self.blob), self)
+        copy_attrs(struct.meta_data.from_buffer_copy(self.blob), self)
         self.format = self.seq.format
         self.time_seconds = self.base.time_seconds
         self.errormask = self.base.errors
@@ -35,7 +46,7 @@ class Packet_Spectrum(Packet):
     
     @property
     def desc(self):
-        return  "Data Product Metadata"
+        return  "Power Spectrum"
     
     @property
     def data(self):
@@ -50,6 +61,13 @@ class Packet_Spectrum(Packet):
     def _read(self):
         if hasattr(self, '_data'):
             return
+        if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
+            self.priority = 1
+        elif self.appid>=id.AppID_SpectraMed and self.appid<id.AppID_SpectraMed+16:
+            self.priority = 2
+        else:
+            assert (self.appid>=id.AppID_SpectraLow and self.appid<id.AppID_SpectraLow+16)
+            self.priority = 3
         super()._read()
         self.packet_id, self.crc = struct.unpack('<II', self.blob[:8])
         if self.expected_packet_id != self.packet_id:

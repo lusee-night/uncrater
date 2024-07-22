@@ -1,8 +1,7 @@
-from .Packet import Packet
+from .Packet import Packet, copy_attrs, struct
 import struct
 import numpy as np
-from .c2python import copy_attrs
-from .core_loop import housekeeping_data_base, housekeeping_data_0, housekeeping_data_1
+
 
 class Packet_Housekeep(Packet):
     valid_types = set(range(2))
@@ -17,11 +16,11 @@ class Packet_Housekeep(Packet):
         # fmt = "<H I I H"
         # cs,ce = 0,struct.calcsize(fmt)
         # self.version, self.unique_packet_id, self.errors, self.housekeeping_type = struct.unpack(fmt, self.blob[cs:ce])
-        temp = housekeeping_data_base.from_buffer_copy(self.blob)
+        temp = struct.housekeeping_data_base.from_buffer_copy(self.blob)
         if temp.housekeeping_type not in self.valid_types:
             raise ValueError(f'{temp.housekeeping_type} is not a valid housekeeping type')
         if temp.housekeeping_type == 1:
-            copy_attrs(housekeeping_data_1.from_buffer_copy(self.blob), self)
+            copy_attrs(struct.housekeeping_data_1.from_buffer_copy(self.blob), self)
             self.min = np.array([x.min-0x1fff for x in self.ADC_stat])
             self.max = np.array([x.max-0x1fff for x in self.ADC_stat])
             self.valid_count = np.array([x.valid_count for x in self.ADC_stat])
@@ -39,7 +38,7 @@ class Packet_Housekeep(Packet):
             self.error_mask = self.errors
             self.actual_gain = ["LMHD"[i] for i in self.actual_gain]
         elif temp.housekeeping_type == 0:
-            copy_attrs(housekeeping_data_0.from_buffer_copy(self.blob), self)
+            copy_attrs(struct.housekeeping_data_0.from_buffer_copy(self.blob), self)
 
     def info (self):
         self._read()

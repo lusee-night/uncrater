@@ -1,5 +1,17 @@
-import os
+import os, sys
 import hexdump
+
+if os.environ.get('CORELOOP_DIR') is not None:
+    sys.path.append(os.environ.get('CORELOOP_DIR'))
+
+# now try to import pycoreloop
+try:
+    from pycoreloop import struct 
+except ImportError:
+    print ("Can't import pycoreloop\n")
+    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
+    sys.exit(1)
+
 
 class Packet:
     def __init__ (self, appid, blob = None, blob_fn = None):
@@ -32,3 +44,9 @@ class Packet:
         To be specialized
         """
         return self.xxd()
+
+def copy_attrs (src, dst):
+    for attr in dir(src): 
+        if attr[0] == '_':
+            continue
+        setattr(dst, attr, getattr(src, attr))

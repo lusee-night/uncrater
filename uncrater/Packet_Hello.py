@@ -1,6 +1,4 @@
-from .Packet import Packet
-from .c2python import copy_attrs
-from .core_loop import startup_hello
+from .Packet import Packet, copy_attrs, struct
 import struct
 
 class Packet_Hello(Packet):
@@ -10,16 +8,7 @@ class Packet_Hello(Packet):
 
     def _read(self):
         super()._read()
-        copy_attrs(startup_hello.from_buffer_copy(self.blob), self)
-#        for attrs in dir(res): 
-#            if "__" in attrs:
-#                continue
-##            print(attrs)
-#           setattr(self, attrs, getattr(res, attrs))
-        #self.version = res.version
-        #self.packet_id = res.unique_packet_id
-        #self.time_sec = res.time_sec
-        #self.time_subsec = res.time_subsec
+        copy_attrs(struct.startup_hello.from_buffer_copy(self.blob), self)
     
     def info (self):
         self._read()
