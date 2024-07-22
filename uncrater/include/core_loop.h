@@ -11,6 +11,8 @@
 #include "spectrometer_interface.h"
 #include "core_loop_errors.h"
 
+// pack all structs
+#pragma pack(1)
 
 
 // Constants
@@ -130,19 +132,20 @@ struct meta_data {
     struct core_state_base base;
 } __attribute__((packed));
 
-struct housekeeping_data_0 {
+struct housekeeping_data_base {
     uint16_t version; 
     uint32_t unique_packet_id;
     uint32_t errors;
     uint16_t housekeeping_type;
+}__attribute__((packed));
+
+struct housekeeping_data_0 {
+    struct housekeeping_data_base data;
     struct core_state core_state;
 }__attribute__((packed));
 
 struct housekeeping_data_1 {
-    uint16_t version; 
-    uint32_t unique_packet_id;
-    uint32_t errors;
-    uint16_t housekeeping_type;
+    struct housekeeping_data_base data;
     struct ADC_stat ADC_stat[NINPUT];
     uint8_t actual_gain[NINPUT];
 }__attribute__((packed));
