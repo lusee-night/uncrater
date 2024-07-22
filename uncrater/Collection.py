@@ -61,12 +61,13 @@ class Collection:
                 format, expected_packet_id = packet.format, packet.packet_id
                 self.spectra.append({'meta':packet})
                 
-            if appid>=0x210 and appid<=0x21F:
-                packet.set_expected(format, expected_packet_id)
-                self.spectra[-1][appid-0x210] = packet
+            if ((appid>=id.AppID_SpectraHigh and appid<AppID_SpectraHigh+16) or
+                (appid>=id.AppID_SpectraMed and appid<AppID_SpectraMed+16) or
+                (appid>=id.AppID_SpectraLow and appid<AppID_SpectraLow+16)):
+                    packet.set_expected(format, expected_packet_id)
+                    self.spectra[-1][appid & 0x0F] = packet
 
             self.cont.append(packet)
-
             self.time.append(os.path.getmtime(fn))
             try:
                 dt= self.time[-1]-self.time[0]

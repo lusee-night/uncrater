@@ -1,3 +1,4 @@
+import sys, os
 # LuSEE script module
 
 if os.environ.get('CORELOOP_DIR') is not None:
@@ -39,7 +40,15 @@ class Scripter:
             dt = 6553.6
         dt = int(dt*10)
         self.command(lc.CTRL_WAIT,dt)
-        
+
+
+    def house_keeping_request(self, req_type):
+        assert(req_type<2)
+        self.spectrometer_command(lc.RFS_SET_HK_REQUEST, req_type)
+
+    def section_break(self):
+        self.spectrometer_command(lc.RFS_SET_HK_REQUEST, 99)
+
     def adc_range(self):
         self.spectrometer_command(lc.RFS_SET_RANGE_ADC, 0x0)
         

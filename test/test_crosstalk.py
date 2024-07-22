@@ -11,31 +11,22 @@ import argparse
 import numpy as np
 
 
-class Test_Spec(Test):
+class Test_CrossTalk(Test):
     
-    name = "get_spectra"
-    description = """ Test for basic testing of spectrometer functionality."""
-    instructions = """ Connect whatever input you want to have measured."""
+    name = "crosstalk"
+    description = """ Measures cross-talk between two channels."""
+    instructions = """Connect a noise source to the affected channel and a signal generator to the harassing channel. The signal generator should be set to sweep a frequency from 0-100MHz over 500s with amplitude 1Vpp (for medium gain)...."""
     options = {
-        "channel_config": "D00:D00:D00:D00",
-        "auto_only": False,
-        "gain_autorange": False,        
-        "slice_config": "",
-        "slice_autorange": False,
-        "Navg1": 14,
-        "Navg2": 3,
-        "Nspectra": 1
+        "channel_affected" : 0,
+        "channel_harassing" : 1,
+        "gain_affected": "M",
+        "gain_harassing": "M",
     } ## dictinary of options for the test
     options_help = {
-        "channel_config": """channel gain/route configuration, split by ':'. For each channel we specify 3 digitis GPM, where G is gain (L,M,H,D), P is (0-3) and M is (0-3) and the route is set to be P-M.""",
-        "auto_only": """If true, measure only auto-spectra.""",
-        "gain_autorange": """If true, autorange gains before doing measurements.""",       
-        "slice_config": """Bit slicer configuration, split by ':'. Up to 16 numbers are specified, for each correlation.""",
-        "slice_autorange": """If true, enable automatic bit-slicing.""",
-        "Navg1": "Log 2 of stage 1 averaging. Default is 14 corresponding to 650ms",
-        "Navg2": "Log 2 of stage 2 averaging. Default is 3 corresponding to 8x.",
-        "Nspectra": "Number of averaged spectra to take. Default is 1."
-
+        "channel_affected" : "Channel for which the cross-talk is measured.",
+        "channel_harassing" : "Channel which harasses the affected channel.",
+        "gain_affected": "Gain setting for the affected channel.",
+        "gain_harassing": "Gain setting for the harassing channel.",
     } ## dictionary of help for the options
 
     
