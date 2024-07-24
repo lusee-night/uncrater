@@ -1,4 +1,4 @@
-import os
+import os, sys
 import glob
 
 from .Packet import Packet

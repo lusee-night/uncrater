@@ -1,4 +1,4 @@
-from .Packet import Packet, copy_attrs, struct
+from .Packet import Packet, copy_attrs, pystruct
 import struct
 import numpy as np
 

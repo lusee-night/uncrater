@@ -1,4 +1,5 @@
-from .Packet import Packet,  copy_attrs, struct
+from .Packet import Packet,  copy_attrs, pystruct
+import os, sys
 import struct
 import numpy as np
 import binascii
