@@ -102,7 +102,8 @@ class Commander:
         
         stime = int(time.time())
         script_last = time.time()
-        dt = 0
+        # wait for 1 second
+        dt = 1.0
         while True:
             ctime = time.time()
             ready_to_read, _, _ = select.select([self.s], [], [], 0)
@@ -117,7 +118,6 @@ class Commander:
                     command = self.script[0]
                     if ctime-script_last>dt:
                         dt = 0 
-
                         have_cmd = True
                         self.script.pop(0)
                         script_last = ctime

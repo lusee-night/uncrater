@@ -10,7 +10,7 @@ try:
     from pycoreloop import command_from_value, value_from_command
 except ImportError:
     print ("Can't import pycoreloop\n")
-    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
+    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [lusee_script.py]")
     sys.exit(1)
 
 

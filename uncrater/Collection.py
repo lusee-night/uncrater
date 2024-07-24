@@ -18,7 +18,7 @@ try:
     from pycoreloop import appId as id
 except ImportError:
     print ("Can't import pycoreloop\n")
-    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
+    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [Collection.py]")
     sys.exit(1)
 
 
