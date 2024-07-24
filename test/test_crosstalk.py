@@ -16,7 +16,7 @@ class Test_CrossTalk(Test):
     name = "crosstalk"
     description = """ Measures cross-talk between two channels."""
     instructions = """Connect a noise source to the affected channel and a signal generator to the harassing channel. The signal generator should be set to sweep a frequency from 0-100MHz over 500s with amplitude 1Vpp (for medium gain)...."""
-    options = {
+    default_options = {
         "channel_affected" : 0,
         "channel_harassing" : 1,
         "gain_affected": "M",

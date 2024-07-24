@@ -16,7 +16,7 @@ class Test_Spec(Test):
     name = "get_spectra"
     description = """ Test for basic testing of spectrometer functionality."""
     instructions = """ Connect whatever input you want to have measured."""
-    options = {
+    default_options = {
         "channel_config": "D00:D00:D00:D00",
         "auto_only": False,
         "gain_autorange": False,        

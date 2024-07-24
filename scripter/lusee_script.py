@@ -19,17 +19,19 @@ class Scripter:
 
     def __init__ (self):
         self.script = []
+        self.total_time = 0
 
     def command(self, cmd, arg):
-        if dt is None:
-            dt = self.default_dt
-        self.script.append(f"{dt:5.1f} CMD {cmd:02x} {arg:04x} \n")
+        self.total_time += 0.01 ## assume 10ms for a real command, already overestimated
+        assert (cmd>=0 & cmd < 256)
+        assert (arg>=0 & arg < 65536)
+        self.script.append((cmd,arg))
 
 
     def spectrometer_command(self,cmd,arg):
         assert(arg<256)
         assert(cmd<256)
-        self.command(0x10,(cmd<<8)+arg,dt)     
+        self.command(0x10,(cmd<<8)+arg)     
 
     def wait (self, dt):
         """ Wait for dt in seconds, rounted to 100ms"""
@@ -39,15 +41,30 @@ class Scripter:
             print ("Warning: wait time too long, rounding down")
             dt = 6553.6
         dt = int(dt*10)
+        self.total_time += dt/10
         self.command(lc.CTRL_WAIT,dt)
 
+    def reset(self, stored_state = 'ignore'):
+        if stored_state == 'load':
+            arg_low = 0
+        elif stored_state == 'ignore':
+            arg_low = 1
+        elif stored_state == 'delete_all':
+            arg_low = 2
+        else:
+            raise ValueError("Unknown stored_state")
+        self.spectrometer_command(lc.RFS_SET_RESET,arg_low)
+        
 
-    def house_keeping_request(self, req_type):
+    def ADC_ramp (self, enable = True):
+        self.spectrometer_command(lc.RFS_SET_ADC_RAMP, int(enable))
+
+    def house_keeping(self, req_type):
         assert(req_type<2)
-        self.spectrometer_command(lc.RFS_SET_HK_REQUEST, req_type)
+        self.spectrometer_command(lc.RFS_SET_HK_REQ, req_type)
 
     def section_break(self):
-        self.spectrometer_command(lc.RFS_SET_HK_REQUEST, 99)
+        self.spectrometer_command(lc.RFS_SET_HK_REQ, 99)
 
     def adc_range(self):
         self.spectrometer_command(lc.RFS_SET_RANGE_ADC, 0x0)

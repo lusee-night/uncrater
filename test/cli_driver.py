@@ -4,10 +4,11 @@ sys.path.append('./scripter/')
 sys.path.append('./commander/')
 import argparse
 
+from test_alive import Test_Alive
 from test_spec import Test_Spec
 from test_crosstalk import Test_CrossTalk
 
-Tests = [Test_Spec, Test_CrossTalk]
+Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
 
 def Name2Test(name):
     for T in Tests:
@@ -46,13 +47,39 @@ def main():
             print ("Option               : Default Value         : Help")
             print ("-----------------------------------------------------")
             for opt in t.options.keys():
-                print (f"{opt:20} : {str(t.options[opt]):20} : {t.options_help[opt]} ")
+                print (f"{opt:20} : {str(t.default_options[opt]):20} : {t.options_help[opt]} ")
         sys.exit(0)
 
     if args.run:
-        print("Running commander...")
-        run(args)
-        print ("Done.")
+        t = Name2Test(args.test_name)
+        if t is None:
+            print ("No such test.")
+            sys.exit(1)
+        print ("Running test: ",t.name) 
+        options = t.default_options
+        for opt in args.options.strip().split(','):
+            if len(opt)==0:
+                continue
+            try:
+                key, val = opt.split('=')
+            except:
+                print ("Bad options format: ",opt)
+                sys.exit(1)
+            
+            options[key] = type(t.default_options[key])(val.strip())
+            #except:
+            #    print ("Error setting option: ",opt, "with value: ",val)
+            #    sys.exit(1)
+        print ("Options set to: ")
+        for key, value in options.items():
+            print (f"   {key:18} : {value}")
+        T = t(options)
+        print ("Generating script...", end='')
+        S = T.generate_script()
+        print ("OK.")
+        t.analyze()
+        t.make_report()
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
