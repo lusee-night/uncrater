@@ -38,11 +38,11 @@ class Test_Alive(Test):
         S.wait(1)
         for i in range(4):
             S.waveform(i)
-            S.wait(0.5)
+            S.wait(1)
         S.set_Navg(14,3)
-        S.start()
+        #S.start()
         S.wait(self.time-S.total_time-1)
-        S.stop()
+        #S.stop()
         S.house_keeping(0)
         S.wait(1)
         return S

@@ -44,12 +44,13 @@ def read_script(fname):
 
 class Commander:
     
-    def __init__ (self, session = "session", script = None):
+    def __init__ (self, session = "session", script = None, backend = 'DCBEmu'):
         print ("Starting commander.")
         self.session=session
         if script is None:
             script = []
         elif type(script)==str:
+            raise ValueError("Script should be a list of tuples now.")
             script = read_script(script)
         else:
             assert(type(script)==list) ## oterhwise better be script.
@@ -101,8 +102,9 @@ class Commander:
         
         stime = int(time.time())
         script_last = time.time()
+        dt = 0
         while True:
-
+            ctime = time.time()
             ready_to_read, _, _ = select.select([self.s], [], [], 0)
             have_cmd = False
             if self.s in ready_to_read:
@@ -112,47 +114,27 @@ class Commander:
                 have_cmd = True
             else:
                 if len(self.script)>0:
-                    dt, cmd = self.script[0]
-                    ctime = time.time()
+                    command = self.script[0]
                     if ctime-script_last>dt:
-                        input_data = cmd
+                        dt = 0 
+
                         have_cmd = True
                         self.script.pop(0)
                         script_last = ctime
             if have_cmd:
                 err =0 
-                if len(input_data)==0:
-                    input_data=[""]
-                cmd = input_data[0]
-                if cmd=='CMD':
-                    cmd,arg = input_data[1:]
-                    try:
-                        cmd = int(cmd,16)
-                        arg = int(arg,16)
-                    except:
-                        err = 1
-                    if (err == 0):
-                        self.ether.cdi_command(cmd, arg)
-                        self.clog.logt (f" Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
-                elif cmd == 'reset':
-                    self.reset()
-                elif cmd == 'save':
-                    tgt = input_data[1]
-                    self.clog.logt(f"Saving to {input_data[1]}")
-                    if os.path.exists(tgt):
-                        os.system(f'rm -rf {tgt}')
-                    os.system(f'cp -r {self.session} {tgt}')
-                elif cmd == 'script':
-                    self.script = read_script(input_data[1]) + self.script
-                    script_last = time.time()
-                elif cmd == 'exit':
-                    break
-                else:
-                    self.clog.logt(f"Unknown command: {input_data}\n")
-                    err = 1
-                if err:
-                    self.clog.logt(f"Error processing command: {input_data}\n")
-        
+                cmd , arg = command
+                if cmd == 0xE0:
+                    # wait command
+                    dt = arg/10
+                    self.clog.logt (f"Waiting for {dt}s.\n")
+                else:                
+                    print ("Sending command.")
+                    self.ether.cdi_command(cmd, arg)
+                    self.clog.logt (f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
+            
+            if len(self.script)==0 and ctime-script_last>dt:
+                break   
         self.uartStop = True
         self.ether.etherStop = True
         print ('Exiting commander.')

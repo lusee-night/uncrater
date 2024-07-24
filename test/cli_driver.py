@@ -8,6 +8,8 @@ from test_alive import Test_Alive
 from test_spec import Test_Spec
 from test_crosstalk import Test_CrossTalk
 
+from commander import Commander
+
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
 
 def Name2Test(name):
@@ -23,8 +25,10 @@ def main():
     parser.add_argument('-i', '--info', action='store_true', help='Print information for the test')
     parser.add_argument('-r', '--run', action='store_true', help='Run the test')
     parser.add_argument('-o', '--options', default='', help='Test options, option=value, comma or space separated.')
-    parser.add_argument('-w', '--workdir', default='.', help='Output directory (as test_name.pdf)')
+    parser.add_argument('-w', '--workdir', default='session_%test_name%', help='Output directory (as test_name.pdf)')
     parser.add_argument('-b', '--backend', default='DCBEmu', help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
+    parser.add_argument('--operator', default='anonymous', help='Operator name (for the report)')
+    parser.add_argument('--comments', default='None', help='Comments(for the report)')
     args = parser.parse_args()
 
     
@@ -37,7 +41,7 @@ def main():
     if args.info:
         t = Name2Test(args.test_name)
         if t is None:
-            print ("No such test.")
+            print ("No such test.") 
             sys.exit(1)
         else:
             print ("Test: ",t.name)
@@ -46,11 +50,14 @@ def main():
             print ("\nOptions:\n")
             print ("Option               : Default Value         : Help")
             print ("-----------------------------------------------------")
-            for opt in t.options.keys():
+            for opt in t.default_options.keys():
                 print (f"{opt:20} : {str(t.default_options[opt]):20} : {t.options_help[opt]} ")
         sys.exit(0)
 
     if args.run:
+        if args.backend not in ['DCBEmu', 'DCB', 'coreloop']:
+            print ("Unknown backend: ",args.backend)
+            sys.exit(1)
         t = Name2Test(args.test_name)
         if t is None:
             print ("No such test.")
@@ -74,9 +81,15 @@ def main():
         for key, value in options.items():
             print (f"   {key:18} : {value}")
         T = t(options)
-        print ("Generating script...", end='')
+        print ("Generating script... ", end='')
         S = T.generate_script()
         print ("OK.")
+        workdir = args.workdir.replace('%test_name%',t.name)
+        ## this will also generated the work dir
+        print ("Starting commander...")        
+        C = Commander(session = workdir, script=S.script, backend=args.backend)
+        C.run()
+        print ("Commander done.")
         t.analyze()
         t.make_report()
         sys.exit(0)
