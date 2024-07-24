@@ -23,12 +23,13 @@ class Test:
                 print ("Extranous option: ",k)
                 sys.exit(1)
             setattr(self,k,v)
+        self.results = None
 
     def generate_script(self):
         """ Generates a script for the test """
         raise NotImplementedError("generate_script not implemented in base class")
 
-    def analyze(self, C, work_dir):
+    def analyze(self, work_dir):
         """ Analyzes the results of the test. C is uncrater.Collection object.
             Returns true if test has passed.
         """
@@ -42,6 +43,9 @@ class Test:
             output_file is the output pdf file.
             
         """
+        if results is None:
+            print ("Cannot call make_report without calling analyze first.")
+            sys.exit(1)
         temp = open(template).read()
         for key in result_dict:
             temp = temp.replace('>>'+key+'<<', result_dict[key])

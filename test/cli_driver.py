@@ -9,21 +9,25 @@ from test_spec import Test_Spec
 from test_crosstalk import Test_CrossTalk
 
 from commander import Commander
+import yaml
 
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
 
 def Name2Test(name):
+    
     for T in Tests:
         if T.name == name:
             return T
-    return None
+    print (f"No test named {name}.")
+    sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser(description='Driver for tests.')
     parser.add_argument('test_name', nargs='?', default=None, help='Name of the test')
     parser.add_argument('-l', '--list', action='store_true', help='Show the available tests')
     parser.add_argument('-i', '--info', action='store_true', help='Print information for the test')
-    parser.add_argument('-r', '--run', action='store_true', help='Run the test')
+    parser.add_argument('-r', '--run', action='store_true', help='Run the test and analyze the results')
+    parser.add_argument('-a', '--analyze', action='store_true', help='Analyze the results on a previously run test')
     parser.add_argument('-o', '--options', default='', help='Test options, option=value, comma or space separated.')
     parser.add_argument('-w', '--workdir', default='session_%test_name%', help='Output directory (as test_name.pdf)')
     parser.add_argument('-b', '--backend', default='DCBEmu', help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
@@ -59,9 +63,6 @@ def main():
             print ("Unknown backend: ",args.backend)
             sys.exit(1)
         t = Name2Test(args.test_name)
-        if t is None:
-            print ("No such test.")
-            sys.exit(1)
         print ("Running test: ",t.name) 
         options = t.default_options
         for opt in args.options.strip().split(','):
@@ -89,8 +90,22 @@ def main():
         print ("Starting commander...")        
         C = Commander(session = workdir, script=S.script, backend=args.backend)
         C.run()
+        # Save options to YAML file
+        options_file = f"{workdir}/options.yaml"
+        with open(options_file, 'w') as file:
+            yaml.dump(options, file)
         print ("Commander done.")
-        t.analyze()
+        
+    if args.run or args.analyze:
+        T= Name2Test(args.test_name)
+        workdir = args.workdir.replace('%test_name%',T.name)
+        # Load options from YAML file
+        options_file = f"{workdir}/options.yaml"
+        with open(options_file, 'r') as file:
+            options = yaml.safe_load(file)
+        # Create an instance of the test with the loaded options
+        t = T(options)
+        t.analyze(workdir)
         t.make_report()
         sys.exit(0)
 
