@@ -14,6 +14,7 @@ import numpy as np
 class Test_Alive(Test):
     
     name = "alive"
+    version = 0.1
     description = """ Basic aliveness test of communication and spectral engine."""
     instructions = """ Do not need to connect anything."""
     default_options = {
@@ -47,6 +48,11 @@ class Test_Alive(Test):
         S.wait(1)
         return S
     
-    
-    
+    def analyze(self, C, uart, commander):
+        """ Analyzes the results of the test. 
+            Returns true if test has passed.
+        """
+        C.cut_to_hello()
+        print(C.list())
+        stop()    
 

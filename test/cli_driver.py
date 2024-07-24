@@ -1,4 +1,4 @@
-import sys
+import sys, os
 sys.path.append('.')
 sys.path.append('./scripter/')
 sys.path.append('./commander/')
@@ -9,6 +9,7 @@ from test_spec import Test_Spec
 from test_crosstalk import Test_CrossTalk
 
 from commander import Commander
+from uncrater import Collection
 import yaml
 
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
@@ -105,7 +106,10 @@ def main():
             options = yaml.safe_load(file)
         # Create an instance of the test with the loaded options
         t = T(options)
-        t.analyze(workdir)
+        C = Collection(os.path.join(workdir,'cdi_output'))
+        uart_log = open (os.path.join(workdir,'uart.log')).read()
+        commander_log = open (os.path.join(workdir,'commander.log')).read()
+        t.analyze(C, uart_log, commander_log)
         t.make_report()
         sys.exit(0)
 

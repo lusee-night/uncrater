@@ -2,6 +2,7 @@
 # This is a base class for a testing script.
 # 
 
+import sys
 
 class Test:
     
@@ -30,7 +31,7 @@ class Test:
         raise NotImplementedError("generate_script not implemented in base class")
 
     def analyze(self, work_dir):
-        """ Analyzes the results of the test. C is uncrater.Collection object.
+        """ Analyzes the results of the test. 
             Returns true if test has passed.
         """
         return False
