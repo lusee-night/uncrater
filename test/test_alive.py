@@ -54,5 +54,6 @@ class Test_Alive(Test):
         """
         C.cut_to_hello()
         print(C.list())
-        stop()    
+        for P in C.cont:
+            print (P.info())    
 
