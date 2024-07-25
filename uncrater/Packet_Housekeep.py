@@ -43,13 +43,13 @@ class Packet_Housekeep(Packet):
     def info (self):
         self._read()
         
-        desc = f"House Packet Type {self.data.housekeeping_type}\n"
-        desc += f"Version : {self.data.version}\n"
-        desc += f"packet_id : {self.data.unique_packet_id}\n"
-        desc += f"error_mask: {self.data.errors}\n"
-        if self.housekeeping_type == 0:
+        desc = f"House Packet Type {self.base.housekeeping_type}\n"
+        desc += f"Version : {self.base.version}\n"
+        desc += f"packet_id : {self.base.unique_packet_id}\n"
+        desc += f"error_mask: {self.base.errors}\n"
+        if self.base.housekeeping_type == 0:
             desc += f"TBC"
-        elif self.housekeeping_type == 1:
+        elif self.base.housekeeping_type == 1:
             desc += f"adc_min : {self.min}\n"            
             desc += f"adc_max : {self.max}\n"            
             desc += f"valid_count : {self.valid_count}\n"            
