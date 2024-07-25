@@ -1,6 +1,12 @@
 # uncrater
 LuSEE Night binary blob unpackager
 
+## Dependencies
+To install Python dependencies, run
+```bash
+pip install -r requirements.txt
+```
+
 ## Header File Conversion
 `./uncrater/include/core_loop.h` was converted to `./uncrater/core_loop.py` using `ctypesgen`. Within the `uncrater` directory, run
 ```bash
