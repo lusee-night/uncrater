@@ -4,7 +4,6 @@ import time
 import os,sys
 import struct
 import csv
-import matplotlib.pyplot as plt
 
 class LuSEE_UART:
     def __init__(self, clog):
