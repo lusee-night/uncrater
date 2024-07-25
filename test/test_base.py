@@ -31,13 +31,13 @@ class Test:
         """ Generates a script for the test """
         raise NotImplementedError("generate_script not implemented in base class")
 
-    def analyze(self, work_dir):
+    def analyze(self, work_dir, figures_dir):
         """ Analyzes the results of the test. 
             Returns true if test has passed.
         """
         return False
     
-    def make_report(self, template, result_dict, work_dir, output_file):
+    def make_report(self, work_dir, output_file, add_keys = {}):
         """ Makes a report for the test. 
             template is a path to the latex template.
             result_dict is a dictionary of results that will be replaced in the template.
@@ -45,14 +45,30 @@ class Test:
             output_file is the output pdf file.
             
         """
-        if results is None:
+        
+        if self.results is None:
             print ("Cannot call make_report without calling analyze first.")
             sys.exit(1)
-        temp = open(template).read()
-        for key in result_dict:
-            temp = temp.replace('>>'+key+'<<', result_dict[key])
-        open(os.path.join(work_dir, 'report.tex'),'w').write(temp)
-        os.system(f"cd {work_dir}; pdflatex report.tex")
+        base_keys = {'test_version':self.version, 'test_name':self.name}
+
+        header = open('test/report_templates/header.tex').read()
+        body = open(f'test/report_templates/body_{self.name}.tex').read()
+        footer = open(f'test/report_templates/footer.tex').read()
+        styfile = 'test/report_templates/sansfontnotes.sty'
+        output_tex = os.path.join(work_dir, 'report.tex')
+        template = header+body+footer
+        
+        combined_dict = {**self.results, **base_keys, **add_keys}
+        for key in combined_dict:
+            template = template.replace('++'+key+'++', str(combined_dict[key]))
+        with open(output_tex,"w") as f:
+            print (f)
+            f.write(template)
+            f.close()
+        
+        os.system(f"cp {styfile} {work_dir}")
+
+        os.system(f"cd {work_dir}; pdflatex -interaction=batchmode report.tex >/dev/null 2>/dev/null")
         os.system(f"mv {work_dir}/report.pdf {output_file}")
 
 

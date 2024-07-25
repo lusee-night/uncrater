@@ -109,8 +109,16 @@ def main():
         C = Collection(os.path.join(workdir,'cdi_output'))
         uart_log = open (os.path.join(workdir,'uart.log')).read()
         commander_log = open (os.path.join(workdir,'commander.log')).read()
-        t.analyze(C, uart_log, commander_log)
-        t.make_report()
+        report_dir = os.path.join(workdir,'report')
+        fig_dir = os.path.join(report_dir,'Figures')    
+        try:
+            os.mkdir(report_dir)
+            os.mkdir(fig_dir)
+        except:
+            pass
+        t.analyze(C, uart_log, commander_log, fig_dir)
+        add_keys = {'operator':args.operator, 'comments':args.comments}
+        t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys)
         sys.exit(0)
 
 if __name__ == "__main__":

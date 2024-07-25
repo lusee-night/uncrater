@@ -1,0 +1,39 @@
+\documentclass{article}
+\newcommand{\version}{0.1}
+\usepackage{sansfontnotes}
+\usepackage{amssymb}
+\usepackage{graphicx} % Required for inserting images
+
+\newcommand{\bcheckmark}[1]{%
+  \ifboolexpr{ test {\ifnumcomp{#1}{=}{1}}  }
+    {\checkmark}
+    {X (!!!)}
+    }
+
+\newcommand{\passed}[1]{%
+    \ifboolexpr{ test {\ifnumcomp{#1}{=}{1}}  }
+      {PASSED}
+      {FAILED}
+      }
+  
+
+\title{Test Report: ++test_name++ }
+\author{}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Run Information}
+
+\begin{tabular}{p{2.5cm}p{5cm}}
+  Test Name      & \texttt{++test_name++}       \\
+  Test Version   & ++test_version++             \\
+  Test Date      & \today                       \\
+  Operator       & ++operator++                 \\
+  Comments       & \texttt{++comments++}        \\
+  Overall Result & \textbf{\passed{++result++}} \\
+\end{tabular}
+
+
