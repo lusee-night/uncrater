@@ -128,7 +128,11 @@ class Test_Alive(Test):
         self.results['wf_packets_received'] = num_wf
         self.results['sp_packets_received'] = num_sp
 
-        
+        if num_wf<4:
+            passed = False
+        if num_sp<1:
+            passed = False
+            
         ax_wf.set_ylabel("ADC Value")
         ax_wf.set_xlabel("Sample")
         ax_wf.legend()
