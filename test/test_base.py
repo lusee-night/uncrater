@@ -40,7 +40,7 @@ class Test:
         """
         return False
     
-    def make_report(self, work_dir, output_file, add_keys = {}):
+    def make_report(self, work_dir, output_file, add_keys = {},verbose=False):
         """ Makes a report for the test. 
             template is a path to the latex template.
             result_dict is a dictionary of results that will be replaced in the template.
@@ -69,10 +69,17 @@ class Test:
             f.write(template)
             f.close()
         
+        
         os.system(f"cp {styfile} {work_dir}")
-
-        os.system(f"cd {work_dir}; pdflatex -interaction=batchmode report.tex >/dev/null 2>/dev/null")
-        os.system(f"mv {work_dir}/report.pdf {output_file}")
+    
+    
+        work_dir_bash = work_dir.replace('\\','/')
+    
+        if (verbose):
+            os.system(f'bash -c "cd {work_dir_bash}; pwd; pdflatex -interaction=batchmode report.tex"')
+        else:
+            os.system(f'bash -c "cd {work_dir_bash}; pwd; pdflatex -interaction=batchmode report.tex >/dev/null 2>&1"')
+        os.system(f"cp {work_dir}/report.pdf {output_file}")
 
 
     def generate_options_table(self):

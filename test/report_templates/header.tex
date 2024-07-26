@@ -4,6 +4,7 @@
 \usepackage{amssymb}
 \usepackage{graphicx} % Required for inserting images
 \usepackage{etoolbox}
+\usepackage{datetime}
 
 \newcommand{\bcheckmark}[1]{%
   \ifboolexpr{ test {\ifnumcomp{#1}{=}{1}}  }
@@ -31,7 +32,7 @@
 \begin{tabular}{p{2.5cm}p{5cm}}
   Test Name      & \texttt{++test_name++}       \\
   Test Version   & ++test_version++             \\
-  Test Date      & \today                       \\
+  Test Time      & \today at \currenttime                       \\
   Operator       & ++operator++                 \\
   Comments       & \texttt{++comments++}        \\
   Overall Result & \textbf{\passed{++result++}} \\

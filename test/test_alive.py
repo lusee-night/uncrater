@@ -51,14 +51,16 @@ class Test_Alive(Test):
         if self.time<15:
             print ("Time raised to 15 seconds.")
             self.time = 15
-        if self.waveform not in ['ramp','zeros','ones','input']:
+        if self.waveform_type == 'input':
+            self.waveform_type = 'normal'
+        if self.waveform_type not in ['ramp','zeros','ones','input']:
             print ("Unknown waveform type. ")
             sys.exit(1)
 
         S = Scripter()
         S.reset()
         S.wait(1)
-        S.ADC_ramp(True)
+        S.ADC_special_mode(self.waveform_type)
         S.house_keeping(0)
         S.wait(1)
         for i in range(4):
@@ -69,6 +71,7 @@ class Test_Alive(Test):
         S.wait(self.time-S.total_time-1)
         #S.stop()
         S.house_keeping(0)
+        S.ADC_special_mode('normal')
         S.wait(1)
         return S
     

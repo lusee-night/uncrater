@@ -31,6 +31,7 @@ def main():
     parser.add_argument('-a', '--analyze', action='store_true', help='Analyze the results on a previously run test')
     parser.add_argument('-o', '--options', default='', help='Test options, option=value, comma or space separated.')
     parser.add_argument('-w', '--workdir', default='session_%test_name%', help='Output directory (as test_name.pdf)')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose processing')
     parser.add_argument('-b', '--backend', default='DCBEmu', help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
     parser.add_argument('--operator', default='anonymous', help='Operator name (for the report)')
     parser.add_argument('--comments', default='None', help='Comments(for the report)')
@@ -119,8 +120,8 @@ def main():
         print ("Starting analysis...")
         t.analyze(C, uart_log, commander_log, fig_dir)
         print ("Writing report...")
-        add_keys = {'operator':args.operator, 'comments':args.comments}
-        t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys)
+        add_keys = {'operator':args.operator, 'comments':args.comments,'uart_log':uart_log, 'commander_log':commander_log}
+        t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys, verbose=args.verbose)
         print ("Done.")
         sys.exit(0)
 
