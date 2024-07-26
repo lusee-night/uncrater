@@ -56,8 +56,10 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_RESET,arg_low)
         
 
-    def ADC_ramp (self, enable = True):
-        self.spectrometer_command(lc.RFS_SET_ADC_RAMP, int(enable))
+    def ADC_special_model (self, mode='input'):
+        assert(mode in ['normal', 'ramp','zeros', 'ones'])
+        arg = ['normal', 'ramp','zeros', 'ones'].index(mode)
+        self.spectrometer_command(lc.RFS_SET_ADC_SPECIAL, int(enable))
 
     def house_keeping(self, req_type):
         assert(req_type<2)

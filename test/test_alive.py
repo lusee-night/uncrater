@@ -14,6 +14,21 @@ from  lusee_script import Scripter
 import uncrater as uc
 
 
+def test_waveform(wf, type):
+    if type == 'ramp':
+        pred_val = wf[0]
+        for next_val in wf[1:]:
+            pred_val = pred_val+1 if pred_val<8192 else -8191
+            if next_val != pred_val:        
+                return False
+        return True
+    if type == 'zeros':
+        return np.all(wf==0)
+    if type == 'ones':
+        return np.all(wf==8192)
+    if type == 'input':
+        return True # input is true since we don't know what to expect
+
 
 class Test_Alive(Test):
     
@@ -22,9 +37,11 @@ class Test_Alive(Test):
     description = """ Basic aliveness test of communication and spectral engine."""
     instructions = """ Do not need to connect anything."""
     default_options = {
+        "waveform_type": "ramp",
         "time" : 60
     } ## dictinary of options for the test
     options_help = {
+        "waveform_type" : "Waveform to be generated. Can be 'ramp', 'zeros', 'ones', or 'input'",
         "time" : "Total time to run the test. 1/3 will be spent taking spectra. Need to be larger than 15s."
     } ## dictionary of help for the options
 
@@ -34,7 +51,10 @@ class Test_Alive(Test):
         if self.time<15:
             print ("Time raised to 15 seconds.")
             self.time = 15
-            
+        if self.waveform not in ['ramp','zeros','ones','input']:
+            print ("Unknown waveform type. ")
+            sys.exit(1)
+
         S = Scripter()
         S.reset()
         S.wait(1)
@@ -115,9 +135,10 @@ class Test_Alive(Test):
             if type(P) == uc.Packet_Waveform:
                 num_wf += 1
                 P._read()
-                ax_wf.plot(P.waveform, label=f"Channel {P.ch}")
+                ax_wf.plot(P.waveform, label=f"Channel {P.ch+1}")
                 wf_ch[P.ch] = True
-                wf_ch_ok[P.ch] = True ### FIXME: need to check the waveform
+                wf_ch_ok[P.ch] = test_waveform(P.waveform, self.waveform_type)
+                print (f"Channel {P.ch} : {wf_ch_ok[P.ch]}")
             if type(P) == uc.Packet_Spectrum:
                 num_sp += 1
         if num_hb == 0:
@@ -132,7 +153,7 @@ class Test_Alive(Test):
             passed = False
         if num_sp<1:
             passed = False
-            
+
         ax_wf.set_ylabel("ADC Value")
         ax_wf.set_xlabel("Sample")
         ax_wf.legend()
@@ -140,7 +161,7 @@ class Test_Alive(Test):
         fig_wf.tight_layout()
         for i in range(4):
             self.results[f'wf_ch{i+1}'] = int(wf_ch[i])
-            self.results[f'wf_ch{i+1}_ok'] = int(wf_ch[i])
+            self.results[f'wf_ch{i+1}_ok'] = int(wf_ch_ok[i])
 
         self.results['result'] = int(passed)
 

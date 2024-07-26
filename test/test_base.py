@@ -15,12 +15,15 @@ class Test:
 
 
     def __init__(self,options):
-        self.options = options
+        
+        self.options = self.default_options
+        self.options.update(options)
+
         # first check options sanity internally
         if not (set(self.default_options.keys()) == set(self.options_help.keys())):
             raise ValueError("Internal error: options and options_help do not match.")
         
-        for k,v in options.items():
+        for k,v in self.options.items():
             if k not in self.default_options:
                 print ("Extranous option: ",k)
                 sys.exit(1)
@@ -49,8 +52,9 @@ class Test:
         if self.results is None:
             print ("Cannot call make_report without calling analyze first.")
             sys.exit(1)
-        base_keys = {'test_version':self.version, 'test_name':self.name}
-
+        base_keys = {'test_version':self.version, 'test_name':self.name,
+                     'options_table': self.generate_options_table()}
+        
         header = open('test/report_templates/header.tex').read()
         body = open(f'test/report_templates/body_{self.name}.tex').read()
         footer = open(f'test/report_templates/footer.tex').read()
@@ -72,4 +76,15 @@ class Test:
         os.system(f"mv {work_dir}/report.pdf {output_file}")
 
 
-    
+    def generate_options_table(self):
+        """ Generates a table with the options """
+        table = "\\begin{tabular}{p{2.5cm}p{2.5cm}}\n"
+        #table += "\\hline\n"
+        #table += " Option & Value \\\\ \n"
+        #table += "\\hline\n"
+        for key, value in self.options.items():
+            skey = key.replace('_','\\_')
+            table += " \\texttt{"+f"{skey}"+"}"+f" & {value} \\\\ \n"
+        #table += "\\hline\n"
+        table += "\\end{tabular}\n"
+        return table
