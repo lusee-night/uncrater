@@ -138,7 +138,6 @@ class Test_Alive(Test):
                 ax_wf.plot(P.waveform, label=f"Channel {P.ch+1}")
                 wf_ch[P.ch] = True
                 wf_ch_ok[P.ch] = test_waveform(P.waveform, self.waveform_type)
-                print (f"Channel {P.ch} : {wf_ch_ok[P.ch]}")
             if type(P) == uc.Packet_Spectrum:
                 num_sp += 1
         if num_hb == 0:

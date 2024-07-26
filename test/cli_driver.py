@@ -116,9 +116,12 @@ def main():
             os.mkdir(fig_dir)
         except:
             pass
+        print ("Starting analysis...")
         t.analyze(C, uart_log, commander_log, fig_dir)
+        print ("Writing report...")
         add_keys = {'operator':args.operator, 'comments':args.comments}
         t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys)
+        print ("Done.")
         sys.exit(0)
 
 if __name__ == "__main__":

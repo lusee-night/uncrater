@@ -66,7 +66,6 @@ class Test:
         for key in combined_dict:
             template = template.replace('++'+key+'++', str(combined_dict[key]))
         with open(output_tex,"w") as f:
-            print (f)
             f.write(template)
             f.close()
         
