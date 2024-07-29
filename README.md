@@ -2,15 +2,20 @@
 LuSEE Night binary blob unpackager
 
 ## Dependencies
+### Python environment
 To install Python dependencies, run
 ```bash
 pip install -r requirements.txt
 ```
+### Linux packages
 Install latex
 ```bash
-sudo apt install texlive-latex-base
-sudo apt-get install texlive-latex-extra
+sudo apt-get install texlive-full
 ```
+> **_NOTE:_**  Installing `texlive` will take up around 5G of disk space. There is a known issue with the installer
+> messages hanging at some portions of the download at "This may take some time..." &mdash; simply click enter a few
+> times and it should continue running.
+
 
 ## Coreloop dependency
 
