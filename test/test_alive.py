@@ -147,7 +147,7 @@ class Test_Alive(Test):
             heartbeat_spacing = False
         
         self.results['heartbeat_received'] = num_hb
-        self.results['heartbeat_spacing'] = num_hb
+        self.results['heartbeat_spacing'] = int(heartbeat_spacing)
         self.results['wf_packets_received'] = num_wf
         self.results['sp_packets_received'] = num_sp
 
