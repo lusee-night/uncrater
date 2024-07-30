@@ -36,6 +36,8 @@ class Packet_Metadata(Packet):
         desc += f"Version : {self.version}\n"
         desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"Errormask: {self.errormask}\n"  
+        desc += f"Current weight: {self.base.weight_current}\n"
+        desc += f"Previous weight: {self.base.weight_previous}\n"
         return desc
 
 class Packet_Spectrum(Packet):
@@ -74,11 +76,16 @@ class Packet_Spectrum(Packet):
         if self.expected_packet_id != self.packet_id:
             raise ValueError("Packet ID mismatch")
         calculated_crc = binascii.crc32(self.blob[8:]) & 0xffffffff
-        if self.crc != calculated_crc:
-            raise ValueError("CRC mismatch")
+        self.crc_ok = (self.crc == calculated_crc)
+        if not self.crc_ok:
+            print (f"CRC: {self.crc:x} {calculated_crc:x}")
+            print ("WARNING CRC mismatch!!!!!")        
+
         if self.format==0:
             Ndata= len(self.blob[8:])//4
             data = struct.unpack(f'<{Ndata}i', self.blob[8:])
+            if len(data)>2048:
+                data=data[:2048]
         else:
             raise NotImplementedError("Only format 0 is supported")
         self._data = np.array(data, dtype=np.int32).astype(np.float32)

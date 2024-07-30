@@ -124,6 +124,7 @@ class Test_Alive(Test):
         fig_wf, ax_wf= plt.subplots(1,1,figsize=(12,8))
         wf_ch=[False]*4
         wf_ch_ok = [False]*4
+        sp_crc_ok = True
         for P in C.cont:
             if type(P) == uc.Packet_Heartbeat:
                 P._read()
@@ -143,6 +144,8 @@ class Test_Alive(Test):
                 wf_ch_ok[P.ch] = test_waveform(P.waveform, self.waveform_type)
             if type(P) == uc.Packet_Spectrum:
                 num_sp += 1
+                P._read()
+                sp_crc_ok = (sp_crc_ok & P.crc_ok)
         if num_hb == 0:
             heartbeat_spacing = False
         
@@ -164,6 +167,49 @@ class Test_Alive(Test):
         for i in range(4):
             self.results[f'wf_ch{i+1}'] = int(wf_ch[i])
             self.results[f'wf_ch{i+1}_ok'] = int(wf_ch_ok[i])
+
+
+        ## now plot spectra
+        fig_sp, ax_sp = plt.subplots(4,4,figsize=(12,12))
+        fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
+        freq = np.arange(1,2048)*0.025
+        wfall=[[] for i in range(16)]
+        for i,S in enumerate(C.spectra[:-1]):
+            #print (S['meta'].info())
+            for c in range(16):
+                if not S[c].crc_ok:
+                    print (f"BAD CRC in product {c}, spectral packet {i}!!")
+                    nz = 2047 if c<4 else 400
+                    wfall[c].append(np.zeros(nz))
+                x,y = c//4, c%4
+                
+                if c<4:
+                    data = S[c].data[1:]
+                    ax_sp[x][y].plot(freq, data, label=f"{i}")
+                    wfall[c].append(data)
+                    ax_sp[x][y].set_xscale('log')
+                    ax_sp[x][y].set_yscale('log')
+                else:
+                    data= S[c].data[:400]*freq[:400]**2
+                    ax_sp[x][y].plot(freq[:400], data)
+                    wfall[c].append(data)
+                #ax_sp[x][y].legend()
+        for i in range(4):
+            ax_sp[3][i].set_xlabel('frequency [MHz]')
+            ax_sp[i][0].set_ylabel('power [uncalibrated]')
+            
+        fig_sp.tight_layout()
+        fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
+        for c in range(16):
+            x,y = c//4, c%4
+            data = np.array(wfall[c])
+            if c<4:
+                data=np.log10(data+1)
+            ax_sp2[x][y].imshow(data, origin='upper',aspect='auto', interpolation='nearest')
+
+        fig_sp2.tight_layout()
+        fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
+
 
         self.results['result'] = int(passed)
 
