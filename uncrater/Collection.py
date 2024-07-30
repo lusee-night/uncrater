@@ -58,7 +58,7 @@ class Collection:
             packet = _Packet(appid, blob_fn = fn)
             if appid==0x20F:
                 packet.read()
-                format, expected_packet_id = packet.format, packet.packet_id
+                format, expected_packet_id = packet.format, packet.unique_packet_id
                 self.spectra.append({'meta':packet})
                 
             if ((appid>=id.AppID_SpectraHigh and appid<id.AppID_SpectraHigh+16) or

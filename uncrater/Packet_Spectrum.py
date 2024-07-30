@@ -25,7 +25,7 @@ class Packet_Metadata(Packet):
     def _read(self):
         super()._read()
         # TODO: check if this actually works
-        copy_attrs(struct.meta_data.from_buffer_copy(self.blob), self)
+        copy_attrs(pystruct.meta_data.from_buffer_copy(self.blob), self)
         self.format = self.seq.format
         self.time_seconds = self.base.time_seconds
         self.errormask = self.base.errors
