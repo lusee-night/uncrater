@@ -136,6 +136,8 @@ class Test_Alive(Test):
                         self.results['result'] = 'FAILED'
                         heartbeat_spacing = False
                         passed=False
+                    else:
+                        last_hb = P.count
             if type(P) == uc.Packet_Waveform:
                 num_wf += 1
                 P._read()
