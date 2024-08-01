@@ -63,9 +63,10 @@ class Test_Alive(Test):
         S.ADC_special_mode(self.waveform_type)
         S.house_keeping(0)
         S.wait(1)
-        for i in range(4):
+        for i in [0,1,2,3]:
             S.waveform(i)
             S.wait(1)
+        #S.waveform(5)
         S.set_Navg(14,3)
         S.start()
         S.wait(self.time-S.total_time-3)
