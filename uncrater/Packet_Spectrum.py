@@ -66,19 +66,31 @@ class Packet_Spectrum(Packet):
             return
         if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
             self.priority = 1
+            self.product = self.appid - id.AppID_SpectraHigh
         elif self.appid>=id.AppID_SpectraMed and self.appid<id.AppID_SpectraMed+16:
             self.priority = 2
+            self.product = self.appid - id.AppID_SpectraMed
         else:
             assert (self.appid>=id.AppID_SpectraLow and self.appid<id.AppID_SpectraLow+16)
             self.priority = 3
+            self.product = self.appid - id.AppID_SpectraLow
         super()._read()
         self.packet_id, self.crc = struct.unpack('<II', self.blob[:8])
         if self.expected_packet_id != self.packet_id:
             raise ValueError("Packet ID mismatch")
+        
+        
+        if self.format==0 and len(self.blob[8:])//4>2048:
+            print ("Spurious data, trimming!!!")
+            self.blob = self.blob[:8+2048*4]            
+            
         calculated_crc = binascii.crc32(self.blob[8:]) & 0xffffffff
         self.crc_ok = (self.crc == calculated_crc)
         if not self.crc_ok:
             print (f"CRC: {self.crc:x} {calculated_crc:x}")
+            Ndata= len(self.blob[8:])//4
+            data = struct.unpack(f'<{Ndata}i', self.blob[8:])
+            print (data,Ndata)
             print ("WARNING CRC mismatch!!!!!")        
 
         if self.format==0:
