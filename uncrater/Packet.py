@@ -17,14 +17,14 @@ class Packet:
     def __init__ (self, appid, blob = None, blob_fn = None):
         if (blob is None) and (blob_fn is None):
             raise ValueError
-        self.appid = appid
-        self.blob = blob
-        self.blob_fn = blob_fn
+        self._appid = appid
+        self._blob = blob
+        self._blob_fn = blob_fn
         
 
     def _read(self):
-        if self.blob is None:
-            self.blob = open(self.blob_fn,"rb").read()    
+        if self._blob is None:
+            self._blob = open(self._blob_fn, "rb").read()
 
     def read(self):
         self._read()
@@ -32,7 +32,7 @@ class Packet:
     def xxd(self):
         """ xxd style dump of the contents"""
         self._read()
-        return hexdump.hexdump(self.blob,result='return')
+        return hexdump.hexdump(self._blob, result='return')
 
     @property
     def desc(self):

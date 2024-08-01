@@ -8,7 +8,7 @@ class Packet_Hello(Packet):
 
     def _read(self):
         super()._read()
-        copy_attrs(pystruct.startup_hello.from_buffer_copy(self.blob), self)
+        copy_attrs(pystruct.startup_hello.from_buffer_copy(self._blob), self)
     
     def info (self):
         self._read()

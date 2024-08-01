@@ -7,8 +7,8 @@ class Packet_Heartbeat(Packet):
 
     def _read(self):
         super()._read()
-        self.count = struct.unpack("<I", self.blob[:4])[0]
-        self.ok = (self.blob[4:8] == b'BRRL')
+        self.count = struct.unpack("<I", self._blob[:4])[0]
+        self.ok = (self._blob[4:8] == b'BRRL')
         self._read = True
 
     def info (self):

@@ -13,9 +13,9 @@ class Packet_Waveform(Packet):
             return
         super()._read()
         fmt = "16384H"
-        self.waveform = np.array(struct.unpack(fmt,self.blob))
+        self.waveform = np.array(struct.unpack(fmt, self._blob))
         self.waveform[self.waveform>8192] -= 16384 
-        self.ch = self.appid - 0x2f0
+        self.ch = self._appid - 0x2f0
         if self.ch>=512:
             self.ch -= 512
         
