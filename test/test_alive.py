@@ -133,6 +133,7 @@ class Test_Alive(Test):
         wf_ch_ok = [False]*4
         sp_crc_ok = True
         hk_start = None
+        hk_end = None
         for P in C.cont:
             if type(P) == uc.Packet_Heartbeat:
                 P._read()
