@@ -38,38 +38,40 @@ class HKAnalyzer:
         starting = 'Starting' if start else 'Ending'
         self.template = \
             '''
-            \\subsection{''' + starting + ''' Housekeep}
-            \\begin{tabular}{p{5cm}p{5cm}}\n
+            \\begin{tabular}{p{7.5cm}p{5cm}}\n
             '''
 
-    def _analyze_attr(self, attr_name: str, obj: object) -> None:
+    def _analyze_attr(self, attr_name: str, obj: object, full_attr_name: str) -> None:
         attr = getattr(obj, attr_name)
+        full_attr_name += f'{attr_name}.'
         if isinstance(attr, object) and type(attr).__module__ != 'builtins':
-            self._analyze_hk(attr)
+            self._analyze_hk(attr, full_attr_name)
         else:
-            self.attr_dict[attr_name] = attr
+            self.attr_dict[full_attr_name.strip('.')] = attr
 
-    def _analyze_hk(self, obj: object) -> dict:
+    def _analyze_hk(self, obj: object, full_attr_name='') -> None:
         # slotted classes generated in core_loop.py
         if hasattr(obj, '__slots__'):
             for slot in obj.__slots__:
                 if slot[0] == '_':
                     continue
-                self._analyze_attr(slot, obj)
+                self._analyze_attr(slot, obj, full_attr_name)
         # top level Packet class
         elif obj.__class__.__module__ != 'builtins':
             for attr_name in vars(obj):
                 if attr_name[0] == '_':
                     continue
-                self._analyze_attr(attr_name, obj)
+                self._analyze_attr(attr_name, obj, full_attr_name)
 
     def get_latex(self):
         self._analyze_hk(self.packet)
         for k, v in self.attr_dict.items():
             if isinstance(v, bool):
                 v = '\\checkmark' if v else 'X'
-            self.template += f"{k.replace('_', ' ')} & {v} \\\\"
+            k = k.replace('_', '{\\_}')
+            self.template += f"{k} & {v} \\\\"
         self.template += '\\end{tabular}'
+        print(self.template)
         return self.template
 
 
@@ -220,7 +222,7 @@ class Test_Alive(Test):
         self.results['wf_right'] = int(num_wf==4)
         self.results['hk_right'] = int(num_hk==2)
         self.results['hk_results'] = HKAnalyzer(hk_start, start=True).get_latex()
-        if num_hk > 1:
+        if num_hk == 2:
             self.results['hk_results'] += HKAnalyzer(hk_end, start=False).get_latex()
 
         if (hk_start is not None) and (hk_end is not None):
