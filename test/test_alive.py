@@ -39,7 +39,8 @@ class HKAnalyzer:
         starting = 'Starting' if start else 'Ending'
         self.template = \
             '''
-            \\begin{tabular}{p{7.5cm}p{3cm}p{3cm}}\n
+            \\begin{longtable}{p{7.5cm}p{3cm}p{3cm}}
+            & \\textbf{Start} & \\textbf{End} \\\\
             '''
 
     def _analyze_attr(self, attr_name: str, obj: object, full_attr_name: str) -> None:
@@ -76,7 +77,7 @@ class HKAnalyzer:
                 self.template += f"{k} & {v_start} & {v_end} \\\\"
             else:
                 self.template += f"{k} & 0x{v_start:X} & 0x{v_end:X} \\\\"
-        self.template += '\\end{tabular}'
+        self.template += '\\end{longtable}'
         return self.template
 
 
