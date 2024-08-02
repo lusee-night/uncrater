@@ -36,7 +36,6 @@ class HKAnalyzer:
         self.end = end
         self.attr_dict: defaultdict[str: list[int | bool, int | bool]] = defaultdict(list)
 
-        starting = 'Starting' if start else 'Ending'
         self.template = \
             '''
             \\begin{longtable}{p{7.5cm}p{3cm}p{3cm}}
