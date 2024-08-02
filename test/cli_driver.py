@@ -29,6 +29,7 @@ def main():
     parser.add_argument('-i', '--info', action='store_true', help='Print information for the test')
     parser.add_argument('-r', '--run', action='store_true', help='Run the test and analyze the results')
     parser.add_argument('-a', '--analyze', action='store_true', help='Analyze the results on a previously run test')
+    parser.add_argument('-d', '--dataview', action='store_true', help='Send the data to DataView viewer')
     parser.add_argument('-o', '--options', default='', help='Test options, option=value, comma or space separated.')
     parser.add_argument('-w', '--workdir', default='session_%test_name%', help='Output directory (as test_name.pdf)')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose processing')
@@ -124,6 +125,31 @@ def main():
         t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys, verbose=args.verbose)
         print ("Done.")
         sys.exit(0)
+    
+    if args.dataview:
+        workdir = args.workdir.replace('%test_name%',args.test_name)
+        C = Collection(os.path.join(workdir,'cdi_output'))
+        # uart log and commander log are txt files that you might want to disply
+        # in dataview
+        uart_log = open (os.path.join(workdir,'uart.log')).read()
+        commander_log = open (os.path.join(workdir,'commander.log')).read()
+        last_time_seconds = 0
+        print ("| count  |appid|uniq_id |  time   | binary blob 32B")
+        print ("|--------|-----|--------|---------|-----------------")
+        for count, P in enumerate(C.cont):
+            P._read()
+            appid = P._appid
+            blob = P._blob
+            unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
+            time_seconds = P.time_seconds if hasattr(P, 'time_seconds') else last_time_seconds
+            last_time_seconds = time_seconds
+            ## HERE you send to dataview
+            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time_seconds:8d}| binary blob {len(blob)}B") 
+
+
+
+
+
 
 if __name__ == "__main__":
     main()

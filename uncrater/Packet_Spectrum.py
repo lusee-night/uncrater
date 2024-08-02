@@ -77,8 +77,8 @@ class Packet_Spectrum(PacketBase):
             self.priority = 3
             self.product = self._appid - id.AppID_SpectraLow
         super()._read()
-        self.packet_id, self.crc = struct.unpack('<II', self._blob[:8])
-        if self.meta.unique_packet_id != self.packet_id:
+        self.unique_packet_id, self.crc = struct.unpack('<II', self._blob[:8])
+        if self.meta.unique_packet_id != self.unique_packet_id:
             raise ValueError("Packet ID mismatch")
         
         
@@ -109,7 +109,7 @@ class Packet_Spectrum(PacketBase):
     def info (self):
         self._read()
         desc = ""
-        desc += f"packet_id : {self.packet_id}\n"
+        desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"crc : {self.crc}\n" 
         desc += f"Npoints: {len(self.data)}\n"  
         return desc
