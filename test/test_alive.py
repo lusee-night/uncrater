@@ -39,7 +39,8 @@ class HKAnalyzer:
         self.template = \
             '''
             \\begin{longtable}{p{7.5cm}p{3cm}p{3cm}}
-            & \\textbf{Start} & \\textbf{End} \\\\
+            \\textbf{Field Name} & \\textbf{Start} & \\textbf{End} \\\\
+            \\hline \\\\
             '''
 
     def _analyze_attr(self, attr_name: str, obj: object, full_attr_name: str) -> None:
