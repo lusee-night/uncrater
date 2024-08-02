@@ -30,6 +30,50 @@ def test_waveform(wf, type):
         return True # input is true since we don't know what to expect
 
 
+class HKAnalyzer:
+    def __init__(self, packet: uc.Packet_Housekeep, start: bool = True):
+        self.packet = packet
+        self.start = start
+        self.attr_dict: dict[str: int | bool] = {}
+
+        starting = 'Starting' if start else 'Ending'
+        self.template = \
+            '''
+            \\subsection{''' + starting + ''' Housekeep}
+            \\begin{tabular}{p{5cm}p{5cm}}\n
+            '''
+
+    def _analyze_attr(self, attr_name: str, obj: object) -> None:
+        attr = getattr(obj, attr_name)
+        if isinstance(attr, object) and type(attr).__module__ != 'builtins':
+            self._analyze_hk(attr)
+        else:
+            self.attr_dict[attr_name] = attr
+
+    def _analyze_hk(self, obj: object) -> dict:
+        # slotted classes generated in core_loop.py
+        if hasattr(obj, '__slots__'):
+            for slot in obj.__slots__:
+                if slot[0] == '_':
+                    continue
+                self._analyze_attr(slot, obj)
+        # top level Packet class
+        elif obj.__class__.__module__ != 'builtins':
+            for attr_name in vars(obj):
+                if attr_name[0] == '_':
+                    continue
+                self._analyze_attr(attr_name, obj)
+
+    def get_latex(self):
+        self._analyze_hk(self.packet)
+        for k, v in self.attr_dict.items():
+            if isinstance(v, bool):
+                v = '\\checkmark' if v else 'X'
+            self.template += f'{k.replace('_', ' ')} & {v} \\\\'
+        self.template += '\\end{tabular}'
+        return self.template
+
+
 class Test_Alive(Test):
     
     name = "alive"
@@ -175,6 +219,10 @@ class Test_Alive(Test):
         self.results['hk_packets_received'] = num_hk
         self.results['wf_right'] = int(num_wf==4)
         self.results['hk_right'] = int(num_hk==2)
+        self.results['hk_results'] = HKAnalyzer(hk_start, start=True).get_latex()
+        print(num_hk)
+        if num_hk > 1:
+            self.results['hk_results'] += HKAnalyzer(hk_end, start=False).get_latex()
 
         self.results['timer_ok'] = int ((hk_end.core_state.base.time_seconds-hk_start.core_state.base.time_seconds)> 0)
 
@@ -252,6 +300,7 @@ class Test_Alive(Test):
         self.results['sp_crc'] = int(crc_ok)
         self.results['sp_all'] = int(sp_all)
         self.results['sp_pk_ok'] = int(pk_ok)
+        # TODO: The following line gives me (Jacob Paras) an error
         self.results['sp_num'] = len(S)
         self.results['sp_weights_ok'] = int(pk_weights_ok)
         
@@ -265,6 +314,7 @@ class Test_Alive(Test):
             data = np.array(wfall[c])
             if c<4:
                 data=np.log10(data+1)
+            # TODO: The following line gives me (Jacob Paras) an error
             ax_sp2[x][y].imshow(data, origin='upper',aspect='auto', interpolation='nearest')
 
         fig_sp2.tight_layout()
