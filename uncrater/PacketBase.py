@@ -17,7 +17,7 @@ class PacketBase:
     def __init__ (self, appid, blob = None, blob_fn = None):
         if (blob is None) and (blob_fn is None):
             raise ValueError
-        self._appid = appid
+        self.appid = appid
         self._blob = blob
         self._blob_fn = blob_fn
         

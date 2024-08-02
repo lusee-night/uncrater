@@ -66,16 +66,16 @@ class Packet_Spectrum(PacketBase):
         if not hasattr(self, 'meta'):
             raise ValueError("Need to set metadata packet first with set_meta")
         
-        if self._appid>=id.AppID_SpectraHigh and self._appid<id.AppID_SpectraHigh+16:
+        if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
             self.priority = 1
-            self.product = self._appid - id.AppID_SpectraHigh
-        elif self._appid>=id.AppID_SpectraMed and self._appid<id.AppID_SpectraMed+16:
+            self.product = self.appid - id.AppID_SpectraHigh
+        elif self.appid>=id.AppID_SpectraMed and self.appid<id.AppID_SpectraMed+16:
             self.priority = 2
-            self.product = self._appid - id.AppID_SpectraMed
+            self.product = self.appid - id.AppID_SpectraMed
         else:
-            assert (self._appid >= id.AppID_SpectraLow and self._appid < id.AppID_SpectraLow + 16)
+            assert (self.appid >= id.AppID_SpectraLow and self.appid < id.AppID_SpectraLow + 16)
             self.priority = 3
-            self.product = self._appid - id.AppID_SpectraLow
+            self.product = self.appid - id.AppID_SpectraLow
         super()._read()
         self.unique_packet_id, self.crc = struct.unpack('<II', self._blob[:8])
         if self.meta.unique_packet_id != self.unique_packet_id:

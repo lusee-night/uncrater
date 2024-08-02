@@ -138,7 +138,7 @@ def main():
         print ("|--------|-----|--------|------------|-----------------")
         for count, P in enumerate(C.cont):
             P._read()
-            appid = P._appid
+            appid = P.appid
             blob = P._blob
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
             time_seconds = P.time_seconds if hasattr(P, 'time_seconds') else last_time_seconds
