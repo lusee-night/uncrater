@@ -25,7 +25,7 @@ class Packet_Metadata(PacketBase):
     def _read(self):
         super()._read()
         # TODO: check if this actually works
-        copy_attrs(pystruct.meta_data.from_buffer_copy(self.blob), self)
+        copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob), self)
         self.format = self.seq.format
         self.time_seconds = self.base.time_seconds
         self.errormask = self.base.errors
@@ -66,38 +66,38 @@ class Packet_Spectrum(PacketBase):
         if not hasattr(self, 'meta'):
             raise ValueError("Need to set metadata packet first with set_meta")
         
-        if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
+        if self._appid>=id.AppID_SpectraHigh and self._appid<id.AppID_SpectraHigh+16:
             self.priority = 1
-            self.product = self.appid - id.AppID_SpectraHigh
-        elif self.appid>=id.AppID_SpectraMed and self.appid<id.AppID_SpectraMed+16:
+            self.product = self._appid - id.AppID_SpectraHigh
+        elif self._appid>=id.AppID_SpectraMed and self._appid<id.AppID_SpectraMed+16:
             self.priority = 2
-            self.product = self.appid - id.AppID_SpectraMed
+            self.product = self._appid - id.AppID_SpectraMed
         else:
-            assert (self.appid>=id.AppID_SpectraLow and self.appid<id.AppID_SpectraLow+16)
+            assert (self._appid >= id.AppID_SpectraLow and self._appid < id.AppID_SpectraLow + 16)
             self.priority = 3
-            self.product = self.appid - id.AppID_SpectraLow
+            self.product = self._appid - id.AppID_SpectraLow
         super()._read()
-        self.packet_id, self.crc = struct.unpack('<II', self.blob[:8])
+        self.packet_id, self.crc = struct.unpack('<II', self._blob[:8])
         if self.meta.unique_packet_id != self.packet_id:
             raise ValueError("Packet ID mismatch")
         
         
-        if self.meta.format==0 and len(self.blob[8:])//4>2048:
+        if self.meta.format==0 and len(self._blob[8:])//4>2048:
             print ("Spurious data, trimming!!!")
-            self.blob = self.blob[:8+2048*4]            
+            self._blob = self._blob[:8 + 2048 * 4]
             
-        calculated_crc = binascii.crc32(self.blob[8:]) & 0xffffffff
+        calculated_crc = binascii.crc32(self._blob[8:]) & 0xffffffff
         self.crc_ok = (self.crc == calculated_crc)
         if not self.crc_ok:
             print (f"CRC: {self.crc:x} {calculated_crc:x}")
-            Ndata= len(self.blob[8:])//4
-            data = struct.unpack(f'<{Ndata}i', self.blob[8:])
+            Ndata= len(self._blob[8:])//4
+            data = struct.unpack(f'<{Ndata}i', self._blob[8:])
             print (data,Ndata)
             print ("WARNING CRC mismatch!!!!!")        
 
         if self.meta.format==0:
-            Ndata= len(self.blob[8:])//4
-            data = struct.unpack(f'<{Ndata}i', self.blob[8:])
+            Ndata= len(self._blob[8:])//4
+            data = struct.unpack(f'<{Ndata}i', self._blob[8:])
             if len(data)>2048:
                 data=data[:2048]
         else:
