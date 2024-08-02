@@ -1,43 +1,9 @@
 import os, sys
 import glob
 
-from .Packet import Packet
-from .Packet_Hello import Packet_Hello
-from .Packet_Heartbeat import Packet_Heartbeat
-from .Packet_Housekeep import Packet_Housekeep
-from .Packet_Spectrum import Packet_Spectrum, Packet_Metadata
-from .Packet_Waveform import Packet_Waveform
 
 from datetime import datetime
-
-if os.environ.get('CORELOOP_DIR') is not None:
-    sys.path.append(os.environ.get('CORELOOP_DIR'))
-
-# now try to import pycoreloop
-try:
-    from pycoreloop import appId as id
-except ImportError:
-    print ("Can't import pycoreloop\n")
-    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [Collection.py]")
-    sys.exit(1)
-
-
-
-PacketDict = {id.AppID_uC_Housekeeping:Packet_Housekeep, 
-              id.AppID_uC_Start:Packet_Hello, 
-              id.AppID_uC_Heartbeat:Packet_Heartbeat, 
-              id.AppID_MetaData:Packet_Metadata}
-
-for i in range(16):
-    PacketDict[id.AppID_SpectraHigh+i] = Packet_Spectrum
-    PacketDict[id.AppID_SpectraMed+i] = Packet_Spectrum
-    PacketDict[id.AppID_SpectraLow+i] = Packet_Spectrum
-
-for i in range(4):
-    PacketDict[id.AppID_RawADC+i] = Packet_Waveform
-
-
-PacketDict[0x4f0] = Packet_Waveform
+from .Packet import *
 
 class Collection:
 
@@ -54,17 +20,16 @@ class Collection:
         for i,fn in enumerate(flist):
             #print ("reading ",fn)
             appid = int(fn.replace('.bin','').split("_")[-1],16)
-            _Packet = PacketDict.get(appid,Packet)
-            packet = _Packet(appid, blob_fn = fn)
+            packet = Packet(appid, blob_fn=fn)
             if appid==0x20F:
                 packet.read()
-                format, expected_packet_id = packet.format, packet.unique_packet_id
+                meta_packet = packet
                 self.spectra.append({'meta':packet})
                 
             if ((appid>=id.AppID_SpectraHigh and appid<id.AppID_SpectraHigh+16) or
                 (appid>=id.AppID_SpectraMed and appid<id.AppID_SpectraMed+16) or
                 (appid>=id.AppID_SpectraLow and appid<id.AppID_SpectraLow+16)):
-                    packet.set_expected(format, expected_packet_id)
+                    packet.set_meta(meta_packet)
                     self.spectra[-1][appid & 0x0F] = packet
 
             self.cont.append(packet)

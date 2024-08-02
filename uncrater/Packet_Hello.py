@@ -1,7 +1,7 @@
-from .Packet import Packet, copy_attrs, pystruct
+from .PacketBase import PacketBase, copy_attrs, pystruct
 import struct
 
-class Packet_Hello(Packet):
+class Packet_Hello(PacketBase):
     @property
     def desc(self):
         return  "Hello!!"

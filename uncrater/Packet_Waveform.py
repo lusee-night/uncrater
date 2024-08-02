@@ -1,9 +1,9 @@
-from .Packet import Packet
+from .PacketBase import PacketBase
 import struct
 import numpy as np
 
 
-class Packet_Waveform(Packet):
+class Packet_Waveform(PacketBase):
     @property
     def desc(self):
         return  "Raw Waveform"

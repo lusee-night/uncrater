@@ -1,4 +1,4 @@
-from .Packet import Packet,  copy_attrs, pystruct
+from .PacketBase import PacketBase,  copy_attrs, pystruct
 import os, sys
 import struct
 import numpy as np
@@ -17,7 +17,7 @@ except ImportError:
 
 
 
-class Packet_Metadata(Packet):
+class Packet_Metadata(PacketBase):
     @property
     def desc(self):
         return  "Data Product Metadata"
@@ -40,12 +40,8 @@ class Packet_Metadata(Packet):
         desc += f"Previous weight: {self.base.weight_previous}\n"
         return desc
 
-class Packet_Spectrum(Packet):
+class Packet_Spectrum(PacketBase):
     
-    def set_expected(self, format, expected_packet_id):
-        self.expected_packet_id = expected_packet_id
-        self.format = format
-        
     
     @property
     def desc(self):
@@ -60,10 +56,16 @@ class Packet_Spectrum(Packet):
     def power(self):
         self._read()
         return self.data
-    
+
+    def set_meta(self, meta):
+        self.meta = meta
+        
     def _read(self):
         if hasattr(self, '_data'):
             return
+        if not hasattr(self, 'meta'):
+            raise ValueError("Need to set metadata packet first with set_meta")
+        
         if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
             self.priority = 1
             self.product = self.appid - id.AppID_SpectraHigh
@@ -76,11 +78,11 @@ class Packet_Spectrum(Packet):
             self.product = self.appid - id.AppID_SpectraLow
         super()._read()
         self.packet_id, self.crc = struct.unpack('<II', self.blob[:8])
-        if self.expected_packet_id != self.packet_id:
+        if self.meta.unique_packet_id != self.packet_id:
             raise ValueError("Packet ID mismatch")
         
         
-        if self.format==0 and len(self.blob[8:])//4>2048:
+        if self.meta.format==0 and len(self.blob[8:])//4>2048:
             print ("Spurious data, trimming!!!")
             self.blob = self.blob[:8+2048*4]            
             
@@ -93,7 +95,7 @@ class Packet_Spectrum(Packet):
             print (data,Ndata)
             print ("WARNING CRC mismatch!!!!!")        
 
-        if self.format==0:
+        if self.meta.format==0:
             Ndata= len(self.blob[8:])//4
             data = struct.unpack(f'<{Ndata}i', self.blob[8:])
             if len(data)>2048:

@@ -1,6 +1,6 @@
-from .Packet import Packet
+from .PacketBase import PacketBase
 import struct
-class Packet_Heartbeat(Packet):
+class Packet_Heartbeat(PacketBase):
     @property
     def desc(self):
         return  "Heartbeat"

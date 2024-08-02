@@ -1,9 +1,9 @@
-from .Packet import Packet, copy_attrs, pystruct
+from .PacketBase import PacketBase, copy_attrs, pystruct
 import struct
 import numpy as np
 
 
-class Packet_Housekeep(Packet):
+class Packet_Housekeep(PacketBase):
     valid_types = set(range(2))
     
     @property

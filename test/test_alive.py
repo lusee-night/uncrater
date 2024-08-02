@@ -1,4 +1,3 @@
-
 import sys
 sys.path.append('.')
 sys.path.append('./scripter/')
@@ -88,7 +87,7 @@ class Test_Alive(Test):
         
         C.cut_to_hello()
     
-        if type(C.cont[0]) == uc.Packet_Hello:
+        if len(C)>0 and type(C.cont[0]) == uc.Packet_Hello:
             H = C.cont[0]
             H._read()
             self.results['hello'] = 1
@@ -133,6 +132,7 @@ class Test_Alive(Test):
         wf_ch_ok = [False]*4
         sp_crc_ok = True
         hk_start = None
+        hk_end = None
         for P in C.cont:
             if type(P) == uc.Packet_Heartbeat:
                 P._read()
@@ -175,7 +175,12 @@ class Test_Alive(Test):
         self.results['wf_right'] = int(num_wf==4)
         self.results['hk_right'] = int(num_hk==2)
 
-        self.results['timer_ok'] = int ((hk_end.core_state.base.time_seconds-hk_start.core_state.base.time_seconds)> 0)
+        if (hk_start is not None) and (hk_end is not None):
+            self.results['timer_ok'] = int ((hk_end.core_state.base.time_seconds-hk_start.core_state.base.time_seconds)> 0)
+            self.results['no_errors'] =  int(hk_start.core_state.base.errors == 0 and hk_end.core_state.base.errors == 0)
+        else:
+            self.results['timer_ok'] = 0
+            self.results['no_errors'] = 0
 
         if num_wf<4:
             passed = False
@@ -199,14 +204,16 @@ class Test_Alive(Test):
         fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
         freq = np.arange(1,2048)*0.025
         wfall=[[] for i in range(16)]
+        
+        
         crc_ok = True
         sp_all = True
         pk_ok = True
         pk_weights_ok = True
-        #xdata= []
+
         mean, std = np.load ('test/data/ramp_power.npy')
         for i,S in enumerate(C.spectra):
-            print (S['meta'].info())
+            #print (S['meta'].info())
             if S['meta'].base.weight_previous!=8:
                 pk_weights_ok = False
             for c in range(16):
@@ -224,10 +231,9 @@ class Test_Alive(Test):
                 
                 if c<4:
                     data = S[c].data[1:]
-
                     if not (np.all((np.abs(data-mean)<=std*2))):
                         pk_ok = False
-                    #xdata.append(data)
+                    
                     ax_sp[x][y].plot(freq, data, label=f"{i}")
                     wfall[c].append(data)
                     ax_sp[x][y].set_xscale('log')
@@ -241,19 +247,18 @@ class Test_Alive(Test):
             ax_sp[3][i].set_xlabel('frequency [MHz]')
             ax_sp[i][0].set_ylabel('power [uncalibrated]')
             
-
-        #mean=np.array(xdata).mean(axis=0)
-        #std = np.array(xdata).std(axis=0)
-        #print (mean)
-        #print (std)
-        #np.save ('test/data/ramp_power',(mean,std))
-
-        self.results['sp_crc'] = int(crc_ok)
-        self.results['sp_all'] = int(sp_all)
-        self.results['sp_pk_ok'] = int(pk_ok)
-        self.results['sp_num'] = len(S)
-        self.results['sp_weights_ok'] = int(pk_weights_ok)
-        
+        if len(C.spectra)>0:
+            self.results['sp_crc'] = int(crc_ok)
+            self.results['sp_all'] = int(sp_all)
+            self.results['sp_pk_ok'] = int(pk_ok)
+            self.results['sp_num'] = len(C.spectra)
+            self.results['sp_weights_ok'] = int(pk_weights_ok)
+        else:
+            self.results['sp_crc'] = 0
+            self.results['sp_all'] = 0
+            self.results['sp_pk_ok'] = 0
+            self.results['sp_num'] = 0
+            self.results['sp_weights_ok'] = 0
 
         passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok)
 
@@ -264,6 +269,8 @@ class Test_Alive(Test):
             data = np.array(wfall[c])
             if c<4:
                 data=np.log10(data+1)
+            if len(data)==0:
+                data=[[0]]
             ax_sp2[x][y].imshow(data, origin='upper',aspect='auto', interpolation='nearest')
 
         fig_sp2.tight_layout()
