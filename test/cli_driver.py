@@ -134,8 +134,8 @@ def main():
         uart_log = open (os.path.join(workdir,'uart.log')).read()
         commander_log = open (os.path.join(workdir,'commander.log')).read()
         last_time_seconds = 0
-        print ("| count  |appid|uniq_id |  time   | binary blob 32B")
-        print ("|--------|-----|--------|---------|-----------------")
+        print ("| count  |appid|uniq_id |  time      | binary blob (size)")
+        print ("|--------|-----|--------|------------|-----------------")
         for count, P in enumerate(C.cont):
             P._read()
             appid = P._appid
@@ -144,7 +144,7 @@ def main():
             time_seconds = P.time_seconds if hasattr(P, 'time_seconds') else last_time_seconds
             last_time_seconds = time_seconds
             ## HERE you send to dataview
-            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time_seconds:8d}| binary blob {len(blob)}B") 
+            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time_seconds:12d}| binary blob {len(blob)}B") 
 
 
 
