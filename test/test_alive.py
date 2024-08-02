@@ -220,7 +220,6 @@ class Test_Alive(Test):
         self.results['wf_right'] = int(num_wf==4)
         self.results['hk_right'] = int(num_hk==2)
         self.results['hk_results'] = HKAnalyzer(hk_start, start=True).get_latex()
-        print(num_hk)
         if num_hk > 1:
             self.results['hk_results'] += HKAnalyzer(hk_end, start=False).get_latex()
 
