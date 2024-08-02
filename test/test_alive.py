@@ -11,6 +11,7 @@ import numpy as np
 from test_base import Test
 from  lusee_script import Scripter
 import uncrater as uc
+from collections import defaultdict
 
 
 def test_waveform(wf, type):
@@ -30,15 +31,15 @@ def test_waveform(wf, type):
 
 
 class HKAnalyzer:
-    def __init__(self, packet: uc.Packet_Housekeep, start: bool = True):
-        self.packet = packet
+    def __init__(self, start: uc.Packet_Housekeep, end: uc.Packet_Housekeep):
         self.start = start
-        self.attr_dict: dict[str: int | bool] = {}
+        self.end = end
+        self.attr_dict: defaultdict[str: list[int | bool, int | bool]] = defaultdict(list)
 
         starting = 'Starting' if start else 'Ending'
         self.template = \
             '''
-            \\begin{tabular}{p{7.5cm}p{5cm}}\n
+            \\begin{tabular}{p{7.5cm}p{3cm}p{3cm}}\n
             '''
 
     def _analyze_attr(self, attr_name: str, obj: object, full_attr_name: str) -> None:
@@ -47,7 +48,7 @@ class HKAnalyzer:
         if isinstance(attr, object) and type(attr).__module__ != 'builtins':
             self._analyze_hk(attr, full_attr_name)
         else:
-            self.attr_dict[full_attr_name.strip('.')] = attr
+            self.attr_dict[full_attr_name.strip('.')].append(attr)
 
     def _analyze_hk(self, obj: object, full_attr_name='') -> None:
         # slotted classes generated in core_loop.py
@@ -64,14 +65,18 @@ class HKAnalyzer:
                 self._analyze_attr(attr_name, obj, full_attr_name)
 
     def get_latex(self):
-        self._analyze_hk(self.packet)
-        for k, v in self.attr_dict.items():
-            if isinstance(v, bool):
-                v = '\\checkmark' if v else 'X'
+        self._analyze_hk(self.start)
+        self._analyze_hk(self.end)
+        for k, (v_start, v_end) in self.attr_dict.items():
             k = k.replace('_', '{\\_}')
-            self.template += f"{k} & {v} \\\\"
+            k = f'\\texttt{{{k}}}'
+            if isinstance(v_start, bool):
+                v_start = '\\checkmark' if v_start else 'X'
+                v_end = '\\checkmark' if v_end else 'X'
+                self.template += f"{k} & {v_start} & {v_end} \\\\"
+            else:
+                self.template += f"{k} & 0x{v_start:X} & 0x{v_end:X} \\\\"
         self.template += '\\end{tabular}'
-        print(self.template)
         return self.template
 
 
@@ -221,9 +226,8 @@ class Test_Alive(Test):
         self.results['hk_packets_received'] = num_hk
         self.results['wf_right'] = int(num_wf==4)
         self.results['hk_right'] = int(num_hk==2)
-        self.results['hk_results'] = HKAnalyzer(hk_start, start=True).get_latex()
         if num_hk == 2:
-            self.results['hk_results'] += HKAnalyzer(hk_end, start=False).get_latex()
+            self.results['hk_results'] = HKAnalyzer(hk_start, hk_end).get_latex()
 
         if (hk_start is not None) and (hk_end is not None):
             self.results['timer_ok'] = int ((hk_end.core_state.base.time_seconds-hk_start.core_state.base.time_seconds)> 0)
