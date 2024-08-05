@@ -1,5 +1,5 @@
-from uart_comm import LuSEE_UART
-from ethernet_comm import LuSEE_ETHERNET
+from .uart_comm import LuSEE_UART
+from .ethernet_comm import LuSEE_ETHERNET
 import threading
 
 class DCBEmulator:
@@ -36,7 +36,7 @@ class DCBEmulator:
         self.uartStop = True
         self.ether.etherStop = True
 
-    def send_command(self, command):
+    def send_command(self, cmd, arg):
         self.ether.cdi_command(cmd, arg)
         
     def run(self):
