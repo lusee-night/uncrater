@@ -208,7 +208,7 @@ class Test_Alive(Test):
             if type(P) == uc.Packet_Spectrum:
                 num_sp += 1
                 P._read()
-                sp_crc_ok = (sp_crc_ok & P.crc_ok)
+                sp_crc_ok = (sp_crc_ok & (not P.error_crc_mismatch))
             if type(P) == uc.Packet_Housekeep:
                 num_hk += 1
                 P._read()
@@ -276,7 +276,7 @@ class Test_Alive(Test):
                     sp_all = False
                     print (f"Product {c} missing in spectra{i}.")
                     continue
-                if not S[c].crc_ok:
+                if S[c].error_crc_mismatch:
                     print (f"BAD CRC in product {c}, spectral packet {i}!!")
                     # add zeros to wfall
                     nz = 2047 if c<4 else 400

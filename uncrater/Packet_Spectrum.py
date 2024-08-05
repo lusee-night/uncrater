@@ -63,8 +63,13 @@ class Packet_Spectrum(PacketBase):
     def _read(self):
         if hasattr(self, '_data'):
             return
+        self.error_packed_id_mismatch = False
+        self.error_data_read = False
+        self.error_crc_mismatch = False
         if not hasattr(self, 'meta'):
-            raise ValueError("Need to set metadata packet first with set_meta")
+            print ("Loading packet without metadata!")
+            self.packed_id_mismatch=True
+            
         
         if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
             self.priority = 1
@@ -79,7 +84,8 @@ class Packet_Spectrum(PacketBase):
         super()._read()
         self.unique_packet_id, self.crc = struct.unpack('<II', self._blob[:8])
         if self.meta.unique_packet_id != self.unique_packet_id:
-            raise ValueError("Packet ID mismatch")
+            print ("Packet ID mismatch!!")
+            self.packed_id_mismatch=True
         
         
         if self.meta.format==0 and len(self._blob[8:])//4>2048:
@@ -87,19 +93,25 @@ class Packet_Spectrum(PacketBase):
             self._blob = self._blob[:8 + 2048 * 4]
             
         calculated_crc = binascii.crc32(self._blob[8:]) & 0xffffffff
-        self.crc_ok = (self.crc == calculated_crc)
-        if not self.crc_ok:
+        self.error_crc_mismatch = not(self.crc == calculated_crc)
+        if self.error_crc_mismatch:
             print (f"CRC: {self.crc:x} {calculated_crc:x}")
-            Ndata= len(self._blob[8:])//4
-            data = struct.unpack(f'<{Ndata}i', self._blob[8:])
-            print (data,Ndata)
             print ("WARNING CRC mismatch!!!!!")        
+            try:
+                Ndata= len(self._blob[8:])//4
+                data = struct.unpack(f'<{Ndata}i', self._blob[8:])
+                print (data,Ndata)
+                
+            except:
+                pass
 
         if self.meta.format==0:
             Ndata= len(self._blob[8:])//4
-            data = struct.unpack(f'<{Ndata}i', self._blob[8:])
-            if len(data)>2048:
-                data=data[:2048]
+            try:
+                data = struct.unpack(f'<{Ndata}i', self._blob[8:])
+            except:
+                self.error_data_read=True
+                data = np.zeros(Ndata)
         else:
             raise NotImplementedError("Only format 0 is supported")
         self._data = np.array(data, dtype=np.int32).astype(np.float32)
