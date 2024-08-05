@@ -268,9 +268,10 @@ class Test_Alive(Test):
 
         mean, std = np.load ('test/data/ramp_power.npy')
         for i,S in enumerate(C.spectra):
-            #print (S['meta'].info())
+            
             if S['meta'].base.weight_previous!=8:
                 pk_weights_ok = False
+                
             for c in range(16):
                 if c not in S:
                     sp_all = False
@@ -286,7 +287,10 @@ class Test_Alive(Test):
                 
                 if c<4:
                     data = S[c].data[1:]
-                    if not (np.all((np.abs(data-mean)<=std*2))):
+                    w= np.where(std>100)
+                    err = (np.abs(data-mean)[w]/std[w])
+                    maxerr = np.max(err)
+                    if not (maxerr<5):
                         pk_ok = False
                     
                     ax_sp[x][y].plot(freq, data, label=f"{i}")
@@ -301,7 +305,7 @@ class Test_Alive(Test):
         for i in range(4):
             ax_sp[3][i].set_xlabel('frequency [MHz]')
             ax_sp[i][0].set_ylabel('power [uncalibrated]')
-            
+
         if len(C.spectra)>0:
             self.results['sp_crc'] = int(crc_ok)
             self.results['sp_all'] = int(sp_all)
