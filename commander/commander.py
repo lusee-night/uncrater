@@ -1,5 +1,3 @@
-from uart_comm import LuSEE_UART
-from ethernet_comm import LuSEE_ETHERNET
 import os
 import sys
 import select
@@ -7,7 +5,7 @@ import sys
 import time 
 import socket
 import shutil
-import threading
+from DCBEmu import DCBEmulator
 
 
 class clogger:
@@ -44,7 +42,7 @@ def read_script(fname):
 
 class Commander:
     
-    def __init__ (self, session = "session", script = None, backend = 'DCBEmu'):
+    def __init__ (self, session = "session", script = None, commanding_ip=None, commanding_port = None, backend = 'DCBEmu'):
         print ("Starting commander.")
         self.session=session
         if script is None:
@@ -59,60 +57,49 @@ class Commander:
             
         self.prepare_directory()
 
-
-        self.clog.log("Attempting to open UART serial...\n")
-        self.uart = None
-        luseeUart = LuSEE_UART(self.clog)
-        if luseeUart.get_connections():
-            if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
-                self.uart = luseeUart
-        self.ether = LuSEE_ETHERNET(self.clog, self.session)
-
-        self.s = socket.socket()
-        self.s.bind(('172.30.192.1', 8051))
-        self.s.listen(5)
-        self.clog.log('Listening on port 8051 for commander commanding...\n')
-
+        if backend == 'DCBEmu':
+            self.backend = DCBEmulator(self.clog, self.uart_log, self.session)
+        elif backend == "coreloop":
+            #self.backend = CoreloopBackend()
+            raise ValueError("Coreloop is not implemented yet.")
+        elif backend == "DCB":
+            raise ValueError("DCBE is not implemented yet.")
+        else:
+            raise ValueError("Unknown backend.")
+    
+        
+        if commanding_port is not None:
+            self.s = socket.socket()
+            self.s.bind((commanding_ip, commanding_port))
+            self.s.listen(5)
+            self.clog.log('Listening on port 8051 for commander commanding...\n')
+        else:
+            self.s = None
 
     def reset(self):
        self.clog.logt('Resetting....') 
        
        self.prepare_directory()
-       self.ether.reset(self.clog)
-        
-        
-    def uart_thread (self):
-        if self.uart is not None:
-            while not self.uartStop:
-                uart_data = self.uart.read()
-                if not self.uart_log.closed:
-                    self.uart_log.write(uart_data) 
-                    self.uart_log.flush()
-    
+       self.backend.reset()
+       
+            
     def run(self):
-        self.clog.log('Starting UART thread \n')
-        tu = threading.Thread (target = self.uart_thread, daemon = True)
-        self.uartStop = False
-        tu.start()    
-        self.clog.log("\n\nStarting data collection threads.\n")   
-        te1 = threading.Thread(target = self.ether.ListenForData, args = (0,), daemon=True)
-        te2 = threading.Thread(target = self.ether.ListenForData, args = (1,), daemon=True)
-        te1.start()
-        te2.start()
-        
+        self.backend.run()
+
         stime = int(time.time())
         script_last = time.time()
         # wait for 1 second
         dt = 1.0
         while True:
             ctime = time.time()
-            ready_to_read, _, _ = select.select([self.s], [], [], 0)
             have_cmd = False
-            if self.s in ready_to_read:
-                c, addr = self.s.accept()
-                input_data = c.recv(1024).decode()       
-                input_data = input_data.split() 
-                have_cmd = True
+            if self.s is not None:
+                ready_to_read, _, _ = select.select([self.s], [], [], 0)
+                if self.s in ready_to_read:
+                    c, addr = self.s.accept()
+                    input_data = c.recv(1024).decode()       
+                    input_data = input_data.split() 
+                    have_cmd = True
             else:
                 if len(self.script)>0:
                     command = self.script[0]
@@ -130,13 +117,13 @@ class Commander:
                     self.clog.logt (f"Waiting for {dt}s.\n")
                 else:                
                     print ("Sending command.")
-                    self.ether.cdi_command(cmd, arg)
+                    self.backend.send_command(cmd, arg) 
                     self.clog.logt (f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
             
             if len(self.script)==0 and ctime-script_last>dt:
                 break   
-        self.uartStop = True
-        self.ether.etherStop = True
+
+        self.backend.stop()
         print ('Exiting commander.')
 
 
@@ -165,7 +152,7 @@ class Commander:
 
 
 if __name__ == "__main__":
-        C=Commander()
+        C=Commander(commanding_ip='172.30.192.1', commanding_port = 8051)
         C.run()
 
 
