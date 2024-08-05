@@ -1,6 +1,7 @@
 from .uart_comm import LuSEE_UART
 from .ethernet_comm import LuSEE_ETHERNET
 import threading
+import time
 
 class DCBEmulator:
     def __init__ (self, clog, uart_log, session):
@@ -35,6 +36,8 @@ class DCBEmulator:
     def stop(self):
         self.uartStop = True
         self.ether.etherStop = True
+        # give time for threads to stop
+        time.sleep(1)
 
     def send_command(self, cmd, arg):
         self.ether.cdi_command(cmd, arg)

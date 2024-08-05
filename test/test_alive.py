@@ -268,7 +268,7 @@ class Test_Alive(Test):
 
         mean, std = np.load ('test/data/ramp_power.npy')
         for i,S in enumerate(C.spectra):
-            
+            print (S['meta'].info())
             if S['meta'].base.weight_previous!=8:
                 pk_weights_ok = False
                 
