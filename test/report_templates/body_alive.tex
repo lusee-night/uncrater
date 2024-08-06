@@ -1,0 +1,63 @@
+
+\section{Basic Info}
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Packets Received              & ++packets_received++                                         \\
+    Startup packet received       & \bcheckmark{++hello++}                                       \\
+    Software Version              & ++SW_version++                                               \\
+    Firmware Version              & ++FW_version++                                               \\
+    Firmware ID                   & ++FW_ID++                                                    \\
+    Firmware Date                 & ++FW_Date++                                                  \\
+    Firmware Time                 & ++FW_Time++                                                  \\
+    Heartbeat packets received    & ++heartbeat_received++                                       \\
+    Heartbeat packet sanity       & \bcheckmark{++heartbeat_spacing++}                           \\
+    Heartbeat number OK           & \bcheckmark{++heartbeat_num_ok++}                            \\
+    Raw ADC packets received      & ++wf_packets_received++ / 4 \quad \bcheckmark{++wf_right++}  \\
+    Spectral packets received     & ++sp_packets_received++                                      \\
+    Housekeeping packets received & ++hk_packets_received++ / 2  \quad \bcheckmark{++hk_right++} \\
+    No errors flags raised in HK  & \bcheckmark{++no_errors++}                                   \\
+    Timer runs                    & \bcheckmark{++timer_ok++}                                    \\
+\end{tabular}
+
+\section{Raw ADC}
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Raw ADC Channel 1 Data      & \bcheckmark {++wf_ch1++}    \\
+    Channel 1 Data Sanity Check & \bcheckmark {++wf_ch1_ok++} \\
+    Raw ADC Channel 2 Data      & \bcheckmark {++wf_ch2++}    \\
+    Channel 2 data Sanity Check & \bcheckmark {++wf_ch2_ok++} \\
+    Raw ADC Channel 3 Data      & \bcheckmark {++wf_ch3++}    \\
+    Channel 3 data Sanity Check & \bcheckmark {++wf_ch3_ok++} \\
+    Raw ADC Channel 4 Data      & \bcheckmark {++wf_ch4++}    \\
+    Channel 4 data Sanity Check & \bcheckmark {++wf_ch4_ok++} \\
+\end{tabular}
+
+\section{Spectra}
+
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Full spectra present            & ++sp_num++                      \\
+    CRC OK                          & \bcheckmark {++sp_crc++}        \\
+    All 16 products present         & \bcheckmark {++sp_all++}        \\
+    Weights OK                      & \bcheckmark {++sp_weights_ok++} \\
+    Expected power-spectra for ramp & \bcheckmark {++sp_pk_ok++}      \\
+\end{tabular}
+
+
+\section{Housekeeping}
+++hk_results++
+
+\section{Plots}
+
+Raw ADC:\\
+\includegraphics*[width=\linewidth]{Figures/waveforms.pdf}
+
+
+Individual correlation products:\\
+\includegraphics*[width=\linewidth]{Figures/spectra.pdf}
+
+\newpage
+Waterfall plots:\\
+\includegraphics*[width=\linewidth]{Figures/spectra_wf.pdf}
+
+
