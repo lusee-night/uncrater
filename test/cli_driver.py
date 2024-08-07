@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys, os
 sys.path.append('.')
 sys.path.append('./scripter/')
@@ -13,6 +15,10 @@ from uncrater import Collection
 import yaml
 
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
+
+import serverAPI
+
+# ---
 
 def Name2Test(name):
     
