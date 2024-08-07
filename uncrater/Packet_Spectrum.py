@@ -1,4 +1,5 @@
 from .PacketBase import PacketBase,  copy_attrs, pystruct
+from .utils import Time2Time
 import os, sys
 import struct
 import numpy as np
@@ -27,7 +28,7 @@ class Packet_Metadata(PacketBase):
         # TODO: check if this actually works
         copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob), self)
         self.format = self.seq.format
-        self.time_seconds = self.base.time_seconds
+        self.time = Time2Time(self.base.time_seconds, self.base.time_subseconds)
         self.errormask = self.base.errors
 
     def info (self):
@@ -36,6 +37,7 @@ class Packet_Metadata(PacketBase):
         desc += f"Version : {self.version}\n"
         desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"Errormask: {self.errormask}\n"  
+        desc += f"Time: {self.time}\n"
         desc += f"Current weight: {self.base.weight_current}\n"
         desc += f"Previous weight: {self.base.weight_previous}\n"
         return desc
