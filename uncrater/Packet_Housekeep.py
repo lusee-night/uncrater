@@ -1,4 +1,5 @@
 from .PacketBase import PacketBase, copy_attrs, pystruct
+from .utils import Time2Time
 import struct
 import numpy as np
 
@@ -17,7 +18,7 @@ class Packet_Housekeep(PacketBase):
         # cs,ce = 0,struct.calcsize(fmt)
         # self.version, self.unique_packet_id, self.errors, self.housekeeping_type = struct.unpack(fmt, self.blob[cs:ce])
         temp = pystruct.housekeeping_data_base.from_buffer_copy(self._blob)
-        self.time_seconds = 0
+        self.time = 0
 
         if temp.housekeeping_type not in self.valid_types:
             raise ValueError(f'{temp.housekeeping_type} is not a valid housekeeping type')
@@ -41,7 +42,7 @@ class Packet_Housekeep(PacketBase):
             self.actual_gain = ["LMHD"[i] for i in self.actual_gain]
         elif temp.housekeeping_type == 0:
             copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob), self)
-            self.time_seconds = self.core_state.base.time_seconds
+            self.time  = Time2Time(self.core_state.base.time_seconds, self.core_state.base.time_subseconds)
     def info (self):
         self._read()
         

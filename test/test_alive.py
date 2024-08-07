@@ -75,8 +75,10 @@ class HKAnalyzer:
                 v_start = '\\checkmark' if v_start else 'X'
                 v_end = '\\checkmark' if v_end else 'X'
                 self.template += f"{k} & {v_start} & {v_end} \\\\"
-            else:
+            elif isinstance(v_start, int):
                 self.template += f"{k} & 0x{v_start:X} & 0x{v_end:X} \\\\"
+            else:
+                self.template += f"{k} & {v_start} & {v_end} \\\\"
         self.template += '\\end{longtable}'
         return self.template
 

@@ -133,18 +133,21 @@ def main():
         # in dataview
         uart_log = open (os.path.join(workdir,'uart.log')).read()
         commander_log = open (os.path.join(workdir,'commander.log')).read()
-        last_time_seconds = 0
+        last_time = 0
         print ("| count  |appid|uniq_id |  time      | binary blob (size)")
         print ("|--------|-----|--------|------------|-----------------")
         for count, P in enumerate(C.cont):
             P._read()
             appid = P.appid
+            if appid == 0x4f0:
+                appid = 0x2f0 ## fix for firmware bug
+
             blob = P._blob
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
-            time_seconds = P.time_seconds if hasattr(P, 'time_seconds') else last_time_seconds
-            last_time_seconds = time_seconds
+            time = P.time if hasattr(P, 'time') else last_time
+            last_time = time 
             ## HERE you send to dataview
-            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time_seconds:12d}| binary blob {len(blob)}B") 
+            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
 
 
 
