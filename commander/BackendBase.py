@@ -1,3 +1,5 @@
+import os
+
 class BackendBase:
 
     def __init__(self, clog, uart_log, session):
@@ -13,9 +15,9 @@ class BackendBase:
     def save_data(self, appid, data):
         fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")        
         f=open(fname,'wb')
-        f.write(towrite) 
+        f.write(data) 
         f.close()
-        self.clog.logt(f"Stored AppID {hex(appid)} len={len(towrite)}\n")    
+        self.clog.logt(f"Stored AppID {hex(appid)} len={len(data)}\n")    
         self.packet_count += 1
         
     

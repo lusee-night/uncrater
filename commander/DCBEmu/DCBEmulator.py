@@ -4,7 +4,7 @@ from BackendBase import BackendBase
 import threading
 import time
 
-class DCBEmulator:
+class DCBEmulator(BackendBase):
     def __init__ (self, clog, uart_log, session):
         super().__init__(clog, uart_log, session)
         self.clog.log ("DCB Emulator backend initializing\n\n")
