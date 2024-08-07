@@ -7,9 +7,10 @@ import select
 import binascii
 
 class LuSEE_ETHERNET:
-    def __init__(self, clog, session):
+    def __init__(self, clog, save_data):
         self.version = 1.12
         self.clog = clog
+        self.save_data = save_data
 
         self.UDP_IP = "192.168.121.1"
         self.PC_IP = "192.168.121.100"
@@ -66,7 +67,7 @@ class LuSEE_ETHERNET:
         self.data_ports = [(self.sock_read_hk,self.PORT_HK), (self.sock_read_data,self.PORT_DATA)]
 
         self.packet_count = 0
-        self.out_dir = os.path.join(session,'cdi_output')
+        
         self.clog.log(f"Initialized LuSEE_ETHERNET with version {self.version}.\n")
         self.clog.log(f"UDP IP is {self.UDP_IP} and PC IP is {self.PC_IP}.\n")
         self.clog.log(f"Listening on ports {self.PORT_DATA}\n")
@@ -552,17 +553,9 @@ class LuSEE_ETHERNET:
                     full_packet[appid] = bytearray(0)
                 full_packet[appid] = full_packet[appid]+cdata
                 if last_packet:
-                    fname = os.path.join(self.out_dir,f"{self.packet_count:05d}_{appid:04x}.bin")
-                    towrite = full_packet[appid][:-2] ## now chop last two bytes
-                    f= open(fname,'wb')
-                    f.write(towrite) 
-                    f.close()
-                    self.clog.logt(f"Stored AppID {hex(appid)} len={len(towrite)}\n")    
-                    self.packet_count += 1
+                    towrite = full_packet[appid][:-2] ## now chop last two bytes        
+                    self.save_data(appid, towrite)        
                     full_packet [appid]= bytearray(0)
-        
-                            
-                            
                     
 
     

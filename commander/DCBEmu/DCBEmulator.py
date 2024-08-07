@@ -1,14 +1,12 @@
 from .uart_comm import LuSEE_UART
 from .ethernet_comm import LuSEE_ETHERNET
+from BackendBase import BackendBase
 import threading
 import time
 
 class DCBEmulator:
     def __init__ (self, clog, uart_log, session):
-        self.clog = clog
-        self.uart_log = uart_log
-        self.session = session
-
+        super().__init__(clog, uart_log, session)
         self.clog.log ("DCB Emulator backend initializing\n\n")
         
         self.clog.log("Attempting to open UART serial...\n")
@@ -18,7 +16,7 @@ class DCBEmulator:
         if luseeUart.get_connections():
             if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
                 self.uart = luseeUart
-        self.ether = LuSEE_ETHERNET(self.clog, self.session)
+        self.ether = LuSEE_ETHERNET(self.clog, self.save_data)
 
         
     def uart_thread (self):
