@@ -35,7 +35,7 @@ from    serverAPI	    import serverAPI
 import  urllib, base64
 
 
-server = 'http://localhost:8000/'
+default_server = 'http://localhost:8000/'
 
 # ---
 
@@ -48,6 +48,8 @@ def Name2Test(name):
     sys.exit(1)
 
 def main():
+
+
     parser = argparse.ArgumentParser(description='Driver for tests.')
     parser.add_argument('test_name', nargs='?', default=None, help='Name of the test')
     parser.add_argument('-w', '--workdir',  default='session_%test_name%', help='Output directory (as test_name.pdf)')
@@ -67,11 +69,14 @@ def main():
     parser.add_argument('--operator',       default='anonymous',    help='Operator name (for the report)')
     parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
 
-    parser.add_argument("-S", "--server",	type=str,               help="server URL: defaults to http://localhost:8000/", default=server)
+    parser.add_argument("-S", "--server",	type=str,               help="server URL: defaults to http://localhost:8000/", default=default_server)
 
     # ---
     args = parser.parse_args()
-    
+
+    server = args.server
+    API  = serverAPI(server=server, verb=args.verbose)
+
     if args.list:
         print ("Available tests:")
         for T in Tests:
@@ -192,6 +197,8 @@ def main():
 
         last_time = 0
 
+        cnt = 0
+
         for P in C.cont:
             P._read()
             appid = P.appid
@@ -204,6 +211,10 @@ def main():
 
             ## HERE you send to dataview
             print(appid, unique_id, time, f'''{len(blob)}''' )
+            payload = base64.b64encode(blob)
+            resp = API.post2server('ui', 'data', {'data':payload, 'datatype': 'uncrater'})
+            cnt+=1
+            if cnt>3: break
             # print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
 
 if __name__ == "__main__":
