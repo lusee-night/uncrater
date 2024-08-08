@@ -195,15 +195,15 @@ def main():
         for P in C.cont:
             P._read()
             appid = P.appid
-            if appid == 0x4f0:
-                appid = 0x2f0 ## fix for firmware bug
+            if appid == 0x4f0: appid = 0x2f0 ## fix for firmware bug
 
-            blob = P._blob
-            unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
-            time = P.time if hasattr(P, 'time') else last_time
-            last_time = time 
+            blob        = P._blob
+            unique_id   = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
+            time        = P.time if hasattr(P, 'time') else last_time
+            last_time   = time
+
             ## HERE you send to dataview
-            print(unique_id)
+            print(appid, unique_id, time, f'''{len(blob)}''' )
             # print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
 
 if __name__ == "__main__":
