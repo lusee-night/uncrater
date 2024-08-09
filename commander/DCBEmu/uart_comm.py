@@ -32,7 +32,8 @@ class LuSEE_UART:
                 self.clog.log("Found: "+str(i.description)+"\n")
             for i in ports:
                 #if (i.manufacturer == "Microsemi"):
-                if "Silicon Labs" in i.manufacturer and "Standard COM" in i.description:
+                if (("Silicon Labs" in i.manufacturer and "Standard COM" in i.description) or  ## for windows 
+                    ("UART" in i.description and "Standard" in i.description)):  #for linux
                     flashpro = i
                     break
         if (flashpro == None):
