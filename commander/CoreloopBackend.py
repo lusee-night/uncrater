@@ -3,6 +3,7 @@ import os
 import threading
 import socket
 import subprocess
+import sys
 
 class CoreloopBackend(BackendBase):
 
