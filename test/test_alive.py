@@ -180,7 +180,7 @@ class Test_Alive(Test):
 
         num_hb, num_wf, num_sp, num_hk = 0,0,0,0
         last_hb = None
-        heartbeat_spacing = True
+        heartbeat_counter_ok = True
         fig_wf, ax_wf= plt.subplots(1,1,figsize=(12,8))
         wf_ch=[False]*4
         wf_ch_ok = [False]*4
@@ -188,19 +188,29 @@ class Test_Alive(Test):
         hk_start = None
         hk_end = None
         hk_end = None
+        last_hbtime = None
+        hb_tmin = 0
+        hb_tmax = 0
         for P in C.cont:
             if type(P) == uc.Packet_Heartbeat:
                 P._read()
                 num_hb += 1
                 if last_hb is None:
-                    last_hb = P.count
+                    last_hb = P.packet_count
+                    last_hbtime = P.time
+                    hb_tmin = 1e9
                 else:
-                    if P.count != last_hb+1 or P.ok == False:
+                    if P.packet_count != last_hb+1 or P.ok == False:
                         self.results['result'] = 'FAILED'
-                        heartbeat_spacing = False
+                        heartbeat_counter_ok = False
                         passed=False
                     else:
-                        last_hb = P.count
+                        last_hb = P.packet_count
+                    dt = P.time - last_hbtime
+                    last_hbtime = P.time
+                    hb_tmin = min(hb_tmin, dt)
+                    hb_tmax = max(hb_tmax, dt)
+
             if type(P) == uc.Packet_Waveform:
                 num_wf += 1
                 P._read()
@@ -219,11 +229,13 @@ class Test_Alive(Test):
                 else:
                     hk_end = P
         if num_hb == 0:
-            heartbeat_spacing = False
+            heartbeat_counter_ok = False
         
         self.results['heartbeat_received'] = num_hb
-        self.results['heartbeat_spacing'] = int(heartbeat_spacing)
-        self.results['heartbeat_num_ok'] = int(num_hb >= self.time//10-1)
+        self.results['hearbeat_count'] = int(num_hb)
+        self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok & (hb_tmax<11))
+        self.results['heartbeat_mindt'] = f"{hb_tmin:.3f}"
+        self.results['heartbeat_maxdt'] = f"{hb_tmax:.3f}"
         self.results['wf_packets_received'] = num_wf
         self.results['sp_packets_received'] = num_sp
         self.results['hk_packets_received'] = num_hk
@@ -233,7 +245,8 @@ class Test_Alive(Test):
             self.results['hk_results'] = HKAnalyzer(hk_start, hk_end).get_latex()
 
         if (hk_start is not None) and (hk_end is not None):
-            self.results['timer_ok'] = int ((hk_end.core_state.base.time_seconds-hk_start.core_state.base.time_seconds)> 0)
+            delta_t = hk_end.time - hk_start.time
+            self.results['timer_ok'] = int ((delta_t>55) and (delta_t<65))
             self.results['no_errors'] =  int(hk_start.core_state.base.errors == 0 and hk_end.core_state.base.errors == 0)
         else:
             self.results['timer_ok'] = 0

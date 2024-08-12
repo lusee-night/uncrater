@@ -15,7 +15,10 @@ import yaml
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
 
 def Name2Test(name):
-    
+    if name is None:
+        print ("You must specify a test.")
+        sys.exit(1)
+
     for T in Tests:
         if T.name == name:
             return T
