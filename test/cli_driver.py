@@ -164,7 +164,7 @@ def main():
         print ("Done.")
         sys.exit(0)
     
-    if args.dataview:
+    if args.inspect:
         workdir = args.workdir.replace('%test_name%',args.test_name)
         C = Collection(os.path.join(workdir,'cdi_output'))
         # uart log and commander log are txt files that you might want to disply in dataview
@@ -181,6 +181,13 @@ def main():
                 appid = 0x2f0 ## fix for firmware bug
 
             blob = P._blob
+
+            try:
+                p.info()
+            except:
+                print(appid)
+                continue
+        
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
             time = P.time if hasattr(P, 'time') else last_time
             last_time = time 
@@ -188,7 +195,7 @@ def main():
             print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
 
 
-    if args.inspect:
+    if args.dataview:
         workdir = args.workdir.replace('%test_name%',args.test_name)
         C = Collection(os.path.join(workdir,'cdi_output'))
         # uart log and commander log are txt files that you might want to disply in dataview
