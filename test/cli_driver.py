@@ -212,9 +212,9 @@ def main():
             ## HERE you send to dataview
             print(appid, unique_id, time, f'''{len(blob)}''' )
             payload = base64.b64encode(blob)
-            resp = API.post2server('ui', 'data', {'data':payload, 'datatype': 'uncrater'})
+            resp = API.post2server('ui', 'data', {'appid': appid, 'uniq_id': unique_id, 'ts': time, 'data':payload,})
             cnt+=1
-            if cnt>3: break
+            # if cnt>3: break
             # print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
 
 if __name__ == "__main__":
