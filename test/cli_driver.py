@@ -13,34 +13,22 @@ import sys, os
 sys.path.append('.')
 sys.path.append('./scripter/')
 sys.path.append('./commander/')
+import argparse
 
+from test_alive import Test_Alive
+from test_spec import Test_Spec
+from test_crosstalk import Test_CrossTalk
 
-# ---
-import  argparse
-
-from    test_alive      import Test_Alive
-from    test_spec       import Test_Spec
-from    test_crosstalk  import Test_CrossTalk
-
-from    commander       import Commander
-from    uncrater        import Collection
-import  yaml
+from commander import Commander
+from uncrater import Collection
+import yaml
 
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
 
-# Custom compact package to talk to Dataview:
-import  serverAPI
-from    serverAPI	    import serverAPI
-
-import  urllib, base64
-
-
-default_server = 'http://localhost:8000/'
-
-# ---
-
 def Name2Test(name):
-    
+    if name is None:
+    print ("You must specify a test.")
+    sys.exit(1)
     for T in Tests:
         if T.name == name:
             return T

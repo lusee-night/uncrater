@@ -10,7 +10,7 @@ class Packet_Hello(PacketBase):
     def _read(self):
         super()._read()
         copy_attrs(pystruct.startup_hello.from_buffer_copy(self._blob), self)
-        self.time = Time2Time(self.time_seconds, self.time_subseconds)
+        self.time = Time2Time(self.time_32, self.time_16)
     
     def info (self):
         self._read()
@@ -23,7 +23,6 @@ class Packet_Hello(PacketBase):
         desc += f"FW_Time    : {hex(self.FW_Time) }\n"
         desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"time_sec : {self.time}\n"
-        desc += f"time_subsec : {self.time_subseconds}\n"
          
         return desc
     
