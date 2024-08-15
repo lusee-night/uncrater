@@ -42,7 +42,7 @@ class Packet_Housekeep(PacketBase):
             self.actual_gain = ["LMHD"[i] for i in self.actual_gain]
         elif temp.housekeeping_type == 0:
             copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob), self)
-            self.time  = Time2Time(self.core_state.base.time_seconds, self.core_state.base.time_subseconds)
+            self.time  = Time2Time(self.core_state.base.time_32, self.core_state.base.time_16)
     def info (self):
         self._read()
         

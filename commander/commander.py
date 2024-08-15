@@ -6,6 +6,7 @@ import time
 import socket
 import shutil
 from DCBEmu import DCBEmulator
+from CoreloopBackend import CoreloopBackend
 
 
 class clogger:
@@ -60,8 +61,7 @@ class Commander:
         if backend == 'DCBEmu':
             self.backend = DCBEmulator(self.clog, self.uart_log, self.session)
         elif backend == "coreloop":
-            #self.backend = CoreloopBackend()
-            raise ValueError("Coreloop is not implemented yet.")
+            self.backend = CoreloopBackend(self.clog, self.uart_log, self.session)
         elif backend == "DCB":
             raise ValueError("DCBE is not implemented yet.")
         else:

@@ -28,7 +28,7 @@ class Packet_Metadata(PacketBase):
         # TODO: check if this actually works
         copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob), self)
         self.format = self.seq.format
-        self.time = Time2Time(self.base.time_seconds, self.base.time_subseconds)
+        self.time = Time2Time(self.base.time_32, self.base.time_16)
         self.errormask = self.base.errors
 
     def info (self):

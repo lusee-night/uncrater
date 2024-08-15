@@ -1,4 +1,7 @@
+from .PacketBase import PacketBase, copy_attrs, pystruct
 from .PacketBase import PacketBase
+from .utils import Time2Time
+
 import struct
 class Packet_Heartbeat(PacketBase):
     @property
@@ -7,8 +10,10 @@ class Packet_Heartbeat(PacketBase):
 
     def _read(self):
         super()._read()
-        self.count = struct.unpack("<I", self._blob[:4])[0]
-        self.ok = (self._blob[4:8] == b'BRRL')
+        temp = pystruct.heartbeat.from_buffer_copy(self._blob)       
+        copy_attrs(temp, self)
+        self.ok = (self.magic == b'BRNMRL')
+        self.time = Time2Time(self.time_32, self.time_16)
         self._read = True
 
     def info (self):
@@ -16,5 +21,5 @@ class Packet_Heartbeat(PacketBase):
         ok = "OK" if self.ok else "BAD"
         desc = "Heartbeat Packet\n"
         desc += f"Magic : {ok}\n"
-        desc += f"Count : {self.count}\n"
+        desc += f"Count : {self.packet_count}\n"
         return desc
