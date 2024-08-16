@@ -42,7 +42,7 @@ class Test:
 
     def texify_name(self) -> str:
         """Convert self.name to valid TeX representation"""
-        return self.name.replace("_","\_")
+        return self.name.replace("_","\\_")
 
     def make_report(self, work_dir, output_file, add_keys=None, verbose=False):
         """ Makes a report for the test.
