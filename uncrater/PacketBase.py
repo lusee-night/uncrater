@@ -20,6 +20,8 @@ class PacketBase:
         self.appid = appid
         self._blob = blob
         self._blob_fn = blob_fn
+        if blob is not None:
+            self._read()
         
 
     def _read(self):
@@ -45,8 +47,10 @@ class PacketBase:
         """
         return self.xxd()
 
-def copy_attrs (src, dst):
-    for attr in dir(src): 
-        if attr[0] == '_':
-            continue
-        setattr(dst, attr, getattr(src, attr))
+    def copy_attrs (self,src):
+        self.payload = {}
+        for attr in dir(src): 
+            if attr[0] == '_':
+                continue
+            setattr(self, attr, getattr(src, attr))
+            self.payload[attr] = getattr(src,attr)

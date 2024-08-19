@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase, copy_attrs, pystruct
+from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time
 import struct
 
@@ -9,8 +9,9 @@ class Packet_Hello(PacketBase):
 
     def _read(self):
         super()._read()
-        copy_attrs(pystruct.startup_hello.from_buffer_copy(self._blob), self)
+        self.copy_attrs(pystruct.startup_hello.from_buffer_copy(self._blob))
         self.time = Time2Time(self.time_32, self.time_16)
+        self.payload['time'] = self.time
     
     def info (self):
         self._read()

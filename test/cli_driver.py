@@ -15,20 +15,28 @@ sys.path.append('./scripter/')
 sys.path.append('./commander/')
 import argparse
 
-from test_alive import Test_Alive
-from test_spec import Test_Spec
+from test_alive     import Test_Alive
+from test_spec      import Test_Spec
 from test_crosstalk import Test_CrossTalk
 
-from commander import Commander
-from uncrater import Collection
+from commander      import Commander
+from uncrater       import Collection
 import yaml
+
+try:
+    import  serverAPI
+    from    serverAPI   import serverAPI
+    import  urllib, base64
+except:
+    print ("Not importing serverAPI")
+default_server = 'http://localhost:8000/'
 
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
 
 def Name2Test(name):
     if name is None:
-    print ("You must specify a test.")
-    sys.exit(1)
+        print ("You must specify a test.")
+        sys.exit(1)
     for T in Tests:
         if T.name == name:
             return T
@@ -36,8 +44,6 @@ def Name2Test(name):
     sys.exit(1)
 
 def main():
-
-
     parser = argparse.ArgumentParser(description='Driver for tests.')
     parser.add_argument('test_name', nargs='?', default=None, help='Name of the test')
     parser.add_argument('-w', '--workdir',  default='session_%test_name%', help='Output directory (as test_name.pdf)')
@@ -62,8 +68,6 @@ def main():
     # ---
     args = parser.parse_args()
 
-    server = args.server
-    API  = serverAPI(server=server, verb=args.verbose)
 
     if args.list:
         print ("Available tests:")
@@ -184,6 +188,9 @@ def main():
 
 
     if args.dataview:
+        server = args.server
+        API  = serverAPI(server=server, verb=args.verbose)
+
         workdir = args.workdir.replace('%test_name%',args.test_name)
         C = Collection(os.path.join(workdir,'cdi_output'))
         # uart log and commander log are txt files that you might want to disply in dataview

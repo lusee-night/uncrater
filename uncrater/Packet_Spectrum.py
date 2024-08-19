@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase,  copy_attrs, pystruct
+from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time
 import os, sys
 import struct
@@ -26,10 +26,13 @@ class Packet_Metadata(PacketBase):
     def _read(self):
         super()._read()
         # TODO: check if this actually works
-        copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob), self)
+        self.copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob))
         self.format = self.seq.format
         self.time = Time2Time(self.base.time_32, self.base.time_16)
         self.errormask = self.base.errors
+        self.payload['time'] = self.time
+        self.payload['format'] = self.format
+        self.payload['errormask'] = self.errormask
 
     def info (self):
         self._read()

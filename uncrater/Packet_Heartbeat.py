@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase, copy_attrs, pystruct
+from .PacketBase import PacketBase, pystruct
 from .PacketBase import PacketBase
 from .utils import Time2Time
 
@@ -11,9 +11,11 @@ class Packet_Heartbeat(PacketBase):
     def _read(self):
         super()._read()
         temp = pystruct.heartbeat.from_buffer_copy(self._blob)       
-        copy_attrs(temp, self)
+        self.copy_attrs(temp)
         self.ok = (self.magic == b'BRNMRL')
         self.time = Time2Time(self.time_32, self.time_16)
+        self.payload['ok'] = self.ok
+        self.payload['time'] = self.time
         self._read = True
 
     def info (self):

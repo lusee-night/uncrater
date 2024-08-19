@@ -69,6 +69,8 @@ class HKAnalyzer:
         self._analyze_hk(self.start)
         self._analyze_hk(self.end)
         for k, (v_start, v_end) in self.attr_dict.items():
+            if k=='payload':
+                continue
             k = k.replace('_', '{\\_}')
             k = f'\\texttt{{{k}}}'
             if isinstance(v_start, bool):
