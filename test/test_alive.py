@@ -140,46 +140,8 @@ class Test_Alive(Test):
         self.results['packets_received'] = len(C.cont)
         
         C.cut_to_hello()
-    
-        if len(C)>0 and type(C.cont[0]) == uc.Packet_Hello:
-            H = C.cont[0]
-            H._read()
-            self.results['hello'] = 1
-            def h2v(h):
-                v = f"{h:#0{6}x}"
-                v = v[2:4]+'.'+v[4:6]
-                return v
-            def h2vs(h):
-                v = f"{h:#0{10}x}"
-                v = v[4:6]+'.'+v[6:8]+' r'+v[8:10]
-                return v
-
-            def h2d(h):
-                v = f"{h:#0{10}x}"
-                v = v[6:8]+'/'+v[8:10]+'/'+v[2:6]
-
-                return v
-            def h2t(h):
-                v = f"{h:#0{10}x}"
-                v = v[4:6]+':'+v[6:8]+'.'+v[8:10]
-                return v
-            
-                
-            self.results['SW_version'] = h2vs(H.SW_version)
-            self.results['FW_version'] = h2v(H.FW_Version)
-            self.results['FW_ID'] = f"0x{H.FW_ID:#0{4}}"
-            self.results['FW_Date'] = h2d(C.cont[0].FW_Date)
-            self.results['FW_Time'] = h2t(C.cont[0].FW_Time)
-            if H.SW_version != self.coreloop_version():
-                print ("WARNING!!! SW version in pycoreloop ({self.coreloop_version():x}) does not match SW version in coreloop ({H.SW_version:x})")                
-        else:
-            self.results['hello'] = 0
-            self.results['SW_version'] = "N/A"
-            self.results['FW_version'] = "N/A"
-            self.results['FW_ID'] = "N/A"
-            self.results['FW_Date'] = "N/A"
-            self.results['FW_Time'] = "N/A"
-
+        self.inspect_hello_packet(C) 
+        
         num_hb, num_wf, num_sp, num_hk = 0,0,0,0
         last_hb = None
         heartbeat_counter_ok = True

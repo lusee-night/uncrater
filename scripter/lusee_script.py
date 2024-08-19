@@ -72,6 +72,14 @@ class Scripter:
     def adc_range(self):
         self.spectrometer_command(lc.RFS_SET_RANGE_ADC, 0x0)
         
+
+    def set_reject(self, reject_ratio, nbad):
+        assert((reject_ratio < 256)&(reject_ration>==0))
+        assert(nbad > 0 )
+        self.spectrometer_command(lc.RFS_SET_REJ_SET,reject_ratio)  
+        self.spectrometer_command(lc.RFS_SET_REJ_NBAD, nbad)
+        
+
     def route(self, ch, plus, minus=None, gain='M'):
         assert ((ch >= 0) and (ch < 4))
         cmd = lc.RFS_SET_ROUTE_SET1 + ch
