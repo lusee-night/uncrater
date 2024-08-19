@@ -20,6 +20,7 @@ class PacketBase:
         self.appid = appid
         self._blob = blob
         self._blob_fn = blob_fn
+        self.payload = None
         if blob is not None:
             self._read()
         

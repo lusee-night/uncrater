@@ -120,6 +120,8 @@ class Packet_Spectrum(PacketBase):
         else:
             raise NotImplementedError("Only format 0 is supported")
         self._data = np.array(data, dtype=np.int32).astype(np.float32)
+        self.payload = {'data':self._data, 'priority':self.priority, 'product':self.product, 'unique_packet_id':self.unique_packet_id,
+                    'crc':self.crc, 'error_crc_mismatch':self.error_crc_mismatch, 'error_data_read':self.error_data_read, 'error_packed_id_mismatch':self.error_packed_id_mismatch}
         
 
 
