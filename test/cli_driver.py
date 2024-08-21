@@ -174,11 +174,11 @@ def main():
 
             blob = P._blob
 
-            try:
-                p.info()
-            except:
-                print(appid)
-                continue
+            # try:
+            #     p.info()
+            # except:
+            #     print(appid)
+            #     continue
         
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
             time = P.time if hasattr(P, 'time') else last_time
