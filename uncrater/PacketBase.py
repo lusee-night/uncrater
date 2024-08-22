@@ -25,6 +25,7 @@ class PacketBase:
             self._read()
         
 
+        
     def _read(self):
         if self._blob is None:
             self._blob = open(self._blob_fn,"rb").read()    

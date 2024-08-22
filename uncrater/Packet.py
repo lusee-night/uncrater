@@ -40,7 +40,8 @@ PacketDict[0x4f0] = Packet_Waveform
 def Packet(appid, blob=None, blob_fn=None):
     if (blob is None) and (blob_fn is None):
         raise ValueError
-    PacketType = PacketDict.get(appid,PacketBase)
+    PacketType = PacketDict.get(appid, PacketBase)
+
     return PacketType(appid, blob=blob, blob_fn = blob_fn)
 
 
