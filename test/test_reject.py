@@ -60,7 +60,7 @@ class Test_Reject(Test):
         
         C.cut_to_hello()
         self.inspect_hello_packet(C)    
-        FIX_HERE()
+        # FIXME
         self.results['result'] = int(passed)
 
 

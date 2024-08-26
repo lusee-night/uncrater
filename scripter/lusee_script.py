@@ -74,7 +74,7 @@ class Scripter:
         
 
     def set_reject(self, reject_ratio, nbad):
-        assert((reject_ratio < 256)&(reject_ration>==0))
+        assert((reject_ratio < 256)&(reject_ratio>=0))
         assert(nbad > 0 )
         self.spectrometer_command(lc.RFS_SET_REJ_SET,reject_ratio)  
         self.spectrometer_command(lc.RFS_SET_REJ_NBAD, nbad)
