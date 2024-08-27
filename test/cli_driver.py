@@ -7,12 +7,13 @@ import argparse
 from test_alive import Test_Alive
 from test_spec import Test_Spec
 from test_crosstalk import Test_CrossTalk
+from test_data_interface import Test_DataInterface
 
 from commander import Commander
 from uncrater import Collection
 import yaml
 
-Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
+Tests = [Test_Alive, Test_Spec, Test_CrossTalk, Test_DataInterface]
 
 def Name2Test(name):
     if name is None:
@@ -41,7 +42,7 @@ def main():
     parser.add_argument('--comments', default='None', help='Comments(for the report)')
     args = parser.parse_args()
 
-    
+
     if args.list:
         print ("Available tests:")
         for T in Tests:
@@ -51,7 +52,7 @@ def main():
     if args.info:
         t = Name2Test(args.test_name)
         if t is None:
-            print ("No such test.") 
+            print ("No such test.")
             sys.exit(1)
         else:
             print ("Test: ",t.name)
@@ -69,7 +70,7 @@ def main():
             print ("Unknown backend: ",args.backend)
             sys.exit(1)
         t = Name2Test(args.test_name)
-        print ("Running test: ",t.name) 
+        print ("Running test: ",t.name)
         options = t.default_options
         for opt in args.options.strip().split(','):
             if len(opt)==0:
@@ -79,7 +80,7 @@ def main():
             except:
                 print ("Bad options format: ",opt)
                 sys.exit(1)
-            
+
             options[key] = type(t.default_options[key])(val.strip())
             #except:
             #    print ("Error setting option: ",opt, "with value: ",val)
@@ -93,7 +94,7 @@ def main():
         print ("OK.")
         workdir = args.workdir.replace('%test_name%',t.name)
         ## this will also generated the work dir
-        print ("Starting commander...")        
+        print ("Starting commander...")
         C = Commander(session = workdir, script=S.script, backend=args.backend)
         C.run()
         # Save options to YAML file
@@ -101,7 +102,7 @@ def main():
         with open(options_file, 'w') as file:
             yaml.dump(options, file)
         print ("Commander done.")
-        
+
     if args.run or args.analyze:
         T= Name2Test(args.test_name)
         workdir = args.workdir.replace('%test_name%',T.name)
@@ -115,7 +116,7 @@ def main():
         uart_log = open (os.path.join(workdir,'uart.log')).read()
         commander_log = open (os.path.join(workdir,'commander.log')).read()
         report_dir = os.path.join(workdir,'report')
-        fig_dir = os.path.join(report_dir,'Figures')    
+        fig_dir = os.path.join(report_dir,'Figures')
         try:
             os.mkdir(report_dir)
             os.mkdir(fig_dir)
@@ -128,7 +129,7 @@ def main():
         t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys, verbose=args.verbose)
         print ("Done.")
         sys.exit(0)
-    
+
     if args.dataview:
         workdir = args.workdir.replace('%test_name%',args.test_name)
         C = Collection(os.path.join(workdir,'cdi_output'))
@@ -148,9 +149,9 @@ def main():
             blob = P._blob
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
             time = P.time if hasattr(P, 'time') else last_time
-            last_time = time 
+            last_time = time
             ## HERE you send to dataview
-            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
+            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B")
 
 
 
