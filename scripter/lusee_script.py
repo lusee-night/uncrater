@@ -31,7 +31,7 @@ class Scripter:
     def spectrometer_command(self,cmd,arg):
         assert(arg<256)
         assert(cmd<256)
-        self.command(0x10,(cmd<<8)+arg)     
+        self.command(0x10,(cmd<<8)+arg)
 
     def wait (self, dt):
         """ Wait for dt in seconds, rounted to 100ms"""
@@ -54,7 +54,7 @@ class Scripter:
         else:
             raise ValueError("Unknown stored_state")
         self.spectrometer_command(lc.RFS_SET_RESET,arg_low)
-        
+
 
     def ADC_special_mode (self, mode='normal'):
         print (mode)
@@ -71,7 +71,7 @@ class Scripter:
 
     def adc_range(self):
         self.spectrometer_command(lc.RFS_SET_RANGE_ADC, 0x0)
-        
+
     def route(self, ch, plus, minus=None, gain='M'):
         assert ((ch >= 0) and (ch < 4))
         cmd = lc.RFS_SET_ROUTE_SET1 + ch
@@ -84,7 +84,7 @@ class Scripter:
         gain = "LMHD".index(gain)
         arg = (gain << 6) + (minus << 3) + plus
         self.spectrometer_command(cmd, arg)
-        
+
     def ana_gain(self, gains):
         assert(len(gains) == 4)
         cmd = lc.RFS_SET_GAIN_ANA_SET
@@ -93,57 +93,72 @@ class Scripter:
             assert c in "LMHA"
             arg = (arg << 2) + "LMHA".index(c)
         self.spectrometer_command(cmd, arg)
-        
+
     def waveform(self, ch):
         arg = ch
         self.spectrometer_command(lc.RFS_SET_WAVEFORM, arg)
-        
+
     def disable_ADC(self, bitmask=None):
         if bitmask is None:
             bitmask = 0b1111
         self.spectrometer_command(lc.RFS_SET_DISABLE_ADC, bitmask)
-            
+
     def set_bitslice(self, ch, value):
         assert (value < 32)
         if ch < 8:
-            cmd = lc.RFS_SET_BITSLICE_LOW 
+            cmd = lc.RFS_SET_BITSLICE_LOW
         else:
             cmd = lc.RFS_SET_BITSLICE_HIGH
             ch -= 8
-            
+
         arg = ch + (value << 3)
         self.spectrometer_command(cmd, arg)
-        
+
     def set_bitslice_auto(self, keep_bits):
         cmd = lc.RFS_SET_BITSLICE_AUTO
         if keep_bits == False:
             keep_bits = 0
         arg = keep_bits
         self.spectrometer_command(cmd, arg)
-        
+
     def range_ADC(self):
         cmd = lc.RFS_SET_RANGE_ADC
         arg = 0
         self.spectrometer_command(cmd, arg)
-        
+
     def select_products(self, mask):
         assert(type(mask) == int)
         low = (mask & 0x00FF)
         high = ((mask & 0xFF00) >> 8)
         self.spectrometer_command(lc.RFS_SET_PRODMASK_LOW, low)
         self.spectrometer_command(lc.RFS_SET_PRODMASK_HIGH, high)
-        
+
     def set_Navg(self, Navg1, Navg2):
         val = Navg1 + (Navg2 << 4)
         self.spectrometer_command(lc.RFS_SET_AVG_SET, val)
-        
+
+    def set_avg_set_hi(self, frac: int):
+        self.spectrometer_command(lc.RFS_SET_AVG_SET_HI, frac)
+
+    def set_avg_set_mid(self, frac: int):
+        self.spectrometer_command(lc.RFS_SET_AVG_SET_MID, frac)
+
+    def set_avg_freq(self, val: int):
+        assert(val in [1, 2, 3, 4])
+        self.spectrometer_command(lc.RFS_SET_AVG_FREQ, val)
+
     def start(self):
         cmd = lc.RFS_SET_START
         arg = 0
         self.spectrometer_command(cmd, arg)
-        
+
     def stop(self):
         cmd = lc.RFS_SET_STOP
         arg = 0
-        self.spectrometer_command(cmd, arg)           
+        self.spectrometer_command(cmd, arg)
+
+    def time_to_die(self):
+        cmd = lc.RFS_SET_TIME_TO_DIE
+        arg = 0
+        self.spectrometer_command(cmd, arg)
 

@@ -2,7 +2,7 @@ import os
 import sys
 import select
 import sys
-import time 
+import time
 import socket
 import shutil
 from DCBEmu import DCBEmulator
@@ -22,10 +22,10 @@ class clogger:
     def logt (self,msg):
         dt = int(time.time()) - self.stime
         self.log(f"[ {dt}s ]: {msg}")
-        
+
     def close(self):
         self.f.close()
-        
+
 
 def read_script(fname):
     script = []
@@ -42,7 +42,7 @@ def read_script(fname):
     return script
 
 class Commander:
-    
+
     def __init__ (self, session = "session", script = None, commanding_ip=None, commanding_port = None, backend = 'DCBEmu'):
         print ("Starting commander.")
         self.session=session
@@ -53,9 +53,9 @@ class Commander:
             script = read_script(script)
         else:
             assert(type(script)==list) ## oterhwise better be script.
-        
+
         self.script = script
-            
+
         self.prepare_directory()
 
         if backend == 'DCBEmu':
@@ -66,8 +66,8 @@ class Commander:
             raise ValueError("DCBE is not implemented yet.")
         else:
             raise ValueError("Unknown backend.")
-    
-        
+
+
         if commanding_port is not None:
             self.s = socket.socket()
             self.s.bind((commanding_ip, commanding_port))
@@ -77,12 +77,12 @@ class Commander:
             self.s = None
 
     def reset(self):
-       self.clog.logt('Resetting....') 
-       
+       self.clog.logt('Resetting....')
+
        self.prepare_directory()
        self.backend.reset()
-       
-            
+
+
     def run(self):
         self.backend.run()
 
@@ -97,44 +97,44 @@ class Commander:
                 ready_to_read, _, _ = select.select([self.s], [], [], 0)
                 if self.s in ready_to_read:
                     c, addr = self.s.accept()
-                    input_data = c.recv(1024).decode()       
-                    input_data = input_data.split() 
+                    input_data = c.recv(1024).decode()
+                    input_data = input_data.split()
                     have_cmd = True
             else:
                 if len(self.script)>0:
                     command = self.script[0]
                     if ctime-script_last>dt:
-                        dt = 0 
+                        dt = 0
                         have_cmd = True
                         self.script.pop(0)
                         script_last = ctime
             if have_cmd:
-                err =0 
+                err =0
                 cmd , arg = command
                 if cmd == 0xE0:
                     # wait command
                     dt = arg/10
                     self.clog.logt (f"Waiting for {dt}s.\n")
-                else:                
-                    print ("Sending command.")
-                    self.backend.send_command(cmd, arg) 
+                else:
+                    print (f"Sending command (cmd={hex(cmd)}, arg={hex(arg)}).")
+                    self.backend.send_command(cmd, arg)
                     self.clog.logt (f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
-            
+
             if len(self.script)==0 and ctime-script_last>dt:
-                break   
+                break
 
         self.backend.stop()
         print ('Exiting commander.')
 
 
 
-        
+
     def prepare_directory(self):
         if hasattr(self,"clog"):
             self.clog.close()
         if hasattr(self,"uart_log"):
             self.uart_log.close()
-            
+
         if os.path.exists(self.session):
             shutil.rmtree(self.session)
 
@@ -148,7 +148,7 @@ class Commander:
         self.clog.log("* Commander *  \n")
         self.clog.log("*************\n\n")
         self.clog.log(f"Cleared session directory: {self.session} \n")
-        
+
 
 
 if __name__ == "__main__":
