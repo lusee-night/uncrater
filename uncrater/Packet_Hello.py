@@ -8,11 +8,13 @@ class Packet_Hello(PacketBase):
         return  "Hello!!"
 
     def _read(self):
+        if self._is_read:
+            return
         super()._read()
         self.copy_attrs(pystruct.startup_hello.from_buffer_copy(self._blob))
         self.time = Time2Time(self.time_32, self.time_16)
-        self.payload['time'] = self.time
-    
+        self._is_read = True
+        
     def info (self):
         self._read()
         

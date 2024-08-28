@@ -76,9 +76,9 @@ class Test:
         work_dir_bash = work_dir.replace('\\','/')
     
         if (verbose):
-            os.system(f'bash -c "cd {work_dir_bash}; pwd; pdflatex -interaction=batchmode report.tex"')
+            os.system(f'bash -c "cd {work_dir_bash}; pdflatex -interaction=batchmode report.tex"')
         else:
-            os.system(f'bash -c "cd {work_dir_bash}; pwd; pdflatex -interaction=batchmode report.tex >/dev/null 2>&1"')
+            os.system(f'bash -c "cd {work_dir_bash}; pdflatex -interaction=batchmode report.tex >/dev/null 2>&1"')
         os.system(f"cp {work_dir}/report.pdf {output_file}")
 
 

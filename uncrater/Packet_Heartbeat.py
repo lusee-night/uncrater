@@ -9,14 +9,14 @@ class Packet_Heartbeat(PacketBase):
         return  "Heartbeat"
 
     def _read(self):
+        if self._is_read:
+            return
         super()._read()
         temp = pystruct.heartbeat.from_buffer_copy(self._blob)       
         self.copy_attrs(temp)
         self.ok = (self.magic == b'BRNMRL')
         self.time = Time2Time(self.time_32, self.time_16)
-        self.payload['ok'] = self.ok
-        self.payload['time'] = self.time
-        self._read = True
+        self._is_read = True
 
     def info (self):
         self._read()

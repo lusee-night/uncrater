@@ -13,6 +13,8 @@ class Packet_Housekeep(PacketBase):
 
     # TODO: fix the housekeeping type logic
     def _read(self):
+        if self._is_read:
+            return
         super()._read()
         # fmt = "<H I I H"
         # cs,ce = 0,struct.calcsize(fmt)
@@ -41,13 +43,11 @@ class Packet_Housekeep(PacketBase):
             self.error_mask = self.errors
             self.actual_gain = ["LMHD"[i] for i in self.actual_gain]
 
-            for n in ['min max valid_count invalid_count_max invalid_count_min total_count mean rms'.split()]:
-                self.payload[n] = getattr(self,n)
-
         elif temp.housekeeping_type == 0:
             self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))
             self.time  = Time2Time(self.core_state.base.time_32, self.core_state.base.time_16)
-            self.payload['time'] = self.time
+    
+        self._is_read=True
 
     def info (self):
         self._read()

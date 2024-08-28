@@ -20,7 +20,8 @@ from test_spec      import Test_Spec
 from test_crosstalk import Test_CrossTalk
 
 from commander      import Commander
-from uncrater       import Collection
+import uncrater as uc
+
 import yaml
 
 try:
@@ -158,7 +159,7 @@ def main():
     
     if args.inspect:
         workdir = args.workdir.replace('%test_name%',args.test_name)
-        C = Collection(os.path.join(workdir,'cdi_output'))
+        C = uc.Collection(os.path.join(workdir,'cdi_output'))
         # uart log and commander log are txt files that you might want to disply in dataview
         uart_log        = open (os.path.join(workdir,'uart.log')).read()
         commander_log   = open (os.path.join(workdir,'commander.log')).read()
@@ -172,19 +173,26 @@ def main():
             if appid == 0x4f0:
                 appid = 0x2f0 ## fix for firmware bug
 
-            blob = P._blob
-
-            # try:
-            #     p.info()
-            # except:
-            #     print(appid)
-            #     continue
-        
+            blob = P._blob        
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
             time = P.time if hasattr(P, 'time') else last_time
             last_time = time 
-            ## HERE you send to dataview
             print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
+
+
+            ## temporary to demonstrate how this is supposed to work
+            
+            # and now a test of packet read
+            if uc.appid_is_spectrum(appid):
+                cur_packet = uc.Packet(appid,blob = blob, meta = meta_data)
+                print (cur_packet.frequency.shape, cur_packet.data.shape)
+            else:
+                cur_packet = uc.Packet(appid,blob = blob)
+            if appid == uc.appid.AppID_MetaData:
+                meta_data = cur_packet
+            
+            print (cur_packet.keys())
+            
 
 
     if args.dataview:
@@ -192,7 +200,7 @@ def main():
         API  = serverAPI(server=server, verb=args.verbose)
 
         workdir = args.workdir.replace('%test_name%',args.test_name)
-        C = Collection(os.path.join(workdir,'cdi_output'))
+        C = uc.Collection(os.path.join(workdir,'cdi_output'))
         # uart log and commander log are txt files that you might want to disply in dataview
         uart_log        = open (os.path.join(workdir,'uart.log')).read()
         commander_log   = open (os.path.join(workdir,'commander.log')).read()
