@@ -36,19 +36,19 @@ class Packet_Metadata(PacketBase):
         desc = ""
         desc += f"Version : {self.version}\n"
         desc += f"packet_id : {self.unique_packet_id}\n"
-        desc += f"Errormask: {self.errormask}\n"  
+        desc += f"Errormask: {self.errormask}\n"
         desc += f"Time: {self.time}\n"
         desc += f"Current weight: {self.base.weight_current}\n"
         desc += f"Previous weight: {self.base.weight_previous}\n"
         return desc
 
 class Packet_Spectrum(PacketBase):
-    
-    
+
+
     @property
     def desc(self):
         return  "Power Spectrum"
-    
+
     @property
     def data(self):
         self._read()
@@ -61,7 +61,7 @@ class Packet_Spectrum(PacketBase):
 
     def set_meta(self, meta):
         self.meta = meta
-        
+
     def _read(self):
         if hasattr(self, '_data'):
             return
@@ -71,8 +71,8 @@ class Packet_Spectrum(PacketBase):
         if not hasattr(self, 'meta'):
             print ("Loading packet without metadata!")
             self.packed_id_mismatch=True
-            
-        
+
+
         if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
             self.priority = 1
             self.product = self.appid - id.AppID_SpectraHigh
@@ -88,22 +88,22 @@ class Packet_Spectrum(PacketBase):
         if self.meta.unique_packet_id != self.unique_packet_id:
             print ("Packet ID mismatch!!")
             self.packed_id_mismatch=True
-        
-        
+
+
         if self.meta.format==0 and len(self._blob[8:])//4>2048:
             print ("Spurious data, trimming!!!")
             self._blob = self._blob[:8 + 2048 * 4]
-            
+
         calculated_crc = binascii.crc32(self._blob[8:]) & 0xffffffff
         self.error_crc_mismatch = not(self.crc == calculated_crc)
         if self.error_crc_mismatch:
             print (f"CRC: {self.crc:x} {calculated_crc:x}")
-            print ("WARNING CRC mismatch!!!!!")        
+            print ("WARNING CRC mismatch!!!!!")
             try:
                 Ndata= len(self._blob[8:])//4
                 data = struct.unpack(f'<{Ndata}i', self._blob[8:])
                 print (data,Ndata)
-                
+
             except:
                 pass
 
@@ -116,14 +116,15 @@ class Packet_Spectrum(PacketBase):
                 data = np.zeros(Ndata)
         else:
             raise NotImplementedError("Only format 0 is supported")
-        self._data = np.array(data, dtype=np.int32).astype(np.float32)
-        
+        # self._data = np.array(data, dtype=np.int32).astype(np.float32)
+        self._data = np.array(data, dtype=np.int32)
+
 
 
     def info (self):
         self._read()
         desc = ""
         desc += f"packet_id : {self.unique_packet_id}\n"
-        desc += f"crc : {self.crc}\n" 
-        desc += f"Npoints: {len(self.data)}\n"  
+        desc += f"crc : {self.crc}\n"
+        desc += f"Npoints: {len(self.data)}\n"
         return desc
