@@ -181,14 +181,14 @@ def main():
 
 
             ## temporary to demonstrate how this is supposed to work
-            
+
             # and now a test of packet read
             if uc.appid_is_spectrum(appid):
                 cur_packet = uc.Packet(appid,blob = blob, meta = meta_data)
                 print (cur_packet.frequency.shape, cur_packet.data.shape)
             else:
                 cur_packet = uc.Packet(appid,blob = blob)
-            if appid == uc.appid.AppID_MetaData:
+            if uc.appid_is_metadata(appid):
                 meta_data = cur_packet
             
             print (cur_packet.keys())

@@ -10,3 +10,6 @@ def Time2Time(time1, time2):
 
 def appid_is_spectrum(appid):
     return ((appid>=id.AppID_SpectraHigh) and (appid<id.AppID_SpectraLow+16))
+
+def appid_is_metadata(appid):
+    return (appid==id.AppID_MetaData)
