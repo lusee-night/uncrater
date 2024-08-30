@@ -1,6 +1,7 @@
 from .Collection import Collection
 from .Packet import Packet
 from .Packet import id as appid
+from .Packet import appId_from_value, value_from_appId
 from .Packet_Hello import Packet_Hello
 from .Packet_Heartbeat import Packet_Heartbeat
 from .Packet_Housekeep import Packet_Housekeep

@@ -6,6 +6,7 @@ if os.environ.get('CORELOOP_DIR') is not None:
 # now try to import pycoreloop
 try:
     from pycoreloop import appId as id
+    from pycoreloop import appId_from_value, value_from_appId 
 except ImportError:
     print ("Can't import pycoreloop\n")
     print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [Collection.py]")

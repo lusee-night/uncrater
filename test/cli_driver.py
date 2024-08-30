@@ -139,7 +139,7 @@ def main():
             options = yaml.safe_load(file)
         # Create an instance of the test with the loaded options
         t = T(options)
-        C = Collection(os.path.join(workdir,'cdi_output'))
+        C = uc.Collection(os.path.join(workdir,'cdi_output'))
         uart_log = open (os.path.join(workdir,'uart.log')).read()
         commander_log = open (os.path.join(workdir,'commander.log')).read()
         report_dir = os.path.join(workdir,'report')
@@ -165,33 +165,30 @@ def main():
         commander_log   = open (os.path.join(workdir,'commander.log')).read()
 
         last_time = 0
-        print ("| count  |appid|uniq_id |  time      | binary blob (size)")
-        print ("|--------|-----|--------|------------|-----------------")
+        print ("| count  | AppId                  |uniq_id  |  time       | size (B)     | info                    ")
+        print ("|--------|------------------------|---------|-------------|--------------|-------------------------")
         for count, P in enumerate(C.cont):
             P._read()
             appid = P.appid
             if appid == 0x4f0:
                 appid = 0x2f0 ## fix for firmware bug
-
+            appid_str = uc.appid_to_str(appid)
             blob = P._blob        
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
             time = P.time if hasattr(P, 'time') else last_time
             last_time = time 
-            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
+            info = P.info().replace('\n',' ')[:80]
+            
+            print (f"|{count:8d}| {appid_str:23}|{unique_id:8x} |{time:12.3f} | {len(blob):12d} | {info}") 
 
-
-            ## temporary to demonstrate how this is supposed to work
-
-            # and now a test of packet read
+            # See if packets can be read as they are in dataview
             if uc.appid_is_spectrum(appid):
                 cur_packet = uc.Packet(appid,blob = blob, meta = meta_data)
-                print (cur_packet.frequency.shape, cur_packet.data.shape)
+                assert (cur_packet.frequency.shape == cur_packet.data.shape)
             else:
                 cur_packet = uc.Packet(appid,blob = blob)
             if uc.appid_is_metadata(appid):
                 meta_data = cur_packet
-            
-            print (cur_packet.keys())
             
 
 

@@ -18,7 +18,6 @@ class Packet_Waveform(PacketBase):
         self.ch = self.appid - 0x2f0
         if self.ch>=512:
             self.ch -= 512
-        self.payload = {'waveform':self.waveform, 'channel':self.ch}
         self._is_read = True
                 
     def info (self):
