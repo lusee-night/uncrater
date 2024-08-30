@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase,  copy_attrs, pystruct
+from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time
 import os, sys
 import struct
@@ -24,12 +24,15 @@ class Packet_Metadata(PacketBase):
         return  "Data Product Metadata"
 
     def _read(self):
+        if self._is_read:
+            return
         super()._read()
         # TODO: check if this actually works
-        copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob), self)
+        self.copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob))
         self.format = self.seq.format
         self.time = Time2Time(self.base.time_32, self.base.time_16)
         self.errormask = self.base.errors
+        self._is_read = True
 
     def info (self):
         self._read()
@@ -41,38 +44,34 @@ class Packet_Metadata(PacketBase):
         desc += f"Current weight: {self.base.weight_current}\n"
         desc += f"Previous weight: {self.base.weight_previous}\n"
         return desc
-
-class Packet_Spectrum(PacketBase):
     
+    @property
+    def frequency(self):
+        Navgf = self.seq.Navgf
+        if Navgf==1:
+            return np.arange(2048)*0.025
+        elif Navgf==2:
+            return np.arange(1024)*0.05
+        else:
+            return np.arange(512)*0.1
+
+class Packet_Spectrum(PacketBase):  
     
     @property
     def desc(self):
         return  "Power Spectrum"
     
-    @property
-    def data(self):
-        self._read()
-        return self._data
-
-    @property
-    def power(self):
-        self._read()
-        return self.data
-
     def set_meta(self, meta):
         self.meta = meta
         
     def _read(self):
-        if hasattr(self, '_data'):
+        if self._is_read:
             return
+        
         self.error_packed_id_mismatch = False
         self.error_data_read = False
         self.error_crc_mismatch = False
-        if not hasattr(self, 'meta'):
-            print ("Loading packet without metadata!")
-            self.packed_id_mismatch=True
-            
-        
+                    
         if self.appid>=id.AppID_SpectraHigh and self.appid<id.AppID_SpectraHigh+16:
             self.priority = 1
             self.product = self.appid - id.AppID_SpectraHigh
@@ -85,6 +84,12 @@ class Packet_Spectrum(PacketBase):
             self.product = self.appid - id.AppID_SpectraLow
         super()._read()
         self.unique_packet_id, self.crc = struct.unpack('<II', self._blob[:8])
+
+
+        if not hasattr(self, 'meta'):
+            print ("Loading packet without metadata!")
+            self.packed_id_mismatch=True
+
         if self.meta.unique_packet_id != self.unique_packet_id:
             print ("Packet ID mismatch!!")
             self.packed_id_mismatch=True
@@ -116,8 +121,13 @@ class Packet_Spectrum(PacketBase):
                 data = np.zeros(Ndata)
         else:
             raise NotImplementedError("Only format 0 is supported")
-        self._data = np.array(data, dtype=np.int32).astype(np.float32)
+        self.data = np.array(data, dtype=np.int32).astype(np.float32)
         
+        self._is_read = True
+
+    @property
+    def frequency(self):
+        return self.meta.frequency
 
 
     def info (self):

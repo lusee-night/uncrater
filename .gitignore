@@ -1,7 +1,11 @@
 # Byte-compiled / optimized / DLL files
 .vscode
 
+# Test data
 session*/
+
+# VScode workspace
+*.code-workspace
 
 __pycache__/
 **/__pycache__/

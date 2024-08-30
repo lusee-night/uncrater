@@ -1,16 +1,36 @@
+#!/usr/bin/env python
+
+#####################################################################
+#                                                                   #
+# This version is enhance with the "upload-to-server"               #
+# functionality, in order to interact with the Dataview application #
+#                                                                   #
+#####################################################################
+
+# ---
+
 import sys, os
 sys.path.append('.')
 sys.path.append('./scripter/')
 sys.path.append('./commander/')
 import argparse
 
-from test_alive import Test_Alive
-from test_spec import Test_Spec
+from test_alive     import Test_Alive
+from test_spec      import Test_Spec
 from test_crosstalk import Test_CrossTalk
 
-from commander import Commander
-from uncrater import Collection
+from commander      import Commander
+import uncrater as uc
+
 import yaml
+
+try:
+    import  serverAPI
+    from    serverAPI   import serverAPI
+    import  urllib, base64
+except:
+    print ("Not importing serverAPI")
+default_server = 'http://localhost:8000/'
 
 Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
 
@@ -18,7 +38,6 @@ def Name2Test(name):
     if name is None:
         print ("You must specify a test.")
         sys.exit(1)
-
     for T in Tests:
         if T.name == name:
             return T
@@ -28,20 +47,29 @@ def Name2Test(name):
 def main():
     parser = argparse.ArgumentParser(description='Driver for tests.')
     parser.add_argument('test_name', nargs='?', default=None, help='Name of the test')
-    parser.add_argument('-l', '--list', action='store_true', help='Show the available tests')
-    parser.add_argument('-i', '--info', action='store_true', help='Print information for the test')
-    parser.add_argument('-r', '--run', action='store_true', help='Run the test and analyze the results')
-    parser.add_argument('-a', '--analyze', action='store_true', help='Analyze the results on a previously run test')
-    parser.add_argument('-d', '--dataview', action='store_true', help='Send the data to DataView viewer')
-    parser.add_argument('-o', '--options', default='', help='Test options, option=value, comma or space separated.')
-    parser.add_argument('-w', '--workdir', default='session_%test_name%', help='Output directory (as test_name.pdf)')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose processing')
-    parser.add_argument('-b', '--backend', default='DCBEmu', help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
-    parser.add_argument('--operator', default='anonymous', help='Operator name (for the report)')
-    parser.add_argument('--comments', default='None', help='Comments(for the report)')
+    parser.add_argument('-w', '--workdir',  default='session_%test_name%', help='Output directory (as test_name.pdf)')
+
+    parser.add_argument('-l', '--list',     action='store_true',    help='Show the available tests')
+    parser.add_argument('-i', '--info',     action='store_true',    help='Print information for the test')
+    parser.add_argument('-r', '--run',      action='store_true',    help='Run the test and analyze the results')
+    parser.add_argument('-a', '--analyze',  action='store_true',    help='Analyze the results on a previously run test')
+    parser.add_argument('-d', '--dataview', action='store_true',    help='Send the data to DataView viewer')
+
+    parser.add_argument('-I', '--inspect',  action='store_true',    help='Inspect data before sending DataView viewer')
+
+    parser.add_argument('-o', '--options',  default='',             help='Test options, option=value, comma or space separated.')
+
+    parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
+    parser.add_argument('-b', '--backend',  default='DCBEmu',       help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
+    parser.add_argument('--operator',       default='anonymous',    help='Operator name (for the report)')
+    parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
+
+    parser.add_argument("-S", "--server",	type=str,               help="server URL: defaults to http://localhost:8000/", default=default_server)
+
+    # ---
     args = parser.parse_args()
 
-    
+
     if args.list:
         print ("Available tests:")
         for T in Tests:
@@ -111,7 +139,7 @@ def main():
             options = yaml.safe_load(file)
         # Create an instance of the test with the loaded options
         t = T(options)
-        C = Collection(os.path.join(workdir,'cdi_output'))
+        C = uc.Collection(os.path.join(workdir,'cdi_output'))
         uart_log = open (os.path.join(workdir,'uart.log')).read()
         commander_log = open (os.path.join(workdir,'commander.log')).read()
         report_dir = os.path.join(workdir,'report')
@@ -129,33 +157,72 @@ def main():
         print ("Done.")
         sys.exit(0)
     
-    if args.dataview:
+    if args.inspect:
         workdir = args.workdir.replace('%test_name%',args.test_name)
-        C = Collection(os.path.join(workdir,'cdi_output'))
-        # uart log and commander log are txt files that you might want to disply
-        # in dataview
-        uart_log = open (os.path.join(workdir,'uart.log')).read()
-        commander_log = open (os.path.join(workdir,'commander.log')).read()
+        C = uc.Collection(os.path.join(workdir,'cdi_output'))
+        # uart log and commander log are txt files that you might want to disply in dataview
+        uart_log        = open (os.path.join(workdir,'uart.log')).read()
+        commander_log   = open (os.path.join(workdir,'commander.log')).read()
+
         last_time = 0
-        print ("| count  |appid|uniq_id |  time      | binary blob (size)")
-        print ("|--------|-----|--------|------------|-----------------")
+        print ("| count  | AppId                  |uniq_id  |  time       | size (B)     | info                    ")
+        print ("|--------|------------------------|---------|-------------|--------------|-------------------------")
         for count, P in enumerate(C.cont):
             P._read()
             appid = P.appid
             if appid == 0x4f0:
                 appid = 0x2f0 ## fix for firmware bug
-
-            blob = P._blob
+            appid_str = uc.appid_to_str(appid)
+            blob = P._blob        
             unique_id = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
             time = P.time if hasattr(P, 'time') else last_time
             last_time = time 
+            info = P.info().replace('\n',' ')[:80]
+            
+            print (f"|{count:8d}| {appid_str:23}|{unique_id:8x} |{time:12.3f} | {len(blob):12d} | {info}") 
+
+            # See if packets can be read as they are in dataview
+            if uc.appid_is_spectrum(appid):
+                cur_packet = uc.Packet(appid,blob = blob, meta = meta_data)
+                assert (cur_packet.frequency.shape == cur_packet.data.shape)
+            else:
+                cur_packet = uc.Packet(appid,blob = blob)
+            if uc.appid_is_metadata(appid):
+                meta_data = cur_packet
+            
+
+
+    if args.dataview:
+        server = args.server
+        API  = serverAPI(server=server, verb=args.verbose)
+
+        workdir = args.workdir.replace('%test_name%',args.test_name)
+        C = uc.Collection(os.path.join(workdir,'cdi_output'))
+        # uart log and commander log are txt files that you might want to disply in dataview
+        uart_log        = open (os.path.join(workdir,'uart.log')).read()
+        commander_log   = open (os.path.join(workdir,'commander.log')).read()
+
+        last_time = 0
+
+        cnt = 0
+
+        for P in C.cont:
+            P._read()
+            appid = P.appid
+            if appid == 0x4f0: appid = 0x2f0 ## fix for firmware bug
+
+            blob        = P._blob
+            unique_id   = P.unique_packet_id if hasattr(P, 'unique_packet_id') else 0
+            time        = P.time if hasattr(P, 'time') else last_time
+            last_time   = time
+
             ## HERE you send to dataview
-            print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
-
-
-
-
-
+            print(appid, unique_id, time, f'''{len(blob)}''' )
+            payload = base64.b64encode(blob)
+            resp = API.post2server('ui', 'data', {'appid': appid, 'uniq_id': unique_id, 'ts': time, 'data':payload,})
+            cnt+=1
+            # if cnt>3: break
+            # print (f"|{count:8d}|{appid:5x}|{unique_id:8x}|{time:12.3f}| binary blob {len(blob)}B") 
 
 if __name__ == "__main__":
     main()

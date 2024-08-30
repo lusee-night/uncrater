@@ -1,12 +1,12 @@
 import os, sys
 
-
 if os.environ.get('CORELOOP_DIR') is not None:
     sys.path.append(os.environ.get('CORELOOP_DIR'))
 
 # now try to import pycoreloop
 try:
     from pycoreloop import appId as id
+    from pycoreloop import appId_from_value, value_from_appId 
 except ImportError:
     print ("Can't import pycoreloop\n")
     print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [Collection.py]")
@@ -37,10 +37,10 @@ for i in range(4):
 PacketDict[0x4f0] = Packet_Waveform
 
 
-def Packet(appid, blob=None, blob_fn=None):
+def Packet(appid, blob=None, blob_fn=None, **kwargs):
     if (blob is None) and (blob_fn is None):
         raise ValueError
-    PacketType = PacketDict.get(appid,PacketBase)
-    return PacketType(appid, blob=blob, blob_fn = blob_fn)
+    PacketType = PacketDict.get(appid, PacketBase)
+    return PacketType(appid, blob = blob, blob_fn = blob_fn, **kwargs)
 
 
