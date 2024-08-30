@@ -41,7 +41,6 @@ def Packet(appid, blob=None, blob_fn=None, **kwargs):
     if (blob is None) and (blob_fn is None):
         raise ValueError
     PacketType = PacketDict.get(appid, PacketBase)
-
     return PacketType(appid, blob = blob, blob_fn = blob_fn, **kwargs)
 
 
