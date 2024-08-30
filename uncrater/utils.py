@@ -8,7 +8,6 @@ def Time2Time(time1, time2):
     time = (((time2 & 0xFFFF) << 32)+time1)*244e-6/16
     return time
 
-
 def appid_is_spectrum(appid):
     return ((appid>=id.AppID_SpectraHigh) and (appid<id.AppID_SpectraLow+16))
 
