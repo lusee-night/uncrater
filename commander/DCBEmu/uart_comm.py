@@ -27,12 +27,10 @@ class LuSEE_UART:
             self.clog.log ("No USB connection found: Make sure FPGA is plugged into the computer!\n")
             return False
         else:
+            for i in ports:                
+                self.clog.log("Found: "+str(i.description)+" at "+i.device+"\n")
             for i in ports:
-                
-                self.clog.log("Found: "+str(i.description)+"\n")
-            for i in ports:
-                #if (i.manufacturer == "Microsemi"):
-                if "Silicon Labs" in i.manufacturer and "Standard COM" in i.description:
+                if  "USB to UART Bridge Controller - Standard" in i.description:
                     flashpro = i
                     break
         if (flashpro == None):
