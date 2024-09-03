@@ -16,7 +16,7 @@ class DCBEmulator(BackendBase):
         if luseeUart.get_connections():
             if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
                 self.uart = luseeUart
-        self.ether = LuSEE_ETHERNET(self.clog, self.save_data)
+        self.ether = LuSEE_ETHERNET(self.clog, self.save_ccsds)
 
         
     def uart_thread (self):

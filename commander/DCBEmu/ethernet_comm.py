@@ -291,20 +291,22 @@ class LuSEE_ETHERNET:
 
     #Unpack the header files into a dictionary, this is common for all CDI responses
     def organize_header(self, formatted_data):
-        header_dict = {}
-
+        header_dict = {} 
+        hex = lambda x:x
         header_dict["udp_packet_num"] = hex((formatted_data[0] << 16) + formatted_data[1])
-        header_dict["header_user_info"] = hex((formatted_data[2] << 48) + (formatted_data[3] << 32) + (formatted_data[4] << 16) + formatted_data[5])
+        header_dict["header_user_info"] = hex((formatted_data[2] << 48) + (formatted_data[3] << 32) + (formatted_data
+[4] << 16) + formatted_data[5])
         header_dict["system_status"] = hex((formatted_data[6] << 16) + formatted_data[7])
         header_dict["message_id"] = hex(formatted_data[8] >> 10)
-
+        header_dict["message_length"] = hex(formatted_data[8] & 0x3FF)
         header_dict["message_spare"] = hex(formatted_data[9])
         header_dict["ccsds_version"] = hex(formatted_data[10] >> 13)
         header_dict["ccsds_packet_type"] = hex((formatted_data[10] >> 12) & 0x1)
         header_dict["ccsds_secheaderflag"] = hex((formatted_data[10] >> 11) & 0x1)
-        header_dict["ccsds_appid"] = hex(formatted_data[10] & 0x07FF) 
+        header_dict["ccsds_appid"] = hex(formatted_data[10] & 0x7FF)
         header_dict["ccsds_groupflags"] = hex(formatted_data[11] >> 14)
         header_dict["ccsds_sequence_cnt"] = hex(formatted_data[11] & 0x3FFF)
+        header_dict["ccsds_packetlen"] = hex(formatted_data[12])
 
         return header_dict
 
@@ -533,31 +535,15 @@ class LuSEE_ETHERNET:
 
     def ListenForData(self, port_id = 0):
         sock_read,port = self.data_ports[port_id]
-        full_packet = {}
+        full_packet = bytearray(0)
+        last_num = 0 
         while not self.etherStop:
             data, addr = sock_read.recvfrom(5000)  # arg is buffer size
             if data:
-                unpack_buffer = int((len(data))/2)
-                #Unpacking into shorts in increments of 2 bytes
-                formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
+                # we dont't really need this    
+                formatted_data = struct.unpack_from(f">13H",data[:26])
                 header_dict = self.organize_header(formatted_data)
-                appid = int(header_dict['ccsds_appid'],16) + 0x200 ## hack                            
-                
-                last_packet = (len(data) < 4112)
-                # Now need to reoder data
-                data = data[26:]                        
-                cdata = bytearray(len(data))
-                cdata[::2]= data[1::2]
-                cdata[1::2] = data[::2]
-                if not appid in full_packet: 
-                    full_packet[appid] = bytearray(0)
-                full_packet[appid] = full_packet[appid]+cdata
-                if last_packet:
-                    towrite = full_packet[appid][:-2] ## now chop last two bytes        
-                    self.save_data(appid, towrite)        
-                    full_packet [appid]= bytearray(0)
-                    
-
+                self.save_data(data[20:])
     
 if __name__ == "__main__":
     #arg = sys.argv[1]
