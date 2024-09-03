@@ -350,8 +350,6 @@ class Test_Alive(Test):
 
         fig_sp2.tight_layout()
         fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
-
-
         self.results['result'] = int(passed)
 
 

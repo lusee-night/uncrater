@@ -82,18 +82,17 @@ class Test:
             f.write(template)
             f.close()
         
-        
         os.system(f"cp {styfile} {work_dir}")
-    
-    
-        work_dir_bash = work_dir.replace('\\','/')
-    
+        
         if (verbose):
-            os.system(f'bash -c "cd {work_dir_bash}; pdflatex -interaction=batchmode report.tex"')
+            os.system(f'cd {work_dir}; pdflatex -interaction=batchmode report.tex')
         else:
-            os.system(f'bash -c "cd {work_dir_bash}; pdflatex -interaction=batchmode report.tex >/dev/null 2>&1"')
+            os.system(f'cd {work_dir}; pdflatex -interaction=batchmode report.tex >/dev/null 2>&1')
         os.system(f"cp {work_dir}/report.pdf {output_file}")
-
+        if self.results['result']:
+            open (f"{work_dir}/../PASSED","w").close()
+        else:
+            open (f"{work_dir}/../FAILED","w").close()
 
     def generate_options_table(self):
         """ Generates a table with the options """
