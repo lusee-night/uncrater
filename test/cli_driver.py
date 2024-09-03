@@ -154,6 +154,7 @@ def main():
         print ("Writing report...")
         add_keys = {'operator':args.operator, 'comments':args.comments,'uart_log':uart_log, 'commander_log':commander_log}
         t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys, verbose=args.verbose)
+        print ("Test result:", "PASSED" if t.results['result'] else "FAILED")
         print ("Done.")
         sys.exit(0)
     

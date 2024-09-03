@@ -40,13 +40,15 @@ class BackendBase:
         cdata[1::2] = data[::2]
         self.full_packet = self.full_packet + cdata
         if not tbc:
+            if ccsds_appid <0x200:
+                ccsds_appid = ccsds_appid + 0x200
             print ("Storing appdid ",hex(ccsds_appid))
             towrite = self.full_packet[:-2] ## now chop last two bytes        
             self.save_data(ccsds_appid, towrite)        
             self.full_packet = bytearray(0)
         else:
             print (".",end="",flush=True)
-            
+
 
 
 

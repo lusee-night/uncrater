@@ -72,9 +72,7 @@ class LuSEE_ETHERNET:
         self.clog.log(f"UDP IP is {self.UDP_IP} and PC IP is {self.PC_IP}.\n")
         self.clog.log(f"Listening on ports {self.PORT_DATA}\n")
         self.etherStop = False
-        
-        print ("logging here")
-        
+                
     def reset(self, clog):
         #print("Python Ethernet --> Resetting, wait a few seconds")
         #self.write_reg(self.spectrometer_reset,1)
