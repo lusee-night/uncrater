@@ -23,8 +23,8 @@ class Scripter:
 
     def command(self, cmd, arg):
         self.total_time += 0.01 ## assume 10ms for a real command, already overestimated
-        assert (cmd>=0 & cmd < 256)
-        assert (arg>=0 & arg < 65536)
+        assert ((cmd>=0) & (cmd < 256))
+        assert ((arg>=0) & (arg < 65536))
         self.script.append((cmd,arg))
 
 
@@ -43,6 +43,15 @@ class Scripter:
         dt = int(dt*10)
         self.total_time += dt/10
         self.command(lc.CTRL_WAIT,dt)
+
+    def cdi_wait_ticks (self,dt):
+        """ Wait for dt in ticks (10ms) executed on the spectrometer board"""
+        self.spectrometer_command(lc.RFS_SET_WAIT_TICKS,int(dt))
+
+    def cdi_wait_seconds (self,dt):
+        """ Wait for dt in seconds executed on the spectrometer board"""
+        self.spectrometer_command(lc.RFS_SET_WAIT_SECS,int(dt))
+        
 
     def reset(self, stored_state = 'ignore'):
         if stored_state == 'load':
