@@ -16,8 +16,9 @@ sys.path.append('./commander/')
 import argparse
 
 from test_alive     import Test_Alive
-from test_spec      import Test_Spec
-from test_crosstalk import Test_CrossTalk
+from test_science     import Test_Science
+#from test_spec      import Test_Spec
+#from test_crosstalk import Test_CrossTalk
 
 from commander      import Commander
 import uncrater as uc
@@ -32,7 +33,7 @@ except:
     print ("Not importing serverAPI")
 default_server = 'http://localhost:8000/'
 
-Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
+Tests = [Test_Alive, Test_Science]
 
 def Name2Test(name):
     if name is None:
@@ -123,7 +124,11 @@ def main():
         ## this will also generated the work dir
         print ("Starting commander...")        
         C = Commander(session = workdir, script=S.script, backend=args.backend)
-        C.run()
+        try:
+            C.run()
+        except KeyboardInterrupt:
+            print ("Interrupted.")
+            
         # Save options to YAML file
         options_file = f"{workdir}/options.yaml"
         with open(options_file, 'w') as file:

@@ -113,7 +113,7 @@ class Commander:
                 cmd , arg = command
                 if cmd == 0xE0:
                     # wait command
-                    dt = arg/10
+                    dt = arg/10 if arg<65000 else 1e100 # 65000 is forever
                     self.clog.logt (f"Waiting for {dt}s.\n")
                 else:                
                     print ("Sending command.")
