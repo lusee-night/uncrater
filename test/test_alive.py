@@ -112,7 +112,8 @@ class Test_Alive(Test):
 
         S = Scripter()
         S.reset()
-        S.cdi_wait_seconds(1)
+        ## this is the real wait
+        S.wait(1)
         S.ADC_special_mode(self.waveform_type)
         S.house_keeping(0)
         S.cdi_wait_seconds(1)
