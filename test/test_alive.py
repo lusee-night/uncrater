@@ -112,22 +112,23 @@ class Test_Alive(Test):
 
         S = Scripter()
         S.reset()
+        ## this is the real wait
         S.wait(1)
         S.ADC_special_mode(self.waveform_type)
         S.house_keeping(0)
-        S.wait(1)
+        S.cdi_wait_seconds(1)
         for i in [0,1,2,3]:
             S.waveform(i)
-            S.wait(1)
+            S.cdi_wait_ticks(10)
         #S.waveform(5)
         S.set_Navg(14,3)
         S.start()
-        S.wait(self.time-S.total_time-3)
+        S.cdi_wait_seconds(self.time-S.total_time-3)
         S.stop()
-        S.wait(2)
+        S.cdi_wait_seconds(2)
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(1)
+        S.wait(self.time+5)
         return S
     
     def analyze(self, C, uart, commander, figures_dir):

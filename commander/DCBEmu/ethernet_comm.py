@@ -534,14 +534,42 @@ class LuSEE_ETHERNET:
     def ListenForData(self, port_id = 0):
         sock_read,port = self.data_ports[port_id]
         full_packet = bytearray(0)
-        last_num = 0 
+        last_num = None
         while not self.etherStop:
             data, addr = sock_read.recvfrom(5000)  # arg is buffer size
-            if data:
+            if len(data)>0:
                 # we dont't really need this    
                 formatted_data = struct.unpack_from(f">13H",data[:26])
                 header_dict = self.organize_header(formatted_data)
+                udp_packet_num = header_dict['udp_packet_num']
+                if last_num is not None:
+                    if udp_packet_num != last_num+1:
+                        print(f"UDP packet skip {last_num} -> {udp_packet_num}")
+                last_num = udp_packet_num
                 self.save_data(data[20:])
+
+                # if (diff <= 4):
+                #     ndx =  header_dict['message_length']*4+20
+                #     data = None
+                # else:
+                #     print ("@", end="")
+                #     ndx =  header_dict['message_length']*4
+                #     while len(data[ndx:]) > 26:
+                #         formatted_data = struct.unpack_from(f">13H",data[ndx:ndx+26])
+                #         header_dict1 = self.organize_header(formatted_data)
+                #         print ('Y',ndx, header_dict1['udp_packet_num'],header_dict['udp_packet_num'])
+                #         if (header_dict1['udp_packet_num'] == header_dict['udp_packet_num']+1):
+                #             self.save_data(data[20:ndx+36])
+                #             data = data[ndx:]
+                #             continue
+                #         ndx = ndx+1
+                    
+                #     print ('Dropping!')
+
+
+
+                #print (f"PacketX {header_dict['udp_packet_num']} {header_dict['message_length']*4-6-len(data[26:])}")
+                
     
 if __name__ == "__main__":
     #arg = sys.argv[1]
