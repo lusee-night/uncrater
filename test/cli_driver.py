@@ -146,7 +146,11 @@ def main():
         t = T(options)
         C = uc.Collection(os.path.join(workdir,'cdi_output'))
         uart_log = open (os.path.join(workdir,'uart.log')).read()
-        commander_log = open (os.path.join(workdir,'commander.log')).read()
+        commander_log = open (os.path.join(workdir,'commander.log')).readlines()
+        if len (commander_log)>200:
+            commander_log = commander_log[:200]
+            commander_log.append("... truncated ...\n")
+            commander_log = ''.join(commander_log)
         report_dir = os.path.join(workdir,'report')
         fig_dir = os.path.join(report_dir,'Figures')    
         try:
@@ -157,6 +161,7 @@ def main():
         print ("Starting analysis...")
         t.analyze(C, uart_log, commander_log, fig_dir)
         print ("Writing report...")
+        
         add_keys = {'operator':args.operator, 'comments':args.comments,'uart_log':uart_log, 'commander_log':commander_log}
         t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys, verbose=args.verbose)
         print ("Test result:", "PASSED" if t.results['result'] else "FAILED")
