@@ -24,6 +24,7 @@ class Packet_Housekeep(PacketBase):
         # self.version, self.unique_packet_id, self.errors, self.housekeeping_type = struct.unpack(fmt, self.blob[cs:ce])
         temp = pystruct.housekeeping_data_base.from_buffer_copy(self._blob)
         self.time = 0
+        self.hk_type = temp.housekeeping_type
 
         if temp.housekeeping_type not in self.valid_types:
             raise ValueError(f'{temp.housekeeping_type} is not a valid housekeeping type')
@@ -32,9 +33,6 @@ class Packet_Housekeep(PacketBase):
             adc=process_ADC_stats(self.ADC_stat)
             for k,v in adc.items():
                 setattr(self, k, v)
-            self.version = self.version
-            self.error_mask = self.errors
-            self.actual_gain = ["LMHD"[i] for i in self.actual_gain]
 
         elif temp.housekeeping_type == 0:
             self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))

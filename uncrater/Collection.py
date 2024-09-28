@@ -16,7 +16,9 @@ class Collection:
         self.time = []
         self.desc = []
         self.spectra = []
-        flist = sorted(glob.glob(os.path.join(self.dir, '*.bin')))
+        flist = glob.glob(os.path.join(self.dir, '*.bin'))
+        print (f"Ananlyzing {len(flist)} files from {self.dir}.")
+        flist = sorted(flist, key=lambda x:int(x[x.rfind('/')+1:].split('_')[0]))
         for i,fn in enumerate(flist):
             #print ("reading ",fn)
             appid = int(fn.replace('.bin','').split("_")[-1],16)

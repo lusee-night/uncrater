@@ -16,7 +16,8 @@ sys.path.append('./commander/')
 import argparse
 
 from test_alive     import Test_Alive
-from test_science     import Test_Science
+from test_science   import Test_Science
+from test_wave      import Test_Wave
 #from test_spec      import Test_Spec
 #from test_crosstalk import Test_CrossTalk
 
@@ -33,7 +34,7 @@ except:
     print ("Not importing serverAPI")
 default_server = 'http://localhost:8000/'
 
-Tests = [Test_Alive, Test_Science]
+Tests = [Test_Alive, Test_Science, Test_Wave]
 
 def Name2Test(name):
     if name is None:
@@ -145,12 +146,19 @@ def main():
         # Create an instance of the test with the loaded options
         t = T(options)
         C = uc.Collection(os.path.join(workdir,'cdi_output'))
-        uart_log = open (os.path.join(workdir,'uart.log')).read()
-        commander_log = open (os.path.join(workdir,'commander.log')).readlines()
-        if len (commander_log)>200:
-            commander_log = commander_log[:200]
-            commander_log.append("... truncated ...\n")
-            commander_log = ''.join(commander_log)
+        def read_and_fix(fn, max_lines = 200, max_line_length = 2000):
+            try:
+                lines = open(fn).readlines()
+            except:
+                return ""
+            lines = [(l[:max_line_length]+"[...]" if len(l)>max_line_length else l)  for l in lines]
+            if len(lines)>max_lines:
+                lines = lines[:max_lines]
+                lines.append("... truncated ...\n")
+            return ''.join(lines)
+
+        uart_log = read_and_fix (os.path.join(workdir,'uart.log'))
+        commander_log = read_and_fix (os.path.join(workdir,'commander.log'))
         report_dir = os.path.join(workdir,'report')
         fig_dir = os.path.join(report_dir,'Figures')    
         try:
