@@ -25,14 +25,23 @@ class Packet_Housekeep(PacketBase):
         temp = pystruct.housekeeping_data_base.from_buffer_copy(self._blob)
         self.time = 0
         self.hk_type = temp.housekeeping_type
+        self.version = temp.version
+        self.unique_packet_id = temp.unique_packet_id
+        self.errors = temp.errors
+        if (self.version != pystruct.VERSION_ID):
+            print ("WARNING: Version ID mismatch")
 
         if temp.housekeeping_type not in self.valid_types:
-            raise ValueError(f'{temp.housekeeping_type} is not a valid housekeeping type')
+            print ("HK type = ",temp.housekeeping_type)
+            print ("HK type not recognized, corrupter HK packet?")
+
         if temp.housekeeping_type == 1:
             self.copy_attrs(pystruct.housekeeping_data_1.from_buffer_copy(self._blob))
             adc=process_ADC_stats(self.ADC_stat)
             for k,v in adc.items():
                 setattr(self, k, v)
+            self.actual_gain = ["LMH"[i] for i in self.actual_gain]
+
 
         elif temp.housekeeping_type == 0:
             self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))

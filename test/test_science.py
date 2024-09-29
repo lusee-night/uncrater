@@ -50,9 +50,12 @@ class Test_Science(Test):
         S.set_bitslice_auto(8)
         S.set_ana_gain('AAAA')
         S.start()
+        
 
         if self.time_mins>0:
-            S.wait(self.time_mins*600)
+            S.cdi_wait_seconds(self.time_mins*60)
+            S.stop()
+            S.wait(self.time_mins*60+5)
         else:
             S.wait(-1)
         return S
@@ -185,14 +188,22 @@ class Test_Science(Test):
             #print (adc_valid_count[:,0])
             #print (adc_mean[:,0])
             #print (adc_rms[:,0])
-            fig,ax = plt.subplots()
+            fig,ax = plt.subplots(2,2)
             colors = 'rgby'
             for i in range(4):
-                ax.plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='MIN/MAX CH'+str(i))
-                ax.plot(time, adc_min[:,i],ls = '-', lw=2, color =colors[i])
+                x= i//2
+                y= i%2
+                ax[x,y].plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='CH'+str(i))
+                ax[x,y].plot(time, adc_min[:,i], ls = '-', lw=2, color =colors[i])
+                ax[x,y].plot(time, adc_mean[:,i],ls = '-', lw=2, color =colors[i])
+                ax[x,y].plot(time, adc_mean[:,i]+adc_rms[:,i],ls = ':', lw=2, color =colors[i])
+                ax[x,y].plot(time, adc_mean[:,i]-adc_rms[:,i],ls = ':', lw=2, color =colors[i])
+                if x==1:
+                    ax[x,y].set_xlabel('time [mins]')
+                if y==0:
+                    ax[x,y].set_ylabel('counts')
             fig.legend()
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('counts')
+            
             fig.tight_layout()
             fig.savefig(os.path.join(figures_dir,'adc_stats.pdf'))
 

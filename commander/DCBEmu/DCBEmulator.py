@@ -36,6 +36,9 @@ class DCBEmulator(BackendBase):
         self.ether.etherStop = True
         # give time for threads to stop
         time.sleep(1)
+        self.uart_log.close()
+        
+
 
     def send_command(self, cmd, arg):
         self.ether.cdi_command(cmd, arg)

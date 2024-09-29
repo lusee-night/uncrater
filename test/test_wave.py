@@ -36,7 +36,7 @@ class Test_Wave(Test):
         if len(self.gain)!=4:
             gain_ok = False
         for v in self.gain:
-            if v not in 'LMHD':
+            if v not in 'LMHA':
                 gain_ok = False
         if not gain_ok:
             print (f"Invalid gain setting {self.gain}. Will assume MMMM")
@@ -48,13 +48,12 @@ class Test_Wave(Test):
         S.wait(1)
 
         S.set_ana_gain(self.gain)
-
+        S.cdi_wait_ticks(10)
+        S.adc_range()
+        S.cdi_wait_ticks(10)
         for i in [0,1,2,3]:
             S.waveform(i)
             S.cdi_wait_ticks(10)
-        
-        S.house_keeping(1)
-
         S.wait(3)
 
         return S
@@ -96,8 +95,8 @@ class Test_Wave(Test):
 
         self.results['num_wf'] = num_wf
         self.results['num_hk'] = num_hk
-        self.results['num_wf_ok'] = (num_wf == 4)
-        self.results['num_hk_ok'] = (num_hk == 1)
+        self.results['num_wf_ok'] = int(num_wf == 4)
+        self.results['num_hk_ok'] = int(num_hk == 1)
 
         for ch in range(4):
             fig = plt.figure(figsize=(12, 6))
@@ -107,22 +106,23 @@ class Test_Wave(Test):
             ax1.plot(waveforms[ch])
             ax1.set_title(f"Waveform {ch+1}")
             ax2.hist(waveforms[ch], bins=100)            
-            ax2.axvline(hk.min, color='r', ls='-')
-            ax2.axvline(hk.max, color='r', ls='-')
-            ax2.axvline(hk.mean, color='b', ls=':')
-            ax2.axvline(hk.mean+hk.rms, color='g', ls=':')
-            ax2.axvline(hk.mean-hk.rms, color='g', ls=':')
+            ax2.axvline(hk.min[ch], color='r', ls='-',lw=2)
+            ax2.axvline(hk.max[ch], color='r', ls='-',lw=2)
+            ax2.axvline(hk.mean[ch], color='b', ls='-',lw=2)
+            ax2.axvline(hk.mean[ch]+hk.rms[ch], color='y', ls='-',lw=2)
+            ax2.axvline(hk.mean[ch]-hk.rms[ch], color='y', ls='-',lw=2)
             ax2.set_title(f"Waveform {ch+1} Histogram")
-            fig.savefig(os.path.join(figures_dir,'weights.pdf'))
-            
-        self.results['min'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.min)
-        self.results['max'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.max)
-        self.results['mean'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.mean)
-        self.results['rms'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.rms)
-        self.results['valid_count'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.valid_count)
-        self.results['invalid_count_max'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.invalid_count_max)
-        self.results['invalid_count_min'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.invalid_count_min)
-        self.results['total_count'] = "{:4i} {:4i} {:4i} {:4i}".format(hk.total_count)
+            fig.savefig(os.path.join(figures_dir,f'wave_{ch+1}.pdf'))
+
+        self.results['min'] = " ".join(f"{x:5}" for x in hk['min'])
+        self.results['max'] = " ".join(f"{x:5}" for x in hk['max'])
+        self.results['mean'] = " ".join(f"{x:4.1f}" for x in hk['mean'])
+        self.results['rms'] = " ".join(f"{x:4.1f}" for x in hk['rms'])
+        self.results['valid_count'] = " ".join(f"{x:5}" for x in hk['valid_count'])
+        self.results['invalid_count_max'] = " ".join(f"{x:5}" for x in hk['invalid_count_max'])
+        self.results['invalid_count_min'] = " ".join(f"{x:5}" for x in hk['invalid_count_min'])
+        self.results['total_count'] = " ".join(f"{x:5}" for x in hk['total_count'])
+        self.results['actual_gain'] = " ".join(hk['actual_gain'])
 
         self.results['result'] = int(passed)
 
