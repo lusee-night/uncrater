@@ -114,9 +114,9 @@ class Test_Alive(Test):
         S.reset()
         ## this is the real wait
         S.wait(1)
-        S.ADC_special_mode(self.waveform_type)
         S.house_keeping(0)
-        S.cdi_wait_seconds(1)
+        S.ADC_special_mode(self.waveform_type)
+        S.cdi_wait_ticks(20)
         for i in [0,1,2,3]:
             S.waveform(i)
             S.cdi_wait_ticks(10)
@@ -128,7 +128,7 @@ class Test_Alive(Test):
         S.cdi_wait_seconds(2)
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(self.time+5)
+        S.wait(self.time+7)
         return S
     
     def analyze(self, C, uart, commander, figures_dir):
