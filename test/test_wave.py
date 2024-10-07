@@ -48,12 +48,13 @@ class Test_Wave(Test):
         S.wait(1)
 
         S.set_ana_gain(self.gain)
-        S.cdi_wait_ticks(10)
+        S.wait(0.1)
         S.adc_range()
-        S.cdi_wait_ticks(100)
-        for i in [0,1,2,3]:
-            S.waveform(i)
-            S.cdi_wait_ticks(10)
+        S.wait(1)
+        S.waveform(4)
+        #for i in [0,1,2,3]:
+        #    S.waveform(i)
+        #    S.cdi_wait_ticks(10)
         S.wait(5)
 
         return S

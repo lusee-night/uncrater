@@ -139,6 +139,13 @@ class Scripter:
         self.spectrometer_command(cmd, arg)
         
     def select_products(self, mask):
+        if type(mask)==str:
+            if mask == 'auto_only':
+                mask = 0b1111
+            else:
+                print ("Unknown mask type for select_products:", mask)
+                raise ValueError
+
         assert(type(mask) == int)
         low = (mask & 0x00FF)
         high = ((mask & 0xFF00) >> 8)
@@ -149,13 +156,26 @@ class Scripter:
         val = Navg1 + (Navg2 << 4)
         self.spectrometer_command(lc.RFS_SET_AVG_SET, val)
         
-    def start(self):
+    def start(self, no_flash=False):
         cmd = lc.RFS_SET_START
         arg = 0
+        if no_flash:
+            arg += 1
         self.spectrometer_command(cmd, arg)
         
-    def stop(self):
+    def stop(self, no_flash=False):
         cmd = lc.RFS_SET_STOP
         arg = 0
+        if no_flash:
+            arg += 1
         self.spectrometer_command(cmd, arg)           
+
+    def awg_init(self):
+        self.script.append('AWG INIT')
+
+    def awg_close(self):
+        self.script.append('AWG STOP')
+
+    def awg_tone(self, ch, freq, amplitude):
+        self.script.append(f'AWG TONE  {ch}  {freq} {amplitude}')
 
