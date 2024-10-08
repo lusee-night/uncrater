@@ -16,8 +16,11 @@ sys.path.append('./commander/')
 import argparse
 
 from test_alive     import Test_Alive
-from test_spec      import Test_Spec
-from test_crosstalk import Test_CrossTalk
+from test_science   import Test_Science
+from test_wave      import Test_Wave
+from test_cpt_short  import Test_CPTShort
+#from test_spec      import Test_Spec
+#from test_crosstalk import Test_CrossTalk
 
 from commander      import Commander
 import uncrater as uc
@@ -32,7 +35,7 @@ except:
     print ("Not importing serverAPI")
 default_server = 'http://localhost:8000/'
 
-Tests = [Test_Alive, Test_Spec, Test_CrossTalk]
+Tests = [Test_Alive, Test_Science, Test_Wave, Test_CPTShort]
 
 def Name2Test(name):
     if name is None:
@@ -61,6 +64,7 @@ def main():
 
     parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
     parser.add_argument('-b', '--backend',  default='DCBEmu',       help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
+    parser.add_argument('--awg',            default='None',         help='AWG backend to use. Possible values: None, lab7')
     parser.add_argument('--operator',       default='anonymous',    help='Operator name (for the report)')
     parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
 
@@ -104,6 +108,8 @@ def main():
                 continue
             try:
                 key, val = opt.split('=')
+                key = key.strip()
+                val = val.strip()
             except:
                 print ("Bad options format: ",opt)
                 sys.exit(1)
@@ -122,12 +128,17 @@ def main():
         workdir = args.workdir.replace('%test_name%',t.name)
         ## this will also generated the work dir
         print ("Starting commander...")        
-        C = Commander(session = workdir, script=S.script, backend=args.backend)
-        C.run()
+        awg = None if args.awg == 'None' else args.awg
+        C = Commander(session = workdir, script=S.script, backend=args.backend, awg_backend = awg)
         # Save options to YAML file
         options_file = f"{workdir}/options.yaml"
         with open(options_file, 'w') as file:
             yaml.dump(options, file)
+        try:
+            C.run()
+        except KeyboardInterrupt:
+            print ("Interrupted.")
+            
         print ("Commander done.")
         
     if args.run or args.analyze:
@@ -140,8 +151,19 @@ def main():
         # Create an instance of the test with the loaded options
         t = T(options)
         C = uc.Collection(os.path.join(workdir,'cdi_output'))
-        uart_log = open (os.path.join(workdir,'uart.log')).read()
-        commander_log = open (os.path.join(workdir,'commander.log')).read()
+        def read_and_fix(fn, max_lines = 200, max_line_length = 2000):
+            try:
+                lines = open(fn).readlines()
+            except:
+                return ""
+            lines = [(l[:max_line_length]+"[...]" if len(l)>max_line_length else l)  for l in lines]
+            if len(lines)>max_lines:
+                lines = lines[:max_lines]
+                lines.append("... truncated ...\n")
+            return ''.join(lines)
+
+        uart_log = read_and_fix (os.path.join(workdir,'uart.log'))
+        commander_log = read_and_fix (os.path.join(workdir,'commander.log'))
         report_dir = os.path.join(workdir,'report')
         fig_dir = os.path.join(report_dir,'Figures')    
         try:
@@ -152,6 +174,7 @@ def main():
         print ("Starting analysis...")
         t.analyze(C, uart_log, commander_log, fig_dir)
         print ("Writing report...")
+        
         add_keys = {'operator':args.operator, 'comments':args.comments,'uart_log':uart_log, 'commander_log':commander_log}
         t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys, verbose=args.verbose)
         print ("Test result:", "PASSED" if t.results['result'] else "FAILED")

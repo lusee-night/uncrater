@@ -34,14 +34,17 @@ class Scripter:
         self.command(0x10,(cmd<<8)+arg)     
 
     def wait (self, dt):
-        """ Wait for dt in seconds, rounted to 100ms"""
-        if dt<0.1:
-            print ("Warning: wait time too short")
-        elif dt>6553.6:
-            print ("Warning: wait time too long, rounding down")
-            dt = 6553.6
-        dt = int(dt*10)
-        self.total_time += dt/10
+        """ Wait for dt in seconds, rounted to 100ms. If negative, wait forever"""
+        if dt<0:
+            dt = 65000
+        else:
+            if dt<0.1:
+                print ("Warning: wait time too short")
+            elif dt>6500.0:
+                print ("Warning: wait time too long, rounding down")
+                dt = 6499.9
+            dt = int(dt*10)
+            self.total_time += dt/10
         self.command(lc.CTRL_WAIT,dt)
 
     def cdi_wait_ticks (self,dt):
@@ -81,7 +84,7 @@ class Scripter:
     def adc_range(self):
         self.spectrometer_command(lc.RFS_SET_RANGE_ADC, 0x0)
         
-    def route(self, ch, plus, minus=None, gain='M'):
+    def set_route(self, ch, plus, minus=None, gain='M'):
         assert ((ch >= 0) and (ch < 4))
         cmd = lc.RFS_SET_ROUTE_SET1 + ch
         if minus is None:
@@ -94,7 +97,7 @@ class Scripter:
         arg = (gain << 6) + (minus << 3) + plus
         self.spectrometer_command(cmd, arg)
         
-    def ana_gain(self, gains):
+    def set_ana_gain(self, gains):
         assert(len(gains) == 4)
         cmd = lc.RFS_SET_GAIN_ANA_SET
         arg = 0
@@ -136,6 +139,13 @@ class Scripter:
         self.spectrometer_command(cmd, arg)
         
     def select_products(self, mask):
+        if type(mask)==str:
+            if mask == 'auto_only':
+                mask = 0b1111
+            else:
+                print ("Unknown mask type for select_products:", mask)
+                raise ValueError
+
         assert(type(mask) == int)
         low = (mask & 0x00FF)
         high = ((mask & 0xFF00) >> 8)
@@ -146,13 +156,26 @@ class Scripter:
         val = Navg1 + (Navg2 << 4)
         self.spectrometer_command(lc.RFS_SET_AVG_SET, val)
         
-    def start(self):
+    def start(self, no_flash=False):
         cmd = lc.RFS_SET_START
         arg = 0
+        if no_flash:
+            arg += 1
         self.spectrometer_command(cmd, arg)
         
-    def stop(self):
+    def stop(self, no_flash=False):
         cmd = lc.RFS_SET_STOP
         arg = 0
+        if no_flash:
+            arg += 1
         self.spectrometer_command(cmd, arg)           
+
+    def awg_init(self):
+        self.script.append('AWG INIT')
+
+    def awg_close(self):
+        self.script.append('AWG STOP')
+
+    def awg_tone(self, ch, freq, amplitude):
+        self.script.append(f'AWG TONE  {ch}  {freq} {amplitude}')
 

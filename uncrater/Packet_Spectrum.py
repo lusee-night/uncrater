@@ -1,5 +1,5 @@
 from .PacketBase import PacketBase, pystruct
-from .utils import Time2Time
+from .utils import Time2Time, process_ADC_stats, process_telemetry
 import os, sys
 import struct
 import numpy as np
@@ -32,6 +32,14 @@ class Packet_Metadata(PacketBase):
         self.format = self.seq.format
         self.time = Time2Time(self.base.time_32, self.base.time_16)
         self.errormask = self.base.errors
+        adc = process_ADC_stats(self.base.ADC_stat)
+        for k,v in adc.items():
+            setattr(self, "adc_"+k, v)
+        telemetry = process_telemetry(self.base.TVS_sensors)
+        for k,v in telemetry.items():
+            setattr(self, "telemetry_"+k, v)
+
+                                      
         self._is_read = True
 
     def info (self):

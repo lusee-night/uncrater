@@ -1,0 +1,55 @@
+
+\section{Basic Info}
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Packets Received              & ++packets_received++                                         \\
+    Startup packet received       & \bcheckmark{++hello++}                                       \\
+    Software Version              & ++SW_version++                                               \\
+    Firmware Version              & ++FW_version++                                               \\
+    Firmware ID                   & ++FW_ID++                                                    \\
+    Firmware Date                 & ++FW_Date++                                                  \\
+    Firmware Time                 & ++FW_Time++                                                  \\
+    Heartbeat packets received    & ++heartbeat_received++                                       \\
+    Hearbeat no missing packets   & \bcheckmark{++heartbeat_not_missing++}                       \\
+    Hearbeat $\Delta t$ min/max   & ++heartbeat_mindt++s // ++heartbeat_maxdt++s                 \\
+    Spectral packets received     & ++sp_packets_received++                                      \\
+\end{tabular}
+
+\section{Spectra}
+
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Full spectra present            & ++sp_num++                      \\
+    CRC OK                          & \bcheckmark {++sp_crc++}        \\
+    All 16 products present         & \bcheckmark {++sp_all++}        \\
+    Rejections                      & ++sp_rejections++ \\
+\end{tabular}
+
+
+
+\section{Plots}
+
+\subsubsection*{Error bitmask:}
+\includegraphics*[width=\linewidth]{Figures/errors.pdf}
+
+\subsubsection*{Weights:}
+\includegraphics*[width=0.7\linewidth]{Figures/weights.pdf}
+
+\subsubsection*{ADC Min/Max/Mean/RMS:}
+\includegraphics*[width=0.7\linewidth]{Figures/adc_stats.pdf}
+
+\subsubsection*{ADC Valid count:}
+\includegraphics*[width=0.7\linewidth]{Figures/adc_stats2.pdf}
+
+\subsubsection*{Actual gain:}
+\includegraphics*[width=0.7\linewidth]{Figures/actual_gain.pdf}
+
+
+\subsubsection*{Individual correlation products:}
+\includegraphics*[width=\linewidth]{Figures/spectra.pdf}
+
+\newpage
+Waterfall plots:\\
+\includegraphics*[width=\linewidth]{Figures/spectra_wf.pdf}
+
+

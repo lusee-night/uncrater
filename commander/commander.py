@@ -7,7 +7,7 @@ import socket
 import shutil
 from DCBEmu import DCBEmulator
 from CoreloopBackend import CoreloopBackend
-
+from AWGBackendLab7 import AWGBackendLab7
 
 class clogger:
     def __init__(self, fname):
@@ -43,7 +43,7 @@ def read_script(fname):
 
 class Commander:
     
-    def __init__ (self, session = "session", script = None, commanding_ip=None, commanding_port = None, backend = 'DCBEmu'):
+    def __init__ (self, session = "session", script = None, commanding_ip=None, commanding_port = None, backend = 'DCBEmu', awg_backend = None):
         print ("Starting commander.")
         self.session=session
         if script is None:
@@ -67,7 +67,16 @@ class Commander:
         else:
             raise ValueError("Unknown backend.")
     
-        
+
+        if (awg_backend is not None):
+            if awg_backend == "lab7":
+                self.awg = AWGBackendLab7()                
+            else:
+                raise ValueError("Unknown AWG backend:", awg_backend)
+        else:
+            self.awg = None
+            
+
         if commanding_port is not None:
             self.s = socket.socket()
             self.s.bind((commanding_ip, commanding_port))
@@ -110,20 +119,33 @@ class Commander:
                         script_last = ctime
             if have_cmd:
                 err =0 
-                cmd , arg = command
-                if cmd == 0xE0:
-                    # wait command
-                    dt = arg/10
-                    self.clog.logt (f"Waiting for {dt}s.\n")
-                else:                
-                    print ("Sending command.")
-                    self.backend.send_command(cmd, arg) 
-                    self.clog.logt (f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
+                if type(command) == str:
+                    ## This is an out-of-band command
+                    cmdx = command.split()[0]
+                    if cmdx != "AWG":
+                        self.clog.logt ("Unknown string command:"+cmdx+"\n")
+                    else:
+                        print ("Received AWG command: ", command[4:])
+                        self.clog.logt ("Received AWG command: "+command[4:]+"\n")
+                        if self.awg is not None:
+                            self.awg.process_command(command[4:])
+                else:
+                    cmd , arg = command
+                    if cmd == 0xE0:
+                        # wait command
+                        dt = arg/10 if arg<65000 else 1e100 # 65000 is forever
+                        self.clog.logt (f"Waiting for {dt}s.\n")
+                    else:                
+                        print ("Sending command.")
+                        self.backend.send_command(cmd, arg) 
+                        self.clog.logt (f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
             
             if len(self.script)==0 and ctime-script_last>dt:
                 break   
 
         self.backend.stop()
+        if self.awg is not None:
+            self.awg.stop()
         print ('Exiting commander.')
 
 
