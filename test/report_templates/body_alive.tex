@@ -11,13 +11,23 @@
     Firmware Time                 & ++FW_Time++                                                  \\
     Heartbeat packets received    & ++heartbeat_received++                                       \\
     Hearbeat no missing packets   & \bcheckmark{++heartbeat_not_missing++}                       \\
-    Hearbeat $\Delta t$ min/max   & ++heartbeat_mindt++s // ++heartbeat_maxdt++s                 \\
+    Hearbeat $\Delta t$ min/max   & ++heartbeat_mindt++s / ++heartbeat_maxdt++s                 \\
     Raw ADC packets received      & ++wf_packets_received++ / 4 \quad \bcheckmark{++wf_right++}  \\
     Spectral packets received     & ++sp_packets_received++                                      \\
     Housekeeping packets received & ++hk_packets_received++ / 2  \quad \bcheckmark{++hk_right++} \\
     No errors flags raised in HK  & \bcheckmark{++no_errors++}                                   \\
     Timer runs                    & \bcheckmark{++timer_ok++}                                    \\
 \end{tabular}
+
+\section{Telemetry}
+
+\begin{tabular}{p{5cm}p{5cm}}
+    V1.0 line                  &  ++v1_0_min++ - ++v1_0_max++ V \bcheckmark {++v_1_0_ok++}    \\
+    V1.8 line                  &  ++v1_8_min++ - ++v1_8_max++ V \bcheckmark {++v_1_8_ok++}    \\
+    V2.5 line                  &  ++v2_5_min++ - ++v2_5_max++ V \bcheckmark {++v_2_5_ok++}    \\
+    FPGA temperature           &  ++t_fpga_min++ - ++t_fpga_max++ C \bcheckmark {++t_fpga_ok++}    \\
+\end{tabular}
+
 
 \section{Raw ADC}
 
@@ -44,20 +54,26 @@
 \end{tabular}
 
 
+
 \section{Housekeeping}
+
 ++hk_results++
 
 \section{Plots}
 
-Raw ADC:\\
+\subsubsection*{Telemetry:}
+\includegraphics*[width=\linewidth]{Figures/telemetry.pdf}
+
+
+\subsubsection*{Raw ADC:}
 \includegraphics*[width=\linewidth]{Figures/waveforms.pdf}
 
 
-Individual correlation products:\\
+\subsubsection*{Individual correlation products:}
 \includegraphics*[width=\linewidth]{Figures/spectra.pdf}
 
 \newpage
-Waterfall plots:\\
+\subsubsection*{Waterfall plots:}
 \includegraphics*[width=\linewidth]{Figures/spectra_wf.pdf}
 
 

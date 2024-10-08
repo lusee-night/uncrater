@@ -86,24 +86,19 @@ class HKAnalyzer:
 class Test_Alive(Test):
     
     name = "alive"
-    version = 0.1
+    version = 0.2
     description = """ Basic aliveness test of communication and spectral engine."""
     instructions = """ Do not need to connect anything."""
     default_options = {
         "waveform_type": "ramp",
-        "time" : 60
     } ## dictinary of options for the test
     options_help = {
         "waveform_type" : "Waveform to be generated. Can be 'ramp', 'zeros', 'ones', or 'input'",
-        "time" : "Total time to run the test. 1/3 will be spent taking spectra. Need to be larger than 15s."
     } ## dictionary of help for the options
 
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.time<15:
-            print ("Time raised to 15 seconds.")
-            self.time = 15
         if self.waveform_type == 'input':
             self.waveform_type = 'normal'
         if self.waveform_type not in ['ramp','zeros','ones','input']:
@@ -113,22 +108,19 @@ class Test_Alive(Test):
         S = Scripter()
         S.reset()
         ## this is the real wait
-        S.wait(1)
+        S.wait(3)
         S.house_keeping(0)
         S.ADC_special_mode(self.waveform_type)
-        S.cdi_wait_ticks(20)
-        for i in [0,1,2,3]:
-            S.waveform(i)
-            S.cdi_wait_ticks(10)
-        #S.waveform(5)
+        S.waveform(4)
+        S.wait(3)
         S.set_Navg(14,3)
         S.start()
-        S.cdi_wait_seconds(self.time-S.total_time-3)
+        S.wait(50)
         S.stop()
-        S.cdi_wait_seconds(2)
+        S.wait(3)
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(self.time+7)
+        S.wait(1)
         return S
     
     def analyze(self, C, uart, commander, figures_dir):
@@ -298,7 +290,29 @@ class Test_Alive(Test):
             self.results['sp_num'] = 0
             self.results['sp_weights_ok'] = 0
 
-        passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok)
+        time, V1_0, V1_8, V2_5, T_FPGA = self.plot_telemetry(C.spectra, figures_dir)
+        self.results['v1_0_min'] = f"{V1_0.min():3.2f}"
+        self.results['v1_0_max'] = f"{V1_0.max():3.2f}"
+        self.results['v1_8_min'] = f"{V1_8.min():3.2f}"
+        self.results['v1_8_max'] = f"{V1_8.max():3.2f}"
+        self.results['v2_5_min'] = f"{V2_5.min():3.2f}"
+        self.results['v2_5_max'] = f"{V2_5.max():3.2f}"
+        self.results['t_fpga_min'] = f"{T_FPGA.min():3.2f}"
+        self.results['t_fpga_max'] = f"{T_FPGA.max():3.2f}"
+        
+        
+        v_1_0_ok = (V1_0.min()>0.95) and (V1_0.max()<1.2)
+        v_1_8_ok = (V1_8.min()>1.75) and (V1_8.max()<2.0)
+        v_2_5_ok = (V2_5.min()>2.45) and (V2_5.max()<2.7)
+        t_fpga_ok = (T_FPGA.min()>-10) and (T_FPGA.max()<80)
+        
+        
+        self.results['v_1_0_ok'] = int(v_1_0_ok)
+        self.results['v_1_8_ok'] = int(v_1_0_ok)
+        self.results['v_2_5_ok'] = int(v_2_5_ok)
+        self.results['t_fpga_ok'] = int(t_fpga_ok)
+
+        passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok and v_1_0_ok and v_1_8_ok and v_2_5_ok and t_fpga_ok)
 
         fig_sp.tight_layout()
         fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))

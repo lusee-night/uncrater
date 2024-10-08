@@ -154,16 +154,16 @@ class Test_CPTShort(Test):
             for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):      
                 S.awg_tone(i,f,a)
                 S.set_bitslice(i,s)
-            S.wait(0.5)
+            S.wait(0.1)
             S.waveform(4)
-            S.wait(2)
+            S.wait(1.0)
             #for i in [0,1,2,3]:
             #    S.waveform(i)
             #    S.wait(1.0)
             S.start(no_flash=True)
-            S.wait(4.5)
+            S.wait(4.0)
             S.stop(no_flash=True)
-            S.wait(2.0)
+            #S.wait()
                 
         S.awg_close()
         return S
@@ -230,11 +230,12 @@ class Test_CPTShort(Test):
         power_zero = {}
 
         data_plots = True
+     
         print ("... collecting and perhaps plotting...")
         for cc, sp in enumerate(C.spectra):
             g, ch, freq_set, ampl_set, bitslic = self.todo_list[cc]
-    
-            
+ 
+
             if data_plots:
             
                 fig = plt.figure(figsize=(12, 8))
@@ -314,7 +315,14 @@ class Test_CPTShort(Test):
         pickle.dump(results_list, open(os.path.join(figures_dir, '../../data.pickle'), 'wb'))
         self.results['data_plots'] = "".join(figlist)
 
-        print ("... fitting straight lines...")
+        print ('... plotting telemetry ...')
+
+        self.plot_telemetry(C.spectra, figures_dir)
+
+        
+
+
+        print ("... fitting straight lines ...")
         fig, ax  = plt.subplots(len(self.freqs), 3, figsize=(12,1*len(self.freqs)))
         if len(self.freqs) == 1:
             ax = [ax]
@@ -332,14 +340,14 @@ class Test_CPTShort(Test):
             power_zero_fit[key] = offset
             conversion[key] = slope
             ax[fi][gain_ndx[g]].plot(power_in[key], power_out[key], 'o', color=clr[ch-1])
-            ax[fi][gain_ndx[g]].plot(power_in[key], np.array(power_in[key])*slope+offset,'x-', color=clr[ch-1])
+            ax[fi][gain_ndx[g]].plot(power_in[key], np.array(power_in[key])*slope+offset,'-', color=clr[ch-1])
             ax[fi][0].set_ylabel(f"{f} MHz")
             #ax[fi][c-1].set_yscale('log')
             #ax[fi][c-1].set_xscale('log')
         ax[0][0].set_title('L Gain')
         ax[0][1].set_title('M Gain')
         ax[0][2].set_title('H Gain')
-        fig.savefig(os.path.join(figures_dir, 'power_fits.png'))
+        fig.savefig(os.path.join(figures_dir, 'power_fits.pdf'))
 
         print ("... plotting gain / noise curves...")
         figlist_res = []
@@ -357,7 +365,6 @@ class Test_CPTShort(Test):
                 ffreq=np.arange(2048)*0.025
                 pzero = np.array(power_zero[(ch,g)])    
                 pzero = pzero.mean(axis=0)
-                print (np.sqrt(pzero_fit/conv))
                 self.freqs=np.array(self.freqs)
                 ax[0].plot(ffreq,np.sqrt(pzero/conv_fit(ffreq)) , 'b-')
                 ax[0].plot(self.freqs[self.freqs<51.2], np.sqrt(pzero_fit/conv)[self.freqs<51.2],'ro' )
@@ -373,16 +380,39 @@ class Test_CPTShort(Test):
                 fig.savefig(os.path.join(figures_dir, f'results_pk_{ch}_{g}.png'))
                 figlist_res.append("\n\includegraphics[width=1.0\\textwidth]{Figures/results_pk_"+f"{ch}_{g}"+".png}\n")
 
-
-
-
+#                for f in self.freqs:
+#                    key = (ch,g,f)
+#                    if key not in power_zero_fit:
+#                        power_zero_fit[key] = 0
+#                        conversion[key] = 0
+        # doign real space  analysis:
+        figlist_res_real = []
+        v2adu_emi = {'L':5.37E-02,	'M':8.07E-03,	'H':1.22E-03}
+        for g in self.gains:
+            fig, ax = plt.subplots(1,1, figsize=(12,6))
+            for ch in chlist:
+                rat = []
                 for f in self.freqs:
-                    key = (ch,g,f)
-                    if key not in power_zero_fit:
-                        power_zero_fit[key] = 0
-                        conversion[key] = 0
+                    ampl_max =0
+                    for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
+                        if ch_ == ch and _g == g and freq_set_[ch-1] == f and ampl_set_[ch-1]>ampl_max:
+                            ampl_max = ampl_set_[ch-1]
+                            cc_max = cc
+                    wform = waveforms[ch-1][cc_max]
+                    adu_range = wform.max()-wform.min()
+                    Vpp = ampl_max*1e-3*1e-2 #1e-3 for mV to V, 1e-2 for 40dB power attenuation
+                    rat.append(Vpp/adu_range*1e4)   
+                ax.plot(self.freqs, rat, label=f'Channel {ch}')
+                ax.axhline(v2adu_emi[g], color='r', linestyle='--')
+            ax.set_xlabel('Frequency [MHz]')
+            ax.set_ylabel('Amplitude @ 10kADU')
+            plt.title(f'V2ADU at gain {g}')
+            fig.savefig(os.path.join(figures_dir, f'v2adu_{g}.png'))
+            figlist_res_real.append("\n\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
+
 
         self.results['ps_results'] = "".join(figlist_res)   
+        self.results['real_results'] = "".join(figlist_res_real)
         self.results['result'] = int(passed)
 
 

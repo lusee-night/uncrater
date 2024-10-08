@@ -40,6 +40,9 @@ class Packet_Housekeep(PacketBase):
             adc=process_ADC_stats(self.ADC_stat)
             for k,v in adc.items():
                 setattr(self, k, v)
+            telemetry = process_telemetry(self.base.TVS_sensors);
+            for k,v in telemetry.items():
+                setattr(self, "telemetry_"+k, v)
             self.actual_gain = ["LMH"[i] for i in self.actual_gain]
 
 
