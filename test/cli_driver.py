@@ -47,7 +47,13 @@ def Name2Test(name):
     print (f"No test named {name}.")
     sys.exit(1)
 
+def default_user():
+    user = os.environ['USER'] if 'USER' in os.environ else 'anonymous'
+    if 'HOSTNAME' in os.environ:
+        user += ' @ '+os.environ['HOSTNAME']
+    return user
 def main():
+    
     parser = argparse.ArgumentParser(description='Driver for tests.')
     parser.add_argument('test_name', nargs='?', default=None, help='Name of the test')
     parser.add_argument('-w', '--workdir',  default='session_%test_name%', help='Output directory (as test_name.pdf)')
@@ -65,7 +71,7 @@ def main():
     parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
     parser.add_argument('-b', '--backend',  default='DCBEmu',       help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
     parser.add_argument('--awg',            default='None',         help='AWG backend to use. Possible values: None, lab7')
-    parser.add_argument('--operator',       default='anonymous',    help='Operator name (for the report)')
+    parser.add_argument('--operator',       default=default_user(), help='Operator name (for the report)')
     parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
 
     parser.add_argument("-S", "--server",	type=str,               help="server URL: defaults to http://localhost:8000/", default=default_server)

@@ -335,7 +335,11 @@ class Test_CPTShort(Test):
             c,g,f = key
             fi = self.freqs.index(f)
             #print (key, power_out[key], power_in[key])
-            slope, offset = np.polyfit(power_in[key],power_out[key],1, w = 1/np.sqrt(power_out[key]))
+            if np.any(np.array(power_out[key])==0):            
+                print (f"WARNING: Zero power detected for {key}. Skipping.")
+                offset, slope = 0,0
+            else:
+                slope, offset = np.polyfit(power_in[key],power_out[key],1, w = 1/np.sqrt(power_out[key]))
             #print (key, slope, offset, power_zero[key])
             power_zero_fit[key] = offset
             conversion[key] = slope
