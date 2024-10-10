@@ -70,7 +70,7 @@ def main():
 
     parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
     parser.add_argument('-b', '--backend',  default='DCBEmu',       help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
-    parser.add_argument('--awg',            default='None',         help='AWG backend to use. Possible values: None, lab7')
+    parser.add_argument('--awg',            default='None',         help='AWG backend to use. Possible values: None, lab7, ssl')
     parser.add_argument('--operator',       default=default_user(), help='Operator name (for the report)')
     parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
 

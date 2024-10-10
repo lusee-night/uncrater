@@ -151,6 +151,21 @@ class Scripter:
         high = ((mask & 0xFF00) >> 8)
         self.spectrometer_command(lc.RFS_SET_PRODMASK_LOW, low)
         self.spectrometer_command(lc.RFS_SET_PRODMASK_HIGH, high)
+
+
+    def set_agc_settings (self, ch, low=256, mult=8):
+        assert(low<1024)
+        assert(mult<16)
+        assert(ch<4)
+        if (low%16) != 0:
+            print ("Warning: low should be a multiple of 16. Rouding down")
+        low = low//16
+        arg1=(low<<2)+ch
+        arg2 = (mult<<2)+ch
+        print ("AGC settings", arg1, arg2)
+        self.spectrometer_command(lc.RFS_SET_GAIN_ANA_CFG_MIN, arg1)
+        self.spectrometer_command(lc.RFS_SET_GAIN_ANA_CFG_MULT, arg2)
+
         
     def set_Navg(self, Navg1, Navg2):
         val = Navg1 + (Navg2 << 4)

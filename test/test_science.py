@@ -17,47 +17,72 @@ from collections import defaultdict
 class Test_Science(Test):
     
     name = "science"
-    version = 0.1
+    version = 0.2
     description = """ Runs the spectrometer in close to the real science mode"""
-    instructions = """ Connect anything you want."""
+    instructions = """ Connect anything you want. For agc-test you need to connect a signal generator to the input and run with an --awg option. """
     default_options = {
         "preset": "simple",
         "time_mins" : 0
     } ## dictinary of options for the test
     options_help = {
-        "preset" : "Type of science preset. Currently only 'simple' is supported (direct mapping of ADC to channels with automatic gains).",
+        "preset" : "Type of science preset. Can be 'simple', 'agc-test', more to come.",
         "time_mins" : "Total time to run the test in minutes (up to 100), zero for forever."
     } ## dictionary of help for the options
 
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple']:
-            print ("Unknown preset. Using 'simple'")
-            self.preset = 'simple'
+        if self.preset not in ['simple', 'agc-test']:
+            raise ValueError ("Unknown preset.")
+            
         if self.time_mins>100:
-            print ("Use <100 mins or forever (0). Assuming 100.")
-            self.time_mins = 100
+            raise ValueError ("Use time <100 mins or forever (0).");
+            
 
 
         S = Scripter()
         S.reset()
         
-        S.wait(1)
-        S.set_Navg(14,6)
+        S.wait(3)
+        if self.preset in ['simple']:
+            S.set_Navg(14,6)
+        else:
+            S.set_Navg(14,3)
+            S.awg_init()
+            awg_amplitude = np.array([2000,1000,200,250])
+            awg_fact = np.array([0.03,-0.03,0.05,-0.05])
+            awg_frequecy = 5.0
+
         for ch in range(4):
             S.set_route (ch,ch,None)
         S.set_bitslice_auto(8)
         S.set_ana_gain('AAAA')
-        S.start()
         
+        if self.preset=='agc-test':
+            for i in range(4):
+                S.set_agc_settings(i,848,7)
+                pass
+            S.start()
+            for steps in range(300):                
+                awg_amplitude = awg_amplitude*(1+awg_fact)
+                awg_fact[(awg_amplitude>4000) | (awg_amplitude<5)] *= -1
+                for i in range(4):
+                    S.awg_tone(i, awg_frequecy, awg_amplitude[i] if awg_amplitude[i]>20 else 0)
+                    
 
-        if self.time_mins>0:
-            S.cdi_wait_seconds(self.time_mins*60)
+                S.wait(2)
+            S.awg_close()
             S.stop()
-            S.wait(self.time_mins*60+5)
         else:
-            S.wait(-1)
+            S.start()
+            if self.time_mins>0:
+                S.cdi_wait_seconds(self.time_mins*60)
+                S.stop()
+                S.wait(self.time_mins*60+5)
+            else:
+                S.wait(-1)
+
+
         return S
     
     def analyze(self, C, uart, commander, figures_dir):
@@ -125,6 +150,18 @@ class Test_Science(Test):
         sp_rejections = 0
 
 
+        # first check if the last one has all the spectra
+        # if not, we don't care, we just stopped acquisition in a unfortunate moment
+        last_one_ok=True
+        for c in range(16):
+            if c not in C.spectra[-1]:
+                last_one_ok = False
+                print (f"Product {c} missing in the last spectra, but we'll just chop that off.")
+        if not (last_one_ok):
+            C.spectra = C.spectra[:-1]
+
+
+        # however, stuff during the normal run should have all the spectra.
         for i,S in enumerate(C.spectra):                
             for c in range(16):
                 if c not in S:
@@ -148,7 +185,13 @@ class Test_Science(Test):
             adc_mean = get_meta("adc_mean",C)
             adc_rms = get_meta("adc_rms",C)
             actual_gain = get_meta("base.actual_gain",C)
-
+            actual_bitslice = get_meta("base.actual_bitslice",C)
+            d1 = get_meta("seq.gain_auto_min",C)
+            d2 = get_meta("seq.gain_auto_mult",C)
+            d3 = get_meta('seq.gain',C)
+            print (d1[0],d2[0],d3[0])
+            #stop()
+                          
 
 
             sp_rejections = np.sum(64-weights)
@@ -193,7 +236,7 @@ class Test_Science(Test):
             for i in range(4):
                 x= i//2
                 y= i%2
-                ax[x,y].plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='CH'+str(i))
+                ax[x,y].plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='CH'+str(i+1))
                 ax[x,y].plot(time, adc_min[:,i], ls = '-', lw=2, color =colors[i])
                 ax[x,y].plot(time, adc_mean[:,i],ls = '-', lw=2, color =colors[i])
                 ax[x,y].plot(time, adc_mean[:,i]+adc_rms[:,i],ls = ':', lw=2, color =colors[i])
@@ -211,7 +254,7 @@ class Test_Science(Test):
             fig,ax = plt.subplots()
             colors = 'rgby'
             for i in range(4):
-                ax.plot(time, adc_valid_count[:,i], ls = ':', lw=2, color =colors[i],label='VALID CH'+str(i))
+                ax.plot(time, adc_valid_count[:,i], ls = ':', lw=2, color =colors[i],label='VALID CH'+str(i+1))
             for i in range(4):
                 ax.plot(time, adc_invalid_count_max[:,i],ls = '-', lw=2, color =colors[i], label='INVALID MAX' if i==0 else None)
                 ax.plot(time, adc_invalid_count_min[:,i],ls = '--', lw=2, color =colors[i], label='INVALID MIN' if i==0 else None)
@@ -223,7 +266,7 @@ class Test_Science(Test):
 
             fig,ax = plt.subplots()
             for i in range(4):
-                ax.plot(time, actual_gain[:,i], ls = '-', lw=2, color =colors[i],label='GAIN CH'+str(i))
+                ax.plot(time, actual_gain[:,i], ls = '-', lw=2, color =colors[i],label='GAIN CH'+str(i+1))
             fig.legend()
             ax.set_xlabel('time [mins]')
             ax.set_ylabel('actual gain')
@@ -232,6 +275,18 @@ class Test_Science(Test):
             ax.set_ylim(-0.5,3.5)
             fig.tight_layout()
             fig.savefig(os.path.join(figures_dir,'actual_gain.pdf'))
+
+
+
+            fig,ax = plt.subplots()
+            for i in range(4):
+                ax.plot(time, actual_bitslice[:,i], ls = '-', lw=2, color =colors[i],label='BITSLICE CH'+str(i+1))
+            fig.legend()
+            ax.set_xlabel('time [mins]')
+            ax.set_ylabel('actual bitslice')
+            ax.set_ylim(0,32)
+            fig.tight_layout()
+            fig.savefig(os.path.join(figures_dir,'actual_bitslice.pdf'))
 
 
 

@@ -1,5 +1,5 @@
 from .PacketBase import PacketBase, pystruct
-from .utils import Time2Time, process_ADC_stats
+from .utils import Time2Time, process_ADC_stats, process_telemetry
 import struct
 import numpy as np
 
@@ -40,16 +40,20 @@ class Packet_Housekeep(PacketBase):
             adc=process_ADC_stats(self.ADC_stat)
             for k,v in adc.items():
                 setattr(self, k, v)
-            telemetry = process_telemetry(self.base.TVS_sensors);
+            self.actual_gain = ["LMH"[i] for i in self.actual_gain]
+
+        elif temp.housekeeping_type == 0:
+            self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))
+            self.time  = Time2Time(self.core_state.base.time_32, self.core_state.base.time_16)
+            adc=process_ADC_stats(self.base.ADC_stat)
+            for k,v in adc.items():
+                setattr(self, k, v)
+            telemetry = process_telemetry(self.base.TVS_sensors)
             for k,v in telemetry.items():
                 setattr(self, "telemetry_"+k, v)
             self.actual_gain = ["LMH"[i] for i in self.actual_gain]
 
 
-        elif temp.housekeeping_type == 0:
-            self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))
-            self.time  = Time2Time(self.core_state.base.time_32, self.core_state.base.time_16)
-    
         self._is_read=True
 
     def info (self):

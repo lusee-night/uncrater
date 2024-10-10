@@ -8,6 +8,7 @@ import shutil
 from DCBEmu import DCBEmulator
 from CoreloopBackend import CoreloopBackend
 from AWGBackendLab7 import AWGBackendLab7
+from AWGBackendSSL import AWGBackendSSL
 
 class clogger:
     def __init__(self, fname):
@@ -71,6 +72,8 @@ class Commander:
         if (awg_backend is not None):
             if awg_backend == "lab7":
                 self.awg = AWGBackendLab7()                
+            elif awg_backend == "ssl":
+                self.backend = AWGBackendSSL()
             else:
                 raise ValueError("Unknown AWG backend:", awg_backend)
         else:
@@ -139,6 +142,8 @@ class Commander:
                         print ("Sending command.")
                         self.backend.send_command(cmd, arg) 
                         self.clog.logt (f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n")
+                        #now wait
+                        dt = 0.01
             
             if len(self.script)==0 and ctime-script_last>dt:
                 break   
