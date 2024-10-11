@@ -17,11 +17,11 @@ except:
 import numpy as np
 
 class KS33500:
-    def __init__(self):
+    def __init__(self,ip_address):
         self.debug=False
         self.pro='cnt_33500.py'
         self.version='v0.1'
-        self.address='130.199.32.45'
+        self.address=ip_address
         self.freq=[]
         self.chs=[]
         self.amplitude=0.01
