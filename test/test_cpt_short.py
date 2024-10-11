@@ -248,22 +248,22 @@ class Test_CPTShort(Test):
                 ax_right = fig.add_subplot(gs[1, 1])
 
                 # Plot waveforms in the large plot
-                for ch in range(4):
-                    ax_large.plot(waveforms[ch][cc], label=f'Channel {ch+1}')
+                for ich in range(4):
+                    ax_large.plot(waveforms[ich][cc], label=f'Channel {ich+1}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 
                 # Plot spectra in the left plot (linear scale)
-                for ch in range(4):
-                    sp[ch]._read()    
-                    ax_left.plot(sp_freq, sp[ch].data, label=f'Channel {ch+1}')
+                for ich in range(4):
+                    sp[ich]._read()    
+                    ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
                 ax_left.set_title('Spectra (Linear Scale)')
                 ax_left.set_xlabel('Frequency')
                 ax_left.set_ylabel('Amplitude')
 
                 # Plot spectra in the right plot (logarithmic scale)
-                for ch in range(4):
-                    ax_right.plot(sp_freq, sp[ch].data, label=f'Channel {ch+1}')
+                for ich in range(4):
+                    ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
                 ax_right.set_title('Spectra (Logarithmic Scale)')
                 ax_right.set_xlabel('Frequency')
                 ax_right.set_ylabel('Amplitude')
@@ -306,7 +306,6 @@ class Test_CPTShort(Test):
                 ## we have *1000 to get from mV to V, *1e-4 to account for 40dB attenuation, *(1e9)**2 to get from V^2 to nV^2, /25e3 to get from 25kHz bandwidth to get to nV^2/Hz
                 power_in[key].append((ampl_set[ch-1]/1000)**2*1e-4 *(1e9)**2 /25e3)  
                 #print ('here',ch, ampl_set, power_in[key][-1], power_out[key][-1])
-
                 if ampl_set[ch-1] == 0:
                     if (ch,g) not in power_zero:
                         power_zero[(ch,g)] = []
