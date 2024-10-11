@@ -45,13 +45,12 @@ class Packet_Housekeep(PacketBase):
         elif temp.housekeeping_type == 0:
             self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))
             self.time  = Time2Time(self.core_state.base.time_32, self.core_state.base.time_16)
-            adc=process_ADC_stats(self.base.ADC_stat)
+            adc=process_ADC_stats(self.core_state.base.ADC_stat)
             for k,v in adc.items():
                 setattr(self, k, v)
-            telemetry = process_telemetry(self.base.TVS_sensors)
+            telemetry = process_telemetry(self.core_state.base.TVS_sensors)
             for k,v in telemetry.items():
                 setattr(self, "telemetry_"+k, v)
-            self.actual_gain = ["LMH"[i] for i in self.actual_gain]
 
 
         self._is_read=True

@@ -60,10 +60,11 @@ class HKAnalyzer:
                 self._analyze_attr(slot, obj, full_attr_name)
         # top level Packet class
         elif obj.__class__.__module__ != 'builtins':
-            for attr_name in vars(obj):
-                if attr_name[0] == '_':
-                    continue
-                self._analyze_attr(attr_name, obj, full_attr_name)
+            if "__dict__" in dir(obj):
+                for attr_name in vars(obj):
+                    if attr_name[0] == '_':
+                        continue
+                    self._analyze_attr(attr_name, obj, full_attr_name)
 
     def get_latex(self):
         self._analyze_hk(self.start)

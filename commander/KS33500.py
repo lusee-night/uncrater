@@ -1,3 +1,14 @@
+# Based on driver by Emi Taumuar
+# E. Tamura 2024.09.27-
+# 
+# ver0.0 initial release
+# ver0.1 Emi Tamura (2024.10.02) modified to be simple
+#        one frequency and one amplitude can be set
+# ver0.2 Emi Tamura (2024.10.07) debug
+# 
+
+
+
 try:
     import pyvisa
 except:
