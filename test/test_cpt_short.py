@@ -27,7 +27,7 @@ class Test_CPTShort(Test):
     default_options = {
         'channels': '1234',
         'gains': 'LMH',
-        'freqs': '0.01 0.1 0.5 1 5 10 20 30 40 50 60 75',
+        'freqs': '0.05 0.1 0.5 1 5 10 20 30 40 50 60 75 95',
         'amplitudes': '280 200 140 0',
         'bitslices': '25 23 21 16',
         'amplitude_fact': '5'
