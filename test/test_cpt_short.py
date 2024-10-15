@@ -228,10 +228,11 @@ class Test_CPTShort(Test):
         power_out = {}
         power_in = {}
         power_zero = {}
-
-        data_plots = True
-     
-        print ("... collecting and perhaps plotting...")
+        data_plots = int(self.analysis_options['data_plots']) if 'data_plots' in self.analysis_options else True
+        if data_plots:
+            print ("... collecting and plotting (to speed up run with -p data_plots=False)...")
+        else:
+            print ("... collecting...")
         for cc, sp in enumerate(C.spectra):
             g, ch, freq_set, ampl_set, bitslic = self.todo_list[cc]
  
@@ -338,7 +339,13 @@ class Test_CPTShort(Test):
                 print (f"WARNING: Zero power detected for {key}. Skipping.")
                 offset, slope = 0,0
             else:
-                slope, offset = np.polyfit(power_in[key],power_out[key],1, w = 1/np.sqrt(power_out[key]))
+                try:
+                    slope, offset = np.polyfit(power_in[key],power_out[key],1, w = 1/np.sqrt(power_out[key]))
+                except:
+                    print (f"WARNING: Error in fitting {key}. Skipping.")
+                    print ('In power', power_in[key])
+                    print ('Out power', power_out[key])
+                    offset, slope = 0,0
             #print (key, slope, offset, power_zero[key])
             power_zero_fit[key] = offset
             conversion[key] = slope

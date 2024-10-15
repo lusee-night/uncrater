@@ -52,6 +52,42 @@ def default_user():
     if 'HOSTNAME' in os.environ:
         user += ' @ '+os.environ['HOSTNAME']
     return user
+
+def try_to_type(val):
+    if val=="True":
+        return True
+    if val=="False":
+        return False
+    try:
+        return int(val)
+    except:
+        pass
+    try:
+        return float(val)
+    except:
+        pass
+    return val
+
+def opt2dict (optin, default_options = None):
+    options = default_options if default_options is not None else {}
+    for opt in optin.strip().split(','):
+        if len(opt)==0:
+            continue
+        try:
+            key, val = opt.split('=')
+            key = key.strip()
+            val = val.strip()
+        except:
+            print ("Bad options format: ",opt)
+            sys.exit(1)
+        if (default_options is not None) and  (key in default_options):
+            options[key] = type(t.default_options[key])(val.strip())
+        else:
+            options[key] = try_to_type(val)
+    return options
+
+
+
 def main():
     
     parser = argparse.ArgumentParser(description='Driver for tests.')
@@ -66,11 +102,12 @@ def main():
 
     parser.add_argument('-I', '--inspect',  action='store_true',    help='Inspect data before sending DataView viewer')
 
-    parser.add_argument('-o', '--options',  default='',             help='Test options, option=value, comma or space separated.')
+    parser.add_argument('-o', '--options',  default='',             help='Test options, option=value, comma separated.')
+    parser.add_argument('-p', '--analysis-options',  default='',    help='Analysis options, option=value, comma separated.')
 
     parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
     parser.add_argument('-b', '--backend',  default='DCBEmu',       help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
-    parser.add_argument('--awg',            default='None',         help='AWG backend to use. Possible values: None, lab7, ssl')
+    parser.add_argument('-g', '--awg',      default='None',         help='AWG backend to use. Possible values: None, lab7, ssl')
     parser.add_argument('--operator',       default=default_user(), help='Operator name (for the report)')
     parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
 
@@ -108,22 +145,9 @@ def main():
             sys.exit(1)
         t = Name2Test(args.test_name)
         print ("Running test: ",t.name) 
-        options = t.default_options
-        for opt in args.options.strip().split(','):
-            if len(opt)==0:
-                continue
-            try:
-                key, val = opt.split('=')
-                key = key.strip()
-                val = val.strip()
-            except:
-                print ("Bad options format: ",opt)
-                sys.exit(1)
-            
-            options[key] = type(t.default_options[key])(val.strip())
-            #except:
-            #    print ("Error setting option: ",opt, "with value: ",val)
-            #    sys.exit(1)
+
+        options = opt2dict(args.options, t.default_options)
+        
         print ("Options set to: ")
         for key, value in options.items():
             print (f"   {key:18} : {value}")
@@ -155,7 +179,8 @@ def main():
         with open(options_file, 'r') as file:
             options = yaml.safe_load(file)
         # Create an instance of the test with the loaded options
-        t = T(options)
+        analysis_options = opt2dict(args.analysis_options)
+        t = T(options, analysis_options)
         C = uc.Collection(os.path.join(workdir,'cdi_output'))
         def read_and_fix(fn, max_lines = 200, max_line_length = 2000):
             try:

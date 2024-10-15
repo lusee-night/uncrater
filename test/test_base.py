@@ -29,9 +29,10 @@ class Test:
     options_help = {} ## dictionary of help for the options
 
 
-    def __init__(self,options):
+    def __init__(self,options, analysis_options = None):
         
         self.options = self.default_options
+        self.analysis_options = analysis_options if analysis_options is not None else {}
         self.options.update(options)
 
         # first check options sanity internally

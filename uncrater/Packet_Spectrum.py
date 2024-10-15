@@ -92,7 +92,13 @@ class Packet_Spectrum(PacketBase):
             self.product = self.appid - id.AppID_SpectraLow
         super()._read()
         self.unique_packet_id, self.crc = struct.unpack('<II', self._blob[:8])
-
+        if self.product<4: # auto always positive
+            fmt = 'I' 
+            ptype = np.uint32
+        else:
+            fmt = 'i'
+            ptype = np.int32
+            
 
         if not hasattr(self, 'meta'):
             print ("Loading packet without metadata!")
@@ -114,7 +120,8 @@ class Packet_Spectrum(PacketBase):
             print ("WARNING CRC mismatch!!!!!")        
             try:
                 Ndata= len(self._blob[8:])//4
-                data = struct.unpack(f'<{Ndata}i', self._blob[8:])
+
+                data = struct.unpack(f'<{Ndata}{fmt}', self._blob[8:])
                 print (data,Ndata)
                 
             except:
@@ -123,13 +130,13 @@ class Packet_Spectrum(PacketBase):
         if self.meta.format==0:
             Ndata= len(self._blob[8:])//4
             try:
-                data = struct.unpack(f'<{Ndata}i', self._blob[8:])
+                data = struct.unpack(f'<{Ndata}{fmt}', self._blob[8:])
             except:
                 self.error_data_read=True
                 data = np.zeros(Ndata)
         else:
             raise NotImplementedError("Only format 0 is supported")
-        self.data = np.array(data, dtype=np.int32).astype(np.float32)
+        self.data = np.array(data, dtype=ptype).astype(np.float32)
         
         self._is_read = True
 
