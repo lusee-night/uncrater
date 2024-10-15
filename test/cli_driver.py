@@ -175,6 +175,11 @@ def main():
         T= Name2Test(args.test_name)
         workdir = args.workdir.replace('%test_name%',T.name)
         # Load options from YAML file
+        runtime = int(open(f"{workdir}/runtime").read())
+        if runtime>60:
+            runtime = f"{runtime//60}m {runtime%60}s"
+        else:
+            runtime = f"{runtime}s"
         options_file = f"{workdir}/options.yaml"
         with open(options_file, 'r') as file:
             options = yaml.safe_load(file)
@@ -206,7 +211,7 @@ def main():
         t.analyze(C, uart_log, commander_log, fig_dir)
         print ("Writing report...")
         
-        add_keys = {'operator':args.operator, 'comments':args.comments,'uart_log':uart_log, 'commander_log':commander_log}
+        add_keys = {'operator':args.operator, 'comments':args.comments,'uart_log':uart_log, 'commander_log':commander_log, 'runtime':runtime}
         t.make_report(report_dir,os.path.join(workdir,"report.pdf"), add_keys, verbose=args.verbose)
         print ("Test result:", "PASSED" if t.results['result'] else "FAILED")
         print ("Done.")

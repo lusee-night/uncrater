@@ -254,7 +254,8 @@ class Test_CPTShort(Test):
 
                 # Plot waveforms in the large plot
                 for ich in range(4):
-                    ax_large.plot(waveforms[ich][cc], label=f'Channel {ich+1}')
+                    ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384)                    
+                    ax_large.plot(waveforms[ich][cc][:ndxmax], label=f'Channel {ich+1}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 

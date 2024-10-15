@@ -20,9 +20,12 @@ class clogger:
         self.f.write(msg)
         self.f.flush()
 
+    def runtime(self):
+        return int(time.time()) - self.stime
+
     def logt (self,msg):
-        dt = int(time.time()) - self.stime
-        self.log(f"[ {dt}s ]: {msg}")
+        
+        self.log(f"[ {self.runtime()}s ]: {msg}")
         
     def close(self):
         self.f.close()
@@ -70,8 +73,12 @@ class Commander:
     
 
         if (awg_backend is not None):
-            if awg_backend == "lab7":
-                self.awg = AWGBackendLab7()                
+            if awg_backend[:4] == "lab7":
+                if "_ch" in awg_backend:
+                    ch = int(awg_backend.split("_ch")[1])
+                else:
+                    ch = 3                    
+                self.awg = AWGBackendLab7(channel = ch)                
             elif awg_backend == "ssl":
                 self.backend = AWGBackendSSL()
             else:
@@ -151,6 +158,8 @@ class Commander:
         self.backend.stop()
         if self.awg is not None:
             self.awg.stop()
+        print (f"Total test time: {self.clog.runtime()}s")
+        open(os.path.join(self.session, "runtime"), "w").write(f"{self.clog.runtime()}\n")
         print ('Exiting commander.')
 
 
