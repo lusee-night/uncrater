@@ -27,9 +27,9 @@ class Test_CPTShort(Test):
     default_options = {
         'channels': '1234',
         'gains': 'LMH',
-        'freqs': '0.1 1 5 10 15 20 30 40 50 60 75',
-        'amplitudes': '400 280 200 140 0',
-        'bitslices': '27 25 23 21 16',
+        'freqs': '0.01 0.1 0.5 1 5 10 20 30 40 50 60 75',
+        'amplitudes': '280 200 140 0',
+        'bitslices': '25 23 21 16',
         'amplitude_fact': '5'
     } ## dictinary of options for the test
     options_help = {
@@ -229,6 +229,10 @@ class Test_CPTShort(Test):
         power_in = {}
         power_zero = {}
         data_plots = int(self.analysis_options['data_plots']) if 'data_plots' in self.analysis_options else True
+        attenuation = int(self.analysis_options['attenuation']) if 'attenuation' in self.analysis_options else 40
+        attenuation_fact = 10**(-attenuation/20)
+        print (f"Attenuation {attenuation}dB, Afact={attenuation_fact}, use -p attenuation=X to change to X dB.")
+
         if data_plots:
             print ("... collecting and plotting (to speed up run with -p data_plots=False)...")
         else:
@@ -305,7 +309,7 @@ class Test_CPTShort(Test):
 
                 power_out[key].append(sppow[bin])
                 ## we have *1000 to get from mV to V, *1e-4 to account for 40dB attenuation, *(1e9)**2 to get from V^2 to nV^2, /25e3 to get from 25kHz bandwidth to get to nV^2/Hz
-                power_in[key].append((ampl_set[ch-1]/1000)**2*1e-4 *(1e9)**2 /25e3)  
+                power_in[key].append((ampl_set[ch-1]/1000)**2*(attenuation_fact**2) *(1e9)**2 /25e3)  
                 #print ('here',ch, ampl_set, power_in[key][-1], power_out[key][-1])
                 if ampl_set[ch-1] == 0:
                     if (ch,g) not in power_zero:
@@ -410,7 +414,7 @@ class Test_CPTShort(Test):
                             cc_max = cc
                     wform = waveforms[ch-1][cc_max]
                     adu_range = wform.max()-wform.min()
-                    Vpp = ampl_max*1e-3*1e-2 #1e-3 for mV to V, 1e-2 for 40dB power attenuation
+                    Vpp = ampl_max*1e-3*attenuation_fact #1e-3 for mV to V, 1e-2 for 40dB power attenuation
                     rat.append(Vpp/adu_range*1e4)   
                 ax.plot(self.freqs, rat, label=f'Channel {ch}')
                 ax.axhline(v2adu_emi[g], color='r', linestyle='--')

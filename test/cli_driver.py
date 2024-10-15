@@ -81,7 +81,7 @@ def opt2dict (optin, default_options = None):
             print ("Bad options format: ",opt)
             sys.exit(1)
         if (default_options is not None) and  (key in default_options):
-            options[key] = type(t.default_options[key])(val.strip())
+            options[key] = type(default_options[key])(val.strip())
         else:
             options[key] = try_to_type(val)
     return options
