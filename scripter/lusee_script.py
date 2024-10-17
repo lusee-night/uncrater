@@ -31,7 +31,7 @@ class Scripter:
     def spectrometer_command(self,cmd,arg):
         assert(arg<256)
         assert(cmd<256)
-        self.command(0x10,(cmd<<8)+arg)     
+        self.command(lc.RFS_SETTINGS,(cmd<<8)+arg)     
 
     def wait (self, dt):
         """ Wait for dt in seconds, rounted to 100ms. If negative, wait forever"""
@@ -56,7 +56,7 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_WAIT_SECS,int(dt))
         
 
-    def reset(self, stored_state = 'ignore'):
+    def reset(self, stored_state = 'ignore', special = True):
         if stored_state == 'load':
             arg_low = 0
         elif stored_state == 'ignore':
@@ -65,8 +65,11 @@ class Scripter:
             arg_low = 2
         else:
             raise ValueError("Unknown stored_state")
-        self.spectrometer_command(lc.RFS_SET_RESET,arg_low)
+        master = lc.RFS_SPECIAL if special else lc.RFS_SETTINGS
+        self.command(master, (lc.RFS_SET_RESET<<8)+arg_low) ## special CO
         
+
+
 
     def ADC_special_mode (self, mode='normal'):
         print (mode)

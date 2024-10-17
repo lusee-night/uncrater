@@ -113,15 +113,15 @@ class Test_Alive(Test):
         S.house_keeping(0)
         S.ADC_special_mode(self.waveform_type)
         S.waveform(4)
-        S.wait(3)
+        S.cdi_wait_seconds(3)
         S.set_Navg(14,3)
         S.start()
-        S.wait(50)
+        S.cdi_wait_seconds(50)
         S.stop()
-        S.wait(3)
+        S.cdi_wait_seconds(3)
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(1)
+        S.wait(65)
         return S
     
     def analyze(self, C, uart, commander, figures_dir):
