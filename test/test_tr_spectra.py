@@ -51,7 +51,7 @@ class Test_TRSpectra(Test):
         scripter.start()
         # set Navg_1 and Navg_2 to 4 (2^2 -- we send shifts)
         # to produces lots of spectra
-        scripter.set_Navg(3, 3)
+        scripter.set_Navg(Navg1=14, Navg2=3)
         scripter.set_tr_start_lsb(self.tr_start)
         scripter.set_tr_stop_lsb(self.tr_stop)
         scripter.set_tr_avg_shift(self.tr_avg_shift)
@@ -71,44 +71,7 @@ class Test_TRSpectra(Test):
 
         C.cut_to_hello()
 
-        if len(C) > 0 and type(C.cont[0]) == uc.Packet_Hello:
-            H = C.cont[0]
-            H._read()
-            self.results['hello'] = 1
-
-            def h2v(h):
-                v = f"{h:#0{6}x}"
-                v = v[2:4] + '.' + v[4:6]
-                return v
-
-            def h2vs(h):
-                v = f"{h:#0{10}x}"
-                v = v[4:6] + '.' + v[6:8] + ' r' + v[8:10]
-                return v
-
-            def h2d(h):
-                v = f"{h:#0{10}x}"
-                v = v[6:8] + '/' + v[8:10] + '/' + v[2:6]
-
-                return v
-
-            def h2t(h):
-                v = f"{h:#0{10}x}"
-                v = v[4:6] + ':' + v[6:8] + '.' + v[8:10]
-                return v
-
-            self.results['SW_version'] = h2vs(H.SW_version)
-            self.results['FW_version'] = h2v(H.FW_Version)
-            self.results['FW_ID'] = f"0x{H.FW_ID:#0{4}}"
-            self.results['FW_Date'] = h2d(C.cont[0].FW_Date)
-            self.results['FW_Time'] = h2t(C.cont[0].FW_Time)
-        else:
-            self.results['hello'] = 0
-            self.results['SW_version'] = "N/A"
-            self.results['FW_version'] = "N/A"
-            self.results['FW_ID'] = "N/A"
-            self.results['FW_Date'] = "N/A"
-            self.results['FW_Time'] = "N/A"
+        self.get_versions(C)
 
         hb_num, sp_num = 0, 0
         hb_tmin, hb_tmax, last_hb, last_hbtime = 0, 0, None, None
