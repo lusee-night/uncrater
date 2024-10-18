@@ -42,6 +42,6 @@ jobs:
       run: echo "CORELOOP_DIR=$GITHUB_WORKSPACE/coreloop" >> $GITHUB_ENV
 
     - name: Run Python tests with pytest
-      run: pytest test/standalone/test_encode.py
+      run: pytest test/standalone/
       env:
         CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
