@@ -2,9 +2,7 @@ import os
 import shutil
 import sys
 import numpy as np
-import scipy as sp
 import typing
-from icecream import ic
 
 sys.path.append('.')
 sys.path.append('./scripter/')
@@ -17,9 +15,6 @@ from test_base import Test
 from lusee_script import Scripter
 from commander import Commander
 import uncrater as uc
-from collections import defaultdict
-
-from pycoreloop import appId
 
 
 
