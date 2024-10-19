@@ -34,10 +34,12 @@ class Collection:
 
             if appid_is_spectrum(appid):
                 packet.set_meta(meta_packet)
+                packet.read()
                 self.spectra[-1][appid & 0x0F] = packet
 
             if appid_is_tr_spectrum(appid):
                 packet.set_meta(meta_packet)
+                packet.read()
                 self.tr_spectra[-1][appid & 0x0F] = packet
 
             self.cont.append(packet)
