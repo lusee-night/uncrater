@@ -5,6 +5,7 @@ import os, sys
 import struct
 import numpy as np
 import binascii
+from typing import Tuple
 
 if os.environ.get("CORELOOP_DIR") is not None:
     sys.path.append(os.environ.get("CORELOOP_DIR"))
@@ -78,6 +79,12 @@ class Packet_SpectrumBase(PacketBase):
     def parse_spectra(self):
         raise RuntimeError("Packet_SpectrumBase is abstract, do not instantiate")
 
+    def get_fmt_and_ptype(self) -> Tuple[str, np.number]:
+        if self.product < 4:
+            return "I", np.uint32
+        else:
+            return "i", np.int32
+
     def check_crc(self):
         calculated_crc = binascii.crc32(self._blob[8:]) & 0xFFFFFFFF
         self.error_crc_mismatch = not (self.crc == calculated_crc)
@@ -86,10 +93,8 @@ class Packet_SpectrumBase(PacketBase):
             print("WARNING CRC mismatch!!!!!")
             try:
                 Ndata = len(self._blob[8:]) // 4
-
-                data = struct.unpack(f"<{Ndata}{fmt}", self._blob[8:])
+                data = struct.unpack(f"<{Ndata}{self.get_fmt_and_ptype()[0]}", self._blob[8:])
                 print(data, Ndata)
-
             except:
                 pass
 
@@ -162,7 +167,7 @@ class Packet_Spectrum(Packet_SpectrumBase):
             print("Spurious data, trimming!!!")
             self._blob = self._blob[: 8 + 2048 * 4]
 
-        fmt, ptype = ("I", np.uint32) if self.product < 4 else "i", np.int32
+        fmt, ptype = self.get_fmt_and_ptype()
 
         if self.meta.format == 0:
             Ndata = len(self._blob[8:]) // 4
@@ -173,7 +178,7 @@ class Packet_Spectrum(Packet_SpectrumBase):
                 data = np.zeros(Ndata)
         else:
             raise NotImplementedError("Only format 0 is supported")
-        self.data = np.array(data, dtype=ptype)
+        self.data = np.array(data, dtype=ptype).astype(np.float64)
 
 
 class Packet_TR_Spectrum(Packet_SpectrumBase):
