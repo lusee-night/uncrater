@@ -106,8 +106,8 @@ def main():
     parser.add_argument('-p', '--analysis-options',  default='',    help='Analysis options, option=value, comma separated.')
 
     parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
-    parser.add_argument('-b', '--backend',  default='DCBEmu',       help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
-    parser.add_argument('-g', '--awg',      default='None',         help='AWG backend to use. Possible values: None, lab7, ssl')
+    parser.add_argument('-b', '--backend',  default='DCB',       help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
+    parser.add_argument('-g', '--awg',      default='ssl',         help='AWG backend to use. Possible values: None, lab7, ssl')
     parser.add_argument('--operator',       default=default_user(), help='Operator name (for the report)')
     parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
 
@@ -159,6 +159,7 @@ def main():
         ## this will also generated the work dir
         print ("Starting commander...")        
         awg = None if args.awg == 'None' else args.awg
+        print(f"Backend is {args.backend}")
         C = Commander(session = workdir, script=S.script, backend=args.backend, awg_backend = awg)
         # Save options to YAML file
         options_file = f"{workdir}/options.yaml"

@@ -141,7 +141,7 @@ class Test_CPTShort(Test):
         S.awg_init()
 
         S.reset()
-        S.wait(3)
+        S.wait(10)
         S.set_Navg(14,2)
         S.select_products('auto_only')
         old_gain = None
@@ -149,21 +149,49 @@ class Test_CPTShort(Test):
             if gain != old_gain:
                 gain_set = f'{gain}{gain}{gain}{gain}'
                 S.set_ana_gain(gain_set)
-                S.wait(0.2) # settle
+                S.wait(10) # settle
                 old_gain = gain
-            for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):      
+            # for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
+            #     S.awg_tone(i,f,a)
+            #     S.set_bitslice(i,s)
+
+            # for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
+            #     S.awg_tone(i,f,a)
+            #     S.set_bitslice(i,s)
+            #     S.wait(1)
+            #     for i in range(4):
+            #         S.waveform(i)
+            #         S.wait(1)
+            #     #for i in [0,1,2,3]:
+            #     #    S.waveform(i)
+            #     #    S.wait(1.0)
+            #     #S.start(no_flash=True)
+            #     #S.wait(10)
+            #     #S.stop(no_flash=True)
+
+            for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
                 S.awg_tone(i,f,a)
                 S.set_bitslice(i,s)
-            S.wait(0.1)
-            S.waveform(4)
-            S.wait(1.0)
+                S.wait(1)
+                S.start(no_flash=True)
+                S.wait(4.)
+                S.stop(no_flash=True)
+                S.wait(10)
+            #S.wait()
+
+            #S.wait()
+            S.wait(10)
+            S.waveform(0)
+            S.wait(10)
             #for i in [0,1,2,3]:
             #    S.waveform(i)
             #    S.wait(1.0)
-            S.start(no_flash=True)
-            S.wait(4.0)
-            S.stop(no_flash=True)
+            # S.start(no_flash=True)
+            # S.wait(10)
+            # S.stop(no_flash=True)
             #S.wait()
+
+
                 
         S.awg_close()
         return S

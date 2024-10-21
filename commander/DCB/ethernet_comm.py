@@ -24,13 +24,13 @@ class LuSEE_ETHERNET:
         self.PORT_DATA = 32004
         self.BUFFER_SIZE = 9014
 
-        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_address = (self.TCP_IP, self.PORT_TCP)
-        self.tcp_socket.connect(server_address)
-
         self.TCP_IP = 'localhost'
         self.PORT_TCP = 5004
         self.ssl_delimiter = 0xEB90
+
+        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (self.TCP_IP, self.PORT_TCP)
+        self.tcp_socket.connect(server_address)
 
         self.KEY1 = 0xDEAD
         self.KEY2 = 0xBEEF
@@ -64,15 +64,6 @@ class LuSEE_ETHERNET:
         self.BL_JUMP = 0x1
         self.BL_PROGRAM_CHECK = 0x2
         self.BL_PROGRAM_VERIFY = 0x3
-        self.sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        self.sock_read_hk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock_read_hk.bind((self.PC_IP, self.PORT_HK))
-
-        self.sock_read_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock_read_data.bind((self.PC_IP, self.PORT_DATA))
-
-        self.data_ports = [(self.sock_read_hk,self.PORT_HK), (self.sock_read_data,self.PORT_DATA)]
 
         self.packet_count = 0
         
@@ -156,7 +147,7 @@ class LuSEE_ETHERNET:
         dataValMSB = ((dataVal >> 16) & 0xFF)
         dataValLSB = dataVal & 0xFFFF
         WRITE_MESSAGE = struct.pack('>BH', dataValMSB, dataValLSB)
-        self.logger.debug(f"Writing {WRITE_MESSAGE}")
+        print(f"Writing {WRITE_MESSAGE}")
 
         #sock_write = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -174,7 +165,7 @@ class LuSEE_ETHERNET:
             # data = sock_write.recv(1024)
             # print('Received:', data.decode())
         except:
-            print(f"Python Ethernet --> Couldn't write on {hex(reg)}, trying again...")
+            print(f"Python Ethernet --> Couldn't write {hex(data)}, trying again...")
 
     def cdi_command(self,cmd,arg):
         self.write_cdi_reg((cmd<<16)+arg)
@@ -544,13 +535,18 @@ class LuSEE_ETHERNET:
         while not self.etherStop:
             data = self.tcp_socket.recv(self.BUFFER_SIZE)
             print(f"Received data from TCP, it's {data}")
+            if (len(data) < 10):
+                print(f"We got a small packet of {packet}. Throw it back like a fish")
 
             unpack_buffer = int((len(data))/2)
             formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
+            for i in formatted_data:
+                print(hex(i))
             if (formatted_data[0] != self.ssl_delimiter):
                 print(f"The first 2 bytes of the packet were {hex(formatted_data[0])}, not {hex(self.ssl_delimiter)}!")
                 sys.exit("Delimiter error")
             header_dict = self.organize_header(formatted_data[1:])
+            print(header_dict)
             cdi_packet_size = int(header_dict['ccsds_packetlen'], 16)
             if (int(header_dict["ccsds_appid"], 16) == 0x200):
                 extra_packets = 12
@@ -565,13 +561,12 @@ class LuSEE_ETHERNET:
                     except socket.timeout:
                         print(f"Socket timed out trying to get a length of {cdi_packet_size+extra_packets}. Returning packet with a current length of {len(data)}")
                         break
-                    data += packet
                 print(f"CDI packet with size of {cdi_packet_size+extra_packets} is now matched by data with {len(data)}")
                 self.tcp_socket.settimeout(None)
 
             print(f"Incoming APID is {header_dict['ccsds_appid']}")
             print(f"First few bytes are {data[:4]} and last few bytes are {data[-4:]}")
-            self.save_data(data[4:])
+            self.save_data(data[6:])
 
             #Anze's stuff
             # data, addr = sock_read.recvfrom(5000)  # arg is buffer size
