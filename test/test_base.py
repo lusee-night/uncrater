@@ -155,7 +155,7 @@ class Test:
             self.results["FW_Time"] = h2t(C.cont[0].FW_Time)
             if H.SW_version != self.coreloop_version():
                 print(
-                    "WARNING!!! SW version in pycoreloop ({self.coreloop_version():x}) does not match SW version in coreloop ({H.SW_version:x})"
+                    f"WARNING!!! SW version in pycoreloop ({self.coreloop_version():x}) does not match SW version in coreloop ({H.SW_version:x})"
                 )
         else:
             self.results["hello"] = 0
