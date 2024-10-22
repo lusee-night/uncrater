@@ -9,8 +9,8 @@ class AWGBackendSSL(AWGBackendBase):
     def __init__ (self):
         if KS.pyvisa is None:
             raise ValueError("pyvisa not installed, can't use AWG")
-        ip_adress_12 = '130.199.32.45'
-        ip_adress_34 = '130.199.32.46'
+        ip_adress_12 = '192.168.0.132'
+        ip_adress_34 = '192.168.0.133'
         
         self.ks1, self.ks2 = KS.KS33500(ip_adress_12),KS.KS33500(ip_adress_34)
         
@@ -29,11 +29,10 @@ class AWGBackendSSL(AWGBackendBase):
             kch = ch-2
         else:
             return
-
         if amplitude > 0:
             # I think this should work, otherwise multilpy by 1e6
-            ks.set_frequency(kch+1, frequency+" mhz")
-            ks.set_amplitude(kch+1, amplitude+" mvpp")
+            ks.set_frequency(kch+1, str(frequency)+" mhz")
+            ks.set_amplitude(kch+1, str(amplitude)+" mvpp")
             ks.output_on(kch+1)
         else:
             ks.output_off(kch+1)

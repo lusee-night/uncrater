@@ -105,80 +105,20 @@ def opt2dict(optin, default_options=None):
 def main():
 
     parser = argparse.ArgumentParser(description="Driver for tests.")
-    parser.add_argument("test_name", nargs="?", default=None, help="Name of the test")
-    parser.add_argument(
-        "-w",
-        "--workdir",
-        default="session_%test_name%",
-        help="Output directory (as test_name.pdf)",
-    )
-
-    parser.add_argument(
-        "-l", "--list", action="store_true", help="Show the available tests"
-    )
-    parser.add_argument(
-        "-i", "--info", action="store_true", help="Print information for the test"
-    )
-    parser.add_argument(
-        "-r", "--run", action="store_true", help="Run the test and analyze the results"
-    )
-    parser.add_argument(
-        "-a",
-        "--analyze",
-        action="store_true",
-        help="Analyze the results on a previously run test",
-    )
-    parser.add_argument(
-        "-d", "--dataview", action="store_true", help="Send the data to DataView viewer"
-    )
-
-    parser.add_argument(
-        "-I",
-        "--inspect",
-        action="store_true",
-        help="Inspect data before sending DataView viewer",
-    )
-
-    parser.add_argument(
-        "-o",
-        "--options",
-        default="",
-        help="Test options, option=value, comma separated.",
-    )
-    parser.add_argument(
-        "-p",
-        "--analysis-options",
-        default="",
-        help="Analysis options, option=value, comma separated.",
-    )
-
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Verbose processing"
-    )
-    parser.add_argument(
-        "-b",
-        "--backend",
-        default="DCBEmu",
-        help="What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)",
-    )
-    parser.add_argument(
-        "-g",
-        "--awg",
-        default="None",
-        help="AWG backend to use. Possible values: None, lab7, ssl",
-    )
-    parser.add_argument(
-        "--operator", default=default_user(), help="Operator name (for the report)"
-    )
-    parser.add_argument("--comments", default="None", help="Comments(for the report)")
-
-    parser.add_argument(
-        "-S",
-        "--server",
-        type=str,
-        help="server URL: defaults to http://localhost:8000/",
-        default=default_server,
-    )
+    parser.add_argument("test_name", nargs="?", default=None,       help="Name of the test")
+    parser.add_argument("-w", "--workdir",  default="session_%test_name%", help="Output directory (as test_name.pdf)")
+    parser.add_argument("-l", "--list",     action="store_true",    help="Show the available tests")
+    parser.add_argument("-i", "--info",     action="store_true",    help="Print information for the test")
+    parser.add_argument("-r", "--run",      action="store_true",    help="Run the test and analyze the results")
+    parser.add_argument("-a","--analyze",   action="store_true",    help="Analyze the results on a previously run test")
+    parser.add_argument("-d", "--dataview", action="store_true",    help="Send the data to DataView viewer")
+    parser.add_argument("-I","--inspect",   action="store_true",    help="Inspect data before sending DataView viewer")
+    parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
+    parser.add_argument('-b', '--backend',  default='DCB',          help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
+    parser.add_argument('-g', '--awg',      default='ssl',          help='AWG backend to use. Possible values: None, lab7, ssl')
+    parser.add_argument('--operator',       default=default_user(), help='Operator name (for the report)')
+    parser.add_argument('--comments',       default='None',         help='Comments(for the report)')
+    parser.add_argument("-S","--server",    type=str,               help="server URL: defaults to http://localhost:8000/", default=default_server)
 
     # ---
     args = parser.parse_args()

@@ -6,6 +6,7 @@ import time
 import socket
 import shutil
 from DCBEmu import DCBEmulator
+from DCB import DCB
 from CoreloopBackend import CoreloopBackend
 from AWGBackendLab7 import AWGBackendLab7
 from AWGBackendSSL import AWGBackendSSL
@@ -48,17 +49,9 @@ def read_script(fname):
 
 class Commander:
 
-    def __init__(
-        self,
-        session="session",
-        script=None,
-        commanding_ip=None,
-        commanding_port=None,
-        backend="DCBEmu",
-        awg_backend=None,
-    ):
-        print("Starting commander.")
-        self.session = session
+    def __init__ (self, session = "session", script = None, commanding_ip=None, commanding_port = None, backend = 'DCBEmu', awg_backend = None):
+        print ("Starting commander.")
+        self.session=session
         if script is None:
             script = []
         elif type(script) == str:
@@ -76,7 +69,8 @@ class Commander:
         elif backend == "coreloop":
             self.backend = CoreloopBackend(self.clog, self.uart_log, self.session)
         elif backend == "DCB":
-            raise ValueError("DCBE is not implemented yet.")
+            print("Using the SSL DCB")
+            self.backend = DCB(self.clog, self.uart_log, self.session)
         else:
             raise ValueError("Unknown backend.")
 
@@ -88,7 +82,7 @@ class Commander:
                     ch = 3
                 self.awg = AWGBackendLab7(channel=ch)
             elif awg_backend == "ssl":
-                self.backend = AWGBackendSSL()
+                self.awg = AWGBackendSSL()
             else:
                 raise ValueError("Unknown AWG backend:", awg_backend)
         else:
