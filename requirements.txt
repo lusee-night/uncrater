@@ -39,3 +39,5 @@ urllib3==2.2.2
 Werkzeug==3.0.3
 wheel==0.43.0
 zipp==3.19.2
+icecream==2.1.3
+
