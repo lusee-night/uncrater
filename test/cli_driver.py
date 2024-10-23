@@ -187,7 +187,10 @@ def main():
         T = Name2Test(args.test_name)
         workdir = args.workdir.replace("%test_name%", T.name)
         # Load options from YAML file
-        runtime = int(open(f"{workdir}/runtime").read())
+        try:
+            runtime = int(open(f"{workdir}/runtime").read())
+        except:
+            runtime = 0
         if runtime > 60:
             runtime = f"{runtime//60}m {runtime%60}s"
         else:

@@ -159,7 +159,7 @@ class Test_Alive(Test):
                     hb_tmin = 1e9
                 else:
                     if P.packet_count != last_hb+1 or P.ok == False:
-                        self.results['result'] = 'FAILED'
+                        print (P.packet_count, last_hb) 
                         heartbeat_counter_ok = False
                         passed=False
                     else:
@@ -261,6 +261,8 @@ class Test_Alive(Test):
                     data = S[c].data[1:]
                     w= np.where(std>100)
                     err = (np.abs(data-mean)[w]/std[w])
+                    #print (mean/data)
+                    #print (err)
                     maxerr = np.max(err)
                     if not (maxerr<5):
                         pk_ok = False

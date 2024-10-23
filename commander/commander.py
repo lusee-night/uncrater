@@ -109,53 +109,57 @@ class Commander:
         script_last = time.time()
         # wait for 1 second
         dt = 1.0
-        while True:
-            ctime = time.time()
-            have_cmd = False
-            if self.s is not None:
-                ready_to_read, _, _ = select.select([self.s], [], [], 0)
-                if self.s in ready_to_read:
-                    c, addr = self.s.accept()
-                    input_data = c.recv(1024).decode()
-                    input_data = input_data.split()
-                    have_cmd = True
-            else:
-                if len(self.script) > 0:
-                    command = self.script[0]
-                    if ctime - script_last > dt:
-                        dt = 0
+        try:
+            while True:
+                ctime = time.time()
+                have_cmd = False
+                if self.s is not None:
+                    ready_to_read, _, _ = select.select([self.s], [], [], 0)
+                    if self.s in ready_to_read:
+                        c, addr = self.s.accept()
+                        input_data = c.recv(1024).decode()
+                        input_data = input_data.split()
                         have_cmd = True
-                        self.script.pop(0)
-                        script_last = ctime
-            if have_cmd:
-                err = 0
-                if type(command) == str:
-                    ## This is an out-of-band command
-                    cmdx = command.split()[0]
-                    if cmdx != "AWG":
-                        self.clog.logt("Unknown string command:" + cmdx + "\n")
-                    else:
-                        print("Received AWG command: ", command[4:])
-                        self.clog.logt("Received AWG command: " + command[4:] + "\n")
-                        if self.awg is not None:
-                            self.awg.process_command(command[4:])
                 else:
-                    cmd, arg = command
-                    if cmd == 0xE0:
-                        # wait command
-                        dt = arg / 10 if arg < 65000 else 1e100  # 65000 is forever
-                        self.clog.logt(f"Waiting for {dt}s.\n")
+                    if len(self.script) > 0:
+                        command = self.script[0]
+                        if ctime - script_last > dt:
+                            dt = 0
+                            have_cmd = True
+                            self.script.pop(0)
+                            script_last = ctime
+                if have_cmd:
+                    err = 0
+                    if type(command) == str:
+                        ## This is an out-of-band command
+                        cmdx = command.split()[0]
+                        if cmdx != "AWG":
+                            self.clog.logt("Unknown string command:" + cmdx + "\n")
+                        else:
+                            print("Received AWG command: ", command[4:])
+                            self.clog.logt("Received AWG command: " + command[4:] + "\n")
+                            if self.awg is not None:
+                                self.awg.process_command(command[4:])
                     else:
-                        print("Sending command.")
-                        self.backend.send_command(cmd, arg)
-                        self.clog.logt(
-                            f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n"
-                        )
-                        # now wait
-                        dt = 0.01
+                        cmd, arg = command
+                        if cmd == 0xE0:
+                            # wait command
+                            dt = arg / 10 if arg < 65000 else 1e100  # 65000 is forever
+                            self.clog.logt(f"Waiting for {dt}s.\n")
+                        else:
+                            print("Sending command.")
+                            self.backend.send_command(cmd, arg)
+                            self.clog.logt(
+                                f"Sent CDI command {hex(cmd)} with argument {hex(arg)} .\n"
+                            )
+                            # now wait
+                            dt = 0.01
 
-            if len(self.script) == 0 and ctime - script_last > dt:
-                break
+                if len(self.script) == 0 and ctime - script_last > dt:
+                    break
+                    
+        except KeyboardInterrupt:
+            print("Interrupted.")
 
         self.backend.stop()
         if self.awg is not None:
