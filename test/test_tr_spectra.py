@@ -48,16 +48,18 @@ class Test_TRSpectra(Test):
             self.time = 20
 
         scripter = Scripter()
-        scripter.start()
-        # set Navg_1 and Navg_2 to 4 (2^2 -- we send shifts)
-        # to produces lots of spectra
+        scripter.reset()
+        scripter.wait(5)
+
         scripter.set_Navg(Navg1=14, Navg2=3)
         scripter.set_tr_start_lsb(self.tr_start)
         scripter.set_tr_stop_lsb(self.tr_stop)
         scripter.set_tr_avg_shift(self.tr_avg_shift)
+
+        scripter.start()
         scripter.wait(self.time)
         scripter.stop()
-        # scripter.time_to_die()
+
         return scripter
 
     def analyze(self, C, uart, commander, figures_dir):
