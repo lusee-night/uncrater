@@ -13,6 +13,7 @@ class Packet_Heartbeat(PacketBase):
             return
         super()._read()
         temp = pystruct.heartbeat.from_buffer_copy(self._blob)       
+        
         self.copy_attrs(temp)
         self.ok = (self.magic == b'BRNMRL')
         self.time = Time2Time(self.time_32, self.time_16)

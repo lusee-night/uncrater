@@ -191,7 +191,7 @@ def main():
             runtime = int(open(f"{workdir}/runtime").read())
         except:
             runtime = 0
-        if runtime>60:
+        if runtime > 60:
             runtime = f"{runtime//60}m {runtime%60}s"
         else:
             runtime = f"{runtime}s"

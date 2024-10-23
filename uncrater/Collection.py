@@ -22,6 +22,7 @@ class Collection:
         flist = glob.glob(os.path.join(self.dir, "*.bin"))
         print(f"Ananlyzing {len(flist)} files from {self.dir}.")
         flist = sorted(flist, key=lambda x: int(x[x.rfind("/") + 1 :].split("_")[0]))
+        meta_packet = None
         for i, fn in enumerate(flist):
             # print ("reading ",fn)
             appid = int(fn.replace(".bin", "").split("_")[-1], 16)
@@ -33,14 +34,16 @@ class Collection:
                 self.tr_spectra.append({"meta": packet})
 
             if appid_is_spectrum(appid):
-                packet.set_meta(meta_packet)
-                packet.read()
-                self.spectra[-1][appid & 0x0F] = packet
+                if meta_packet is not None:
+                    packet.set_meta(meta_packet)
+                    packet.read()
+                    self.spectra[-1][appid & 0x0F] = packet
 
             if appid_is_tr_spectrum(appid):
-                packet.set_meta(meta_packet)
-                packet.read()
-                self.tr_spectra[-1][appid & 0x0F] = packet
+                if meta_packet is not None:
+                    packet.set_meta(meta_packet)
+                    packet.read()
+                    self.tr_spectra[-1][appid & 0x0F] = packet
 
             self.cont.append(packet)
             self.time.append(os.path.getmtime(fn))

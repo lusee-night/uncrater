@@ -33,7 +33,7 @@ class Test_Science(Test):
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple', 'agc-test']:
+        if self.preset not in ['simple', 'debug', 'agc-test']:
             raise ValueError ("Unknown preset.")
             
         if self.time_mins>100:
@@ -47,18 +47,23 @@ class Test_Science(Test):
         S.wait(3)
         if self.preset in ['simple']:
             S.set_Navg(14,6)
-        else:
+        elif self.preset in ['agc-test']:
             S.set_Navg(14,3)
             S.awg_init()
             awg_amplitude = np.array([2000,1000,200,250])
             awg_fact = np.array([0.03,-0.03,0.05,-0.05])
             awg_frequecy = 5.0
+        elif self.preset in ['debug']:
+            S.set_Navg(14,3)
 
         for ch in range(4):
             S.set_route (ch,ch,None)
-        S.set_bitslice_auto(8)
-        S.set_ana_gain('AAAA')
-        
+        if self.preset in ['simple']:
+            S.set_bitslice_auto(8)
+            S.set_ana_gain('AAAA')
+        else:
+            S.set_ana_gain('MMMM')
+            
         if self.preset=='agc-test':
             for i in range(4):
                 S.set_agc_settings(i,848,7)
@@ -77,7 +82,7 @@ class Test_Science(Test):
         else:
             S.start()
             if self.time_mins>0:
-                S.cdi_wait_seconds(self.time_mins*60)
+                #S.cdi_wait_seconds(self.time_mins*60)
                 S.stop()
                 S.wait(self.time_mins*60+5)
             else:
