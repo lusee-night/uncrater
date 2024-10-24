@@ -209,14 +209,14 @@ class Scripter:
         arg = 0
         self.spectrometer_command(cmd, arg)
 
-    def start(self, no_flash=False):
+    def start(self, no_flash=True):
         cmd = lc.RFS_SET_START
         arg = 0
         if no_flash:
             arg += 1
         self.spectrometer_command(cmd, arg)
 
-    def stop(self, no_flash=False):
+    def stop(self, no_flash=True):
         cmd = lc.RFS_SET_STOP
         arg = 0
         if no_flash:
