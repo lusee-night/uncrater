@@ -147,7 +147,7 @@ class Test_Alive(Test):
         hk_end = None
         hk_end = None
         last_hbtime = None
-        hb_tmin = 0
+        hb_tmin = 1e30
         hb_tmax = 0
         for P in C.cont:
             if type(P) == uc.Packet_Heartbeat:
