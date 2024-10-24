@@ -40,14 +40,19 @@ class BackendBase:
                     print (f"Storing appdid 0x{ccsds_appid:04x} ({len(self.full_packet)} bytes)")
                     self.save_data(ccsds_appid, self.full_packet)        
                     self.full_packet = bytearray(0)
-                    ok = (data[iend+2]==0XFF and data[iend+3]==0XFF and data[iend+4]==0XFE and data[iend+5]==0X00)
-                    if not ok:
-                        print ("Bad end of packet!")
-                    data = data[iallend+6:]
+                    ## really don't understand what is going on here.
+                    #ok = (data[iend+2]==0XFF and data[iend+3]==0XFF and data[iend+4]==0XFE)
+                    # continuation something something
+                    #cont =  (data[iend+5])                          
+                    #if not ok:
+                    #    print (f"Bad end of packet! [ {data[iend+2]:02X} {data[iend+3]:02X} {data[iend+4]:02X}  ]")
+                    data = data[iallend+2:]
                     if len(data)<6:
                         break
                     else:
-                        print ("More data in this stream (after end packet)....")
+                        print (f"More data in this stream (after end packet).... {len(data)} bytes")
+                        #open('debug.bin','wb').write(data)
+                        #stop()
                 else:
                     print (".",end="",flush=True)
                     iend = 7+ccsds_packetlen

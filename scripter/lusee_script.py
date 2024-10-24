@@ -63,6 +63,13 @@ class Scripter:
         """Wait for dt in seconds executed on the spectrometer board"""
         self.spectrometer_command(lc.RFS_SET_WAIT_SECS, int(dt))
 
+    def set_cdi_delay(self,delay):
+        self.spectrometer_command(lc.RFS_SET_CDI_FW_DLY, delay)
+
+    def set_dispatch_delay(self,delay):
+        self.spectrometer_command(lc.RFS_SET_CDI_SW_DLY, delay)
+
+
     def reset(self, stored_state = 'ignore', special = True):
         if stored_state == 'load':
             arg_low = 0
@@ -79,7 +86,7 @@ class Scripter:
         print (mode)
         assert(mode in ['normal', 'ramp','zeros', 'ones'])
         arg = ['normal', 'ramp','zeros', 'ones'].index(mode)
-        self.spectrometer_command(lc.RFS_SET_RESET, arg_low)
+        self.spectrometer_command(lc.RFS_SET_ADC_SPECIAL, arg)
 
     def house_keeping(self, req_type):
         assert req_type < 2
