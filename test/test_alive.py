@@ -119,7 +119,8 @@ class Test_Alive(Test):
         S.house_keeping(0)
         S.ADC_special_mode(self.waveform_type)
         S.waveform(4)
-        S.cdi_wait_seconds(3)
+        ## this takes over anyways
+        S.cdi_wait_seconds(1)
         S.set_Navg(14,3)
         S.start()
         S.cdi_wait_seconds(50)

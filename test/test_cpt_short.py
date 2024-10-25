@@ -142,6 +142,8 @@ class Test_CPTShort(Test):
 
         S.reset()
         S.wait(3)
+        S.set_cdi_delay(int(2))
+        S.set_dispatch_delay(6)
         S.set_Navg(14,2)
         S.select_products('auto_only')
         old_gain = None
