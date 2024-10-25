@@ -88,6 +88,44 @@ class Collection:
             return self._intro(i) + self.cont[i].info()
         return self.cont[i].info()
 
+
+    # bcheckmark in TeX want an int 0/1 flag, not bool
+    # return 1, if all 16 products are present
+    def has_all_products(self) -> int:
+        for s, prods in enumerate(self.spectra):
+            for i in range(16):
+                if i not in prods:
+                    print(f"Product {i} missing in spectra {s}.")
+                    return 0
+        return 1
+
+    # return 1, if all 16 time-resolved packets are present
+    def has_all_tr_products(self) -> int:
+        for s, trs in enumerate(self.tr_spectra):
+            for i in range(16):
+                if i not in trs:
+                    print(f"Product {i} missing in TR spectra {s}.")
+                    return 0
+        return 1
+
+    # return 1, if all spectra packets have correct CRC
+    def all_spectra_crc_ok(self) -> int:
+        for i, prods in enumerate(self.spectra):
+            for k in range(16):
+                if k in prods and prods[k].error_crc_mismatch:
+                    print(f"Bad CRC in product {k} in spectra {i}.")
+                    return 0
+        return 1
+
+    # return 1, if all time-resolved spectra packets have correct CRC
+    def all_tr_spectra_crc_ok(self) -> int:
+        for i, trs in enumerate(self.tr_spectra):
+            for k in range(16):
+                if k in trs and trs[k].error_crc_mismatch:
+                    print(f"Bad CRC in product {k} in TR spectra {i}.")
+                    return 0
+        return 1
+
     def xxd(self, i, intro=False):
         if intro:
             return self._intro(i) + self.cont[i].xxd()
