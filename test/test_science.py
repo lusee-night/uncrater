@@ -9,6 +9,7 @@ import os
 import argparse
 import numpy as np
 from test_base import Test
+from test_base import pycoreloop as cl
 from  lusee_script import Scripter
 import uncrater as uc
 from collections import defaultdict
@@ -215,16 +216,14 @@ class Test_Science(Test):
         
             # plot errors
             fig,ax = plt.subplots()
-            cmds = "CDI_COMMAND_UNKNOWN CDI_COMMAND_BAD CDI_COMMAND_BAD_ARGS ANALOG_AGC_TOO_HIGH_CH1  ANALOG_AGC_TOO_HIGH_CH2  ANALOG_AGC_TOO_HIGH_CH3 ANALOG_AGC_TOO_HIGH_CH4 ANALOG_AGC_TOO_LOW_CH1  ANALOG_AGC_TOO_LOW_CH2  ANALOG_AGC_TOO_LOW_CH3  ANALOG_AGC_TOO_LOW_CH4 ANALOG_AGC_ACTION_CH1 ANALOG_AGC_ACTION_CH2 ANALOG_AGC_ACTION_CH3 ANALOG_AGC_ACTION_CH4 DF_SPECTRA_DROPPED FLASH_CRC_FAIL".split()
-            while len(cmds)<32:
-                cmds.append(f" RESERVED ")
 
+            errs = [cl.error_bits[1<<i] for i in range(32)]
             bitmask = np.zeros((len(time),32))
             for i in range(32):
                 bitmask[:,i] = (errors & (1<<i))>0
             ax.imshow(bitmask.T, aspect='auto', interpolation='nearest', extent=[time[0],time[-1],31.5,-0.5])
             ax.set_yticks(np.arange(32))
-            ax.set_yticklabels(cmds)
+            ax.set_yticklabels(errs)
             ax.set_xlabel('time')
             ax.set_ylabel('errors_mask')
             fig.tight_layout()

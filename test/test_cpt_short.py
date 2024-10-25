@@ -142,6 +142,8 @@ class Test_CPTShort(Test):
 
         S.reset()
         S.wait(3)
+        S.set_cdi_delay(2)
+        S.set_dispatch_delay(6)
         S.set_Navg(14,2)
         S.select_products('auto_only')
         old_gain = None
@@ -156,12 +158,12 @@ class Test_CPTShort(Test):
                 S.set_bitslice(i,s)
             S.wait(0.1)
             S.waveform(4)
-            S.wait(1.0)
+            S.wait(3.0)
             #for i in [0,1,2,3]:
             #    S.waveform(i)
             #    S.wait(1.0)
             S.start(no_flash=True)
-            S.wait(4.0)
+            S.wait(6.0)
             S.stop(no_flash=True)
             #S.wait()
                 

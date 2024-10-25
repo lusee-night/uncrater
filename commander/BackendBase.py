@@ -29,25 +29,23 @@ class BackendBase:
                 ccsds_groupflags = (formatted_data[1] >> 14)        
                 ccsds_sequence_cnt = (formatted_data[1] & 0x3FFF)
                 ccsds_packetlen  = (formatted_data[2])
-                if ccsds_packet_type == 1:
+                if ccsds_groupflags:
                     # last packet
                     istart = 6
                     iend = 7+ccsds_packetlen
-                    iallend = iend+6
                     self.full_packet = self.full_packet + order(data[istart:iend])
-                    #if ccsds_appid <0x200:
-                    #    ccsds_appid = ccsds_appid + 0x200
                     print (f"Storing appdid 0x{ccsds_appid:04x} ({len(self.full_packet)} bytes)")
                     self.save_data(ccsds_appid, self.full_packet)        
                     self.full_packet = bytearray(0)
-                    ok = (data[iend+2]==0XFF and data[iend+3]==0XFF and data[iend+4]==0XFE and data[iend+5]==0X00)
-                    if not ok:
-                        print ("Bad end of packet!")
-                    data = data[iallend+6:]
+                    data = data[iend:]
                     if len(data)<6:
+                        if len(data)>0:
+                            print (f"Some garbage in this stream (after end packet).... {len(data)} bytes")
                         break
                     else:
-                        print ("More data in this stream (after end packet)....")
+                        print (f"More data in this stream (after end packet).... {len(data)} bytes")
+                        #open('debug.bin','wb').write(data)
+                        #stop()
                 else:
                     print (".",end="",flush=True)
                     iend = 7+ccsds_packetlen
@@ -69,6 +67,7 @@ class BackendBase:
             ccsds_packet_type= ((formatted_data[0] >> 12) & 0x1)
             ccsds_secheaderflag = ((formatted_data[0] >> 11) & 0x1)
             ccsds_appid= (formatted_data[0] & 0x7FF)
+            
             ccsds_groupflags = (formatted_data[1] >> 14)        
             ccsds_sequence_cnt = (formatted_data[1] & 0x3FFF)
             ccsds_packetlen  = (formatted_data[2])
@@ -79,7 +78,7 @@ class BackendBase:
             self.last_cnt = ccsds_sequence_cnt
 
             hocus = len(data) - ccsds_packetlen
-            print ('hocus',ccsds_packet_type, ccsds_secheaderflag, formatted_data[1]>>10)
+            print ('hocus',ccsds_appid, ccsds_groupflags, formatted_data[2])
             nextdata = None
             if  hocus<7 or hocus==8:
                 print ("Weird hocus!!")
