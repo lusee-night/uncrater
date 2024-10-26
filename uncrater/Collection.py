@@ -21,6 +21,7 @@ class Collection:
         tr_spectra = []
         self.heartbeat_packets = []
         self.housekeeping_packets = []
+        self.waveform_packets = []
         flist = glob.glob(os.path.join(self.dir, "*.bin"))
         print(f"Analyzing {len(flist)} files from {self.dir}.")
         flist = sorted(flist, key=lambda x: int(x[x.rfind("/") + 1 :].split("_")[0]))
@@ -29,9 +30,11 @@ class Collection:
             # print ("reading ",fn)
             appid = int(fn.replace(".bin", "").split("_")[-1], 16)
             packet = Packet(appid, blob_fn=fn)
+            # spectral/TR spectral packets must be read only after we set their metadata packet
+            # all other packets: read immediately
             if not (appid_is_spectrum(appid) or appid_is_tr_spectrum(appid)):
                 packet.read()
-            if appid_is_metadata(appid):
+            if isinstance(packet, Packet_Metadata):
                 meta_packet = packet
                 self.spectra.append({"meta": packet})
                 tr_spectra.append({"meta": packet})
@@ -49,11 +52,14 @@ class Collection:
                     packet.read()
                     tr_spectra[-1][appid & 0x0F] = packet
 
-            if appid_is_heartbeat(appid):
+            if isinstance(packet, Packet_Heartbeat):
                 self.heartbeat_packets.append(packet)
 
-            if appid_is_housekeeping(appid):
+            if isinstance(packet, Packet_Housekeep):
                 self.housekeeping_packets.append(packet)
+
+            if isinstance(packet, Packet_Waveform):
+                self.waveform_packets.append(packet)
 
             self.cont.append(packet)
             self.time.append(os.path.getmtime(fn))
@@ -64,6 +70,8 @@ class Collection:
                 )
             except:
                 pass
+        # we don't always send TR spectra; if dict contains only metadata
+        # packet but no actual data, we assume it's fine and don't include it into self.tr_spectra
         self.tr_spectra = [trs for trs in tr_spectra if len(trs) > 1]
         assert all(["meta" in trs for trs in tr_spectra])
 
@@ -101,9 +109,15 @@ class Collection:
     def num_housekeeping_packets(self) -> int:
         return len(self.housekeeping_packets)
 
+    # return number of waveform packets received
+    def num_waveform_packets(self) -> int:
+        return len(self.waveform_packets)
+
     # return 1, if all heartbeat packets are present (no gaps in packet_count sequence)
-    def hearbeat_counter_ok(self) -> int:
+    def heartbeat_counter_ok(self) -> int:
         hb_counts = [p.packet_count for p in self.heartbeat_packets]
+        if not hb_counts:
+            return 0
         correct_hb_counts = []
         for i, p in enumerate(self.heartbeat_packets):
             if i == 0:
@@ -117,13 +131,19 @@ class Collection:
         return 1
 
     # return maximal time difference between heartbeat packets
+    # return -1, if there is at 0 or 1 heartbeat
     def heartbeat_max_dt(self) -> int:
+        if len(self.heartbeat_packets) <= 1:
+            return -1
         hb_times = [p.time for p in self.heartbeat_packets]
         deltas = [t2 - t1 for t2, t1 in zip(hb_times[1:], hb_times[:-1])]
         return max(deltas)
 
     # return minimal time difference between heartbeat packets
+    # return 1e12, if there is 0 or 1 heartbeat
     def heartbeat_min_dt(self) -> int:
+        if len(self.heartbeat_packets) <= 1:
+            return int(1e12)
         hb_times = [p.time for p in self.heartbeat_packets]
         deltas = [t2 - t1 for t2, t1 in zip(hb_times[1:], hb_times[:-1])]
         return min(deltas)

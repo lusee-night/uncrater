@@ -19,7 +19,7 @@ def test_waveform(wf, type):
         pred_val = wf[0]
         for next_val in wf[1:]:
             pred_val = pred_val+1 if pred_val<8192 else -8191
-            if next_val != pred_val:        
+            if next_val != pred_val:
                 return False
         return True
     if type == 'zeros':
@@ -85,7 +85,7 @@ class HKAnalyzer:
 
 
 class Test_Alive(Test):
-    
+
     name = "alive"
     version = 0.2
     description = """ Basic aliveness test of communication and spectral engine."""
@@ -123,72 +123,38 @@ class Test_Alive(Test):
         S.ADC_special_mode('normal')
         S.wait(1)
         return S
-    
+
     def analyze(self, C, uart, commander, figures_dir):
-        """ Analyzes the results of the test. 
+        """ Analyzes the results of the test.
             Returns true if test has passed.
         """
         self.results = {}
         passed = True
-        
+
         self.results['packets_received'] = len(C.cont)
-        
+
         C.cut_to_hello()
         self.get_versions(C)
 
-        num_hb, num_wf, num_sp, num_hk = 0,0,0,0
-        last_hb = None
-        heartbeat_counter_ok = True
         fig_wf, ax_wf= plt.subplots(1,1,figsize=(12,8))
         wf_ch=[False]*4
         wf_ch_ok = [False]*4
-        sp_crc_ok = True
-        hk_start = None
-        hk_end = None
-        hk_end = None
-        last_hbtime = None
-        hb_tmin = 1e30
-        hb_tmax = 0
-        for P in C.cont:
-            if type(P) == uc.Packet_Heartbeat:
-                P._read()
-                num_hb += 1
-                if last_hb is None:
-                    last_hb = P.packet_count
-                    last_hbtime = P.time
-                    hb_tmin = 1e9
-                else:
-                    if P.packet_count != last_hb+1 or P.ok == False:
-                        print (P.packet_count, last_hb) 
-                        heartbeat_counter_ok = False
-                        passed=False
-                    else:
-                        last_hb = P.packet_count
-                    dt = P.time - last_hbtime
-                    last_hbtime = P.time
-                    hb_tmin = min(hb_tmin, dt)
-                    hb_tmax = max(hb_tmax, dt)
 
-            if type(P) == uc.Packet_Waveform:
-                num_wf += 1
-                P._read()
-                ax_wf.plot(P.waveform, label=f"Channel {P.ch+1}")
-                wf_ch[P.ch] = True
-                wf_ch_ok[P.ch] = test_waveform(P.waveform, self.waveform_type)
-            if type(P) == uc.Packet_Spectrum:
-                num_sp += 1
-                P._read()
-                sp_crc_ok = (sp_crc_ok & (not P.error_crc_mismatch))
-            if type(P) == uc.Packet_Housekeep:
-                num_hk += 1
-                P._read()
-                if hk_start is None:
-                    hk_start = P
-                else:
-                    hk_end = P
-        if num_hb == 0:
-            heartbeat_counter_ok = False
-        
+        for P in C.waveform_packets:
+            ax_wf.plot(P.waveform, label=f"Channel {P.ch+1}")
+            wf_ch[P.ch] = True
+            wf_ch_ok[P.ch] = test_waveform(P.waveform, self.waveform_type)
+
+        num_hb = C.num_heartbeats()
+        num_sp = C.num_spectra_packets()
+        num_wf = C.num_waveform_packets()
+        num_hk = C.num_housekeeping_packets()
+        hb_tmin = C.heartbeat_min_dt()
+        hb_tmax = C.heartbeat_max_dt()
+        hk_start = C.housekeeping_packets[0] if num_hk > 0 else None
+        hk_end = C.housekeeping_packets[-1] if num_hk > 1 else None
+        heartbeat_counter_ok = C.heartbeat_counter_ok()
+
         self.results['heartbeat_received'] = num_hb
         self.results['hearbeat_count'] = int(num_hb)
         self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok & (hb_tmax<11))
@@ -231,11 +197,11 @@ class Test_Alive(Test):
         fig_sp, ax_sp = plt.subplots(4,4,figsize=(12,12))
         fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
         freq = np.arange(1,2048)*0.025
-        wfall=[[] for i in range(16)]
-        
-        
-        crc_ok = True
-        sp_all = True
+        wfall=[[] for _ in range(16)]
+
+        crc_ok = C.all_spectra_crc_ok()
+        sp_all = C.has_all_products()
+
         pk_ok = True
         pk_weights_ok = True
 
@@ -243,20 +209,15 @@ class Test_Alive(Test):
         for i,S in enumerate(C.spectra):
             if S['meta'].base.weight_previous!=8:
                 pk_weights_ok = False
-                
+
             for c in range(16):
-                if c not in S:
-                    sp_all = False
-                    print (f"Product {c} missing in spectra{i}.")
-                    continue
-                if S[c].error_crc_mismatch:
+                if c in S and S[c].error_crc_mismatch:
                     print (f"BAD CRC in product {c}, spectral packet {i}!!")
                     # add zeros to wfall
                     nz = 2047 if c<4 else 400
                     wfall[c].append(np.zeros(nz))
-                    crc_ok = False
                 x,y = c//4, c%4
-                
+
                 if c<4:
                     data = S[c].data[1:]
                     w= np.where(std>100)
@@ -266,7 +227,7 @@ class Test_Alive(Test):
                     maxerr = np.max(err)
                     if not (maxerr<5):
                         pk_ok = False
-                    
+
                     ax_sp[x][y].plot(freq, data, label=f"{i}")
                     wfall[c].append(data)
                     ax_sp[x][y].set_xscale('log')
@@ -302,14 +263,14 @@ class Test_Alive(Test):
         self.results['v2_5_max'] = f"{V2_5.max():3.2f}"
         self.results['t_fpga_min'] = f"{T_FPGA.min():3.2f}"
         self.results['t_fpga_max'] = f"{T_FPGA.max():3.2f}"
-        
-        
+
+
         v_1_0_ok = (V1_0.min()>0.95) and (V1_0.max()<1.2)
         v_1_8_ok = (V1_8.min()>1.75) and (V1_8.max()<2.0)
         v_2_5_ok = (V2_5.min()>2.45) and (V2_5.max()<2.7)
         t_fpga_ok = (T_FPGA.min()>-10) and (T_FPGA.max()<80)
-        
-        
+
+
         self.results['v_1_0_ok'] = int(v_1_0_ok)
         self.results['v_1_8_ok'] = int(v_1_0_ok)
         self.results['v_2_5_ok'] = int(v_2_5_ok)
@@ -331,7 +292,3 @@ class Test_Alive(Test):
         fig_sp2.tight_layout()
         fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
         self.results['result'] = int(passed)
-
-
-
-

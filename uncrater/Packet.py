@@ -79,6 +79,8 @@ def appid_is_heartbeat(appid):
 def appid_is_housekeeping(appid):
     return appid == id.AppID_uC_Housekeeping
 
+def appid_is_waveform(appid):
+    return appid == id.AppId
 
 def appid_to_str(appid):
     if appid == 0x4F0:

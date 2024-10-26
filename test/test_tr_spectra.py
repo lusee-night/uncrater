@@ -129,7 +129,7 @@ class Test_TRSpectra(Test):
         self.results["tr_shape_ok"] = tr_shape_ok
         self.results["heartbeat_received"] = coll.num_heartbeats()
         self.results["heartbeat_not_missing"] = int(
-            coll.hearbeat_counter_ok() and coll.heartbeat_max_dt() < 11
+            coll.heartbeat_counter_ok() and coll.heartbeat_max_dt() < 11
         )
         self.results["sp_packets_received"] = coll.num_spectra_packets()
         self.results["tr_sp_packets_received"] = coll.num_tr_spectra_packets()
