@@ -63,9 +63,7 @@ class Test_TRSpectra(Test):
         return scripter
 
     def get_tr_shape(self):
-        return (self.tr_stop - self.tr_start) // (
-            1 << self.tr_avg_shift
-        ), 1 << self.navg2
+        return 1 << self.navg2, (self.tr_stop - self.tr_start) // ( 1 << self.tr_avg_shift)
 
     # plot all TR spectra and return the string with includegraphics instruction
     # do not know in advance how many plots we need
@@ -81,18 +79,19 @@ class Test_TRSpectra(Test):
                 x, y = product_idx // 4, product_idx % 4
                 data = trs[product_idx].data
                 # do not plot more than 4 first bins, it'll be impossible to parse
-                for bin_idx in range(min(data.shape[0], 4)):
-                    ax[x][y].plot(data[bin_idx].flatten(), label=f"Bin {bin_idx+1}")
+                for bin_idx in range(min(data.shape[1], 4)):
+                    ax[x][y].plot(data[:, bin_idx].flatten(), label=f"Bin {bin_idx+1}")
                 ax[x][y].set_title(
                     f"Product {product_idx+1}/16 of packet {tr_packet_idx+1}/{len(coll.tr_spectra)}"
                 )
                 ax[x][y].set_xlabel(f"Phase 1 averaging index")
-                ax[x][y].set_xticks(range(0, data[0].size, 1 << (self.navg2 - 3)))
+                ax[x][y].set_xticks(range(0, data[:, 0].size, 1 << max(0, (self.navg2 - 3))))
                 # TODO: how is this called?
                 ax[x][y].set_ylabel(f"Value")
                 ax[x][y].legend()
             fig.tight_layout()
             fig.savefig(fig_fname)
+            plt.close(fig)
             result += f"\n\\includegraphics*[width=\\linewidth]{{{fig_fname}}}\n"
         return result
 
