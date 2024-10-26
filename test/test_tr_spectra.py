@@ -63,7 +63,9 @@ class Test_TRSpectra(Test):
         return scripter
 
     def get_tr_shape(self):
-        return 1 << self.navg2, (self.tr_stop - self.tr_start) // ( 1 << self.tr_avg_shift)
+        return 1 << self.navg2, (self.tr_stop - self.tr_start) // (
+            1 << self.tr_avg_shift
+        )
 
     # plot all TR spectra and return the string with includegraphics instruction
     # do not know in advance how many plots we need
@@ -85,7 +87,9 @@ class Test_TRSpectra(Test):
                     f"Product {product_idx+1}/16 of packet {tr_packet_idx+1}/{len(coll.tr_spectra)}"
                 )
                 ax[x][y].set_xlabel(f"Phase 1 averaging index")
-                ax[x][y].set_xticks(range(0, data[:, 0].size, 1 << max(0, (self.navg2 - 3))))
+                ax[x][y].set_xticks(
+                    range(0, data[:, 0].size, 1 << max(0, (self.navg2 - 3)))
+                )
                 # TODO: how is this called?
                 ax[x][y].set_ylabel(f"Value")
                 ax[x][y].legend()
@@ -93,6 +97,10 @@ class Test_TRSpectra(Test):
             fig.savefig(fig_fname)
             plt.close(fig)
             result += f"\n\\includegraphics*[width=\\linewidth]{{{fig_fname}}}\n"
+            if tr_packet_idx > 5:
+                print(
+                    f"Warning: plotting only the first 5 TR spectra out of {len(coll.tr_spectra)}"
+                )
         return result
 
     def analyze(self, coll, uart, commander, figures_dir):
