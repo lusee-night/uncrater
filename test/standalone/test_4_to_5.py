@@ -12,7 +12,7 @@ from icecream import ic
 from bit_utils import *
 
 
-# @pytest.fixture
+@pytest.fixture
 def utils_lib():
     np.random.seed(42)
     random.seed(42)
@@ -124,11 +124,12 @@ def test_lz_lens(utils_lib):
 
 
 if __name__ == "__main__":
-    np.random.seed(42)
+    pass
+    # np.random.seed(42)
     # need to comment out fixture decorator to call like that
     # for _ in range(10):
     #     lzs_signs_lens = [(32, True, 2), (0, True, 2)]
     #     helper_lz_lens(lzs_signs_lens=lzs_signs_lens, utils_lib=utils_lib())
 
-    test_constants(utils_lib())
-    test_lz_lens(utils_lib())
+    # test_constants(utils_lib())
+    # test_lz_lens(utils_lib())
