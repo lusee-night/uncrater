@@ -58,9 +58,14 @@ def first_k_bits_match(original: np.ndarray, back: np.ndarray, k: int) -> bool:
     if np.any((original < 0) != (back < 0)):
         return False
 
+    # corner case: INT32_MIN trouble, add 1 to get into symmetric range
+    if original.dtype == np.int32:
+        original[original == np.iinfo(np.int32).min] = np.iinfo(np.int32).min + 1
+
     # convert to 64 bits to avoid overflow in bits_required calculation (adding 1 there)
     original_abs = np.abs(original).astype(np.uint64)
     back_abs = np.abs(back).astype(np.uint64)
+
 
     bits_required = np.floor(np.log2(original_abs + 1)).astype(np.uint64) + 1
     shift_by = np.maximum(bits_required - k, 0)
