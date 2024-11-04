@@ -16,9 +16,8 @@ jobs:
     - name: Clone coreloop repo
       uses: GuillaumeFalourd/clone-github-repo-action@v2.3
       with:
-        owner: 'anigmetov'
+        owner: 'lusee-night'
         repository: 'coreloop'
-        access-token: ${{ secrets.CORELOOP_PAT }}
 
     - name: Compile coreloop library
       run: |
