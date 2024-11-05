@@ -27,6 +27,7 @@ plotly==5.23.0
 pyaml==24.7.0
 pyparsing==3.1.2
 pyserial==3.5
+pytest==7.4.0
 python-dateutil==2.9.0.post0
 PyYAML==6.0.1
 requests==2.32.3
