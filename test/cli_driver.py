@@ -116,6 +116,7 @@ def main():
     parser.add_argument("-p", "--analysis-options",default="",      help="Analysis options, option=value, comma separated.")
     parser.add_argument("-I", "--inspect",  action="store_true",    help="Inspect data before sending DataView viewer")
     parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
+    parser.add_argument(  "--skip-report",  action="store_true",    help='Skip creating report.pdf')
     parser.add_argument('-b', '--backend',  default='DCBEmu',          help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
     parser.add_argument('-g', '--awg',      default='None',          help='AWG backend to use. Possible values: None, lab7, ssl')
     parser.add_argument('--operator',       default=default_user(), help='Operator name (for the report)')
@@ -228,23 +229,25 @@ def main():
             pass
         print("Starting analysis...")
         t.analyze(C, uart_log, commander_log, fig_dir)
-        print("Writing report...")
+        if not args.skip_report:
+            print("Writing report...")
 
-        add_keys = {
-            "operator": args.operator,
-            "comments": args.comments,
-            "uart_log": uart_log,
-            "commander_log": commander_log,
-            "runtime": runtime,
-        }
-        t.make_report(
-            report_dir,
-            os.path.join(workdir, "report.pdf"),
-            add_keys,
-            verbose=args.verbose,
-        )
+            add_keys = {
+                "operator": args.operator,
+                "comments": args.comments,
+                "uart_log": uart_log,
+                "commander_log": commander_log,
+                "runtime": runtime,
+            }
+            t.make_report(
+                report_dir,
+                os.path.join(workdir, "report.pdf"),
+                add_keys,
+                verbose=args.verbose,
+            )
         print("Test result:", "PASSED" if t.results["result"] else "FAILED")
         print("Done.")
+
         if t.results["result"]:
             sys.exit(0)
         else:

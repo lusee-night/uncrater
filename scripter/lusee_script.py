@@ -36,9 +36,14 @@ class Scripter:
         assert cmd < 256
         self.command(0x10, (cmd << 8) + arg)
 
-    def wait(self, dt):
-        """Wait for dt in seconds, rounted to 100ms. If negative, wait forever"""
-        if dt < 0:
+    def spectrometer_command(self,cmd,arg):
+        assert(arg<256)
+        assert(cmd<256)
+        self.command(lc.RFS_SETTINGS,(cmd<<8)+arg)     
+
+    def wait (self, dt):
+        """ Wait for dt in seconds, rounted to 100ms. If negative, wait forever"""
+        if dt<0:
             dt = 65000
         else:
             if dt < 0.1:
@@ -58,8 +63,15 @@ class Scripter:
         """Wait for dt in seconds executed on the spectrometer board"""
         self.spectrometer_command(lc.RFS_SET_WAIT_SECS, int(dt))
 
-    def reset(self, stored_state="ignore"):
-        if stored_state == "load":
+    def set_cdi_delay(self,delay):
+        self.spectrometer_command(lc.RFS_SET_CDI_FW_DLY, delay)
+
+    def set_dispatch_delay(self,delay):
+        self.spectrometer_command(lc.RFS_SET_CDI_SW_DLY, delay)
+
+
+    def reset(self, stored_state = 'ignore', special = True):
+        if stored_state == 'load':
             arg_low = 0
         elif stored_state == "ignore":
             arg_low = 1
@@ -67,12 +79,13 @@ class Scripter:
             arg_low = 2
         else:
             raise ValueError("Unknown stored_state")
-        self.spectrometer_command(lc.RFS_SET_RESET, arg_low)
-
-    def ADC_special_mode(self, mode="normal"):
-        print(mode)
-        assert mode in ["normal", "ramp", "zeros", "ones"]
-        arg = ["normal", "ramp", "zeros", "ones"].index(mode)
+        master = lc.RFS_SPECIAL if special else lc.RFS_SETTINGS
+        self.command(master, (lc.RFS_SET_RESET<<8)+arg_low) ## special CO
+        
+    def ADC_special_mode (self, mode='normal'):
+        print (mode)
+        assert(mode in ['normal', 'ramp','zeros', 'ones'])
+        arg = ['normal', 'ramp','zeros', 'ones'].index(mode)
         self.spectrometer_command(lc.RFS_SET_ADC_SPECIAL, arg)
 
     def house_keeping(self, req_type):
@@ -196,14 +209,14 @@ class Scripter:
         arg = 0
         self.spectrometer_command(cmd, arg)
 
-    def start(self, no_flash=False):
+    def start(self, no_flash=True):
         cmd = lc.RFS_SET_START
         arg = 0
         if no_flash:
             arg += 1
         self.spectrometer_command(cmd, arg)
 
-    def stop(self, no_flash=False):
+    def stop(self, no_flash=True):
         cmd = lc.RFS_SET_STOP
         arg = 0
         if no_flash:

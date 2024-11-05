@@ -30,7 +30,8 @@ class Test_CPTShort(Test):
         'freqs': '0.05 0.1 0.5 1 5 10 20 30 40 50 60 75 95',
         'amplitudes': '280 200 140 0',
         'bitslices': '25 23 21 16',
-        'amplitude_fact': '5'
+        'amplitude_fact': '5',
+        'superslow': False
     } ## dictinary of options for the test
     options_help = {
         'channels': 'List of channels used in test. 1234 will loop over channels 1 by 1, all_same will do all the same time, all_robin will round-robin frequncies.', 
@@ -38,7 +39,8 @@ class Test_CPTShort(Test):
         'freqs': 'Frequencies used in the test. They are staggered by input channel.',
         'amplitudes': 'Amplitudes used in the test. ',
         'bitslices' : 'List of bitslices to use for the test. Must the same size as amplitudes. If empty, will assume 31 throughout.',
-        'amplitude_fact': 'Factor to multiply the amplitude by for L gain and divide by for H gain.'
+        'amplitude_fact': 'Factor to multiply the amplitude by for L gain and divide by for H gain.',
+        'superslow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need'
     } ## dictionary of help for the options
 
 
@@ -100,17 +102,31 @@ class Test_CPTShort(Test):
             all = "separate"
         self.channels = channels
         
+        print ("Superslow settings:", self.superslow)
 
 
         todo = []
+        #first find bitslice zero
+        if 0 in self.amplitudes:
+            bitslice_zero =self.bitslices[self.amplitudes.index(0)]
+        else:
+            raise ValueError ("Cannot find 0 amplitude")
+
+
         for gain in self.gains:
             for ch in self.channels:
+                ## always start with zero if superslow and skip it later
+                if self.superslow:
+                    todo.append((gain,ch, (0,0,0,0), (0,0,0,0),(bitslice_zero,bitslice_zero, bitslice_zero, bitslice_zero)))
+
                 for i,f in enumerate(self.freqs):
                     if all == "robin":
                         freq_set = (freq0[i],freq1[i],freq2[i],freq3[i])    
                     else:
                         freq_set = (f,f,f,f)
                     for a,s in zip(self.amplitudes, self.bitslices):
+                        if self.superslow and (a==0):
+                            continue
                         if gain == "L":
                             a = a*self.amplitude_fact
                         elif gain == "H":
@@ -124,6 +140,9 @@ class Test_CPTShort(Test):
                             ampl_set[ch-1] = a
                             bitslice_set[ch-1] = s
                         todo.append((gain, ch, freq_set,ampl_set,bitslice_set))
+                # also one at the end
+                if self.superslow:
+                    todo.append((gain,ch, (0,0,0,0), (0,0,0,0),(bitslice_zero,bitslice_zero, bitslice_zero, bitslice_zero)))
         self.todo_list = todo
 
 
@@ -136,32 +155,49 @@ class Test_CPTShort(Test):
         # check if self.gain is a valid gain setting
         
         self.prepare_list()
+        
 
         S = Scripter()
         S.awg_init()
 
         S.reset()
         S.wait(3)
+        if (self.superslow):
+            S.set_cdi_delay(10)
+        else:
+            S.set_cdi_delay(2)
+            S.set_dispatch_delay(6)
         S.set_Navg(14,2)
-        S.select_products('auto_only')
+        if not self.superslow:
+            S.select_products('auto_only')
         old_gain = None
-        for gain, _, freq, ampl, bslice in self.todo_list:
+    
+        for gain, ch, freq, ampl, bslice in self.todo_list:
             if gain != old_gain:
                 gain_set = f'{gain}{gain}{gain}{gain}'
                 S.set_ana_gain(gain_set)
                 S.wait(0.2) # settle
                 old_gain = gain
+                
             for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):      
                 S.awg_tone(i,f,a)
                 S.set_bitslice(i,s)
             S.wait(0.1)
-            S.waveform(4)
-            S.wait(1.0)
+            if self.superslow:
+                S.waveform(ch-1)
+                S.wait(3.0)
+            else:
+                S.waveform(4)
+                S.wait(3.0)
+
+            if self.superslow:
+                S.select_products(1<<(ch-1))
+
             #for i in [0,1,2,3]:
             #    S.waveform(i)
             #    S.wait(1.0)
             S.start(no_flash=True)
-            S.wait(4.0)
+            S.wait(6.0)
             S.stop(no_flash=True)
             #S.wait()
                 
@@ -187,8 +223,12 @@ class Test_CPTShort(Test):
         num_wf =0 
 
         self.prepare_list()
-        num_sp_expected = len(self.todo_list)
-        num_wf_expected = num_sp_expected*4
+        if self.superslow:
+            num_sp_expected = len(self.todo_list)
+            num_wf_expected = num_sp_expected
+        else:
+            num_sp_expected = len(self.todo_list)
+            num_wf_expected = num_sp_expected*4
         
         for P in C.cont:
 
@@ -202,9 +242,11 @@ class Test_CPTShort(Test):
 
         if (num_wf!=num_wf_expected):
             print ("ERROR: Missing waveforms or housekeeping packets.")
+            print (num_wf, num_wf_expected)
             passed = False
         if (num_sp!=num_sp_expected):
             print ("ERROR: Missing spectra.")
+            print (num_sp, num_sp_expected)
             passed = False
 
         self.results['num_wf'] = num_wf
@@ -237,6 +279,7 @@ class Test_CPTShort(Test):
             print ("... collecting and plotting (to speed up run with -p data_plots=False)...")
         else:
             print ("... collecting...")
+
         for cc, sp in enumerate(C.spectra):
             g, ch, freq_set, ampl_set, bitslic = self.todo_list[cc]
  
@@ -253,23 +296,27 @@ class Test_CPTShort(Test):
                 ax_right = fig.add_subplot(gs[1, 1])
 
                 # Plot waveforms in the large plot
+                
                 for ich in range(4):
-                    ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384)                    
-                    ax_large.plot(waveforms[ich][cc][:ndxmax], label=f'Channel {ich+1}')
+                    ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
+                    if (len(waveforms[ich])>cc):
+                        ax_large.plot(waveforms[ich][cc][:ndxmax], label=f'Channel {ich+1}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 
                 # Plot spectra in the left plot (linear scale)
                 for ich in range(4):
-                    sp[ich]._read()    
-                    ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
+                    if ich in sp:
+                        sp[ich]._read()    
+                        ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
                 ax_left.set_title('Spectra (Linear Scale)')
                 ax_left.set_xlabel('Frequency')
                 ax_left.set_ylabel('Amplitude')
 
                 # Plot spectra in the right plot (logarithmic scale)
                 for ich in range(4):
-                    ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
+                    if ich in sp:
+                        ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
                 ax_right.set_title('Spectra (Logarithmic Scale)')
                 ax_right.set_xlabel('Frequency')
                 ax_right.set_ylabel('Amplitude')
@@ -281,9 +328,14 @@ class Test_CPTShort(Test):
                 
                 figlist.append("\n\includegraphics[width=0.8\\textwidth]{Figures/data_%d.png}\n"%cc)
 
-            waveforms_out = [waveforms[i][cc] for i in range(4)]
-            [sp[i]._read() for i in range(4)]
-            spectra_out = [sp[i].data for i in range(4)]
+            waveforms_out = []
+            spectra_out = []
+            for i in range(4):
+                if len(waveforms[i])>cc:
+                    waveforms_out.append(waveforms[i][cc])
+                if i in sp:
+                    sp[i]._read()
+                    spectra_out.append(sp[i].data)
             results_list.append(list(self.todo_list[cc])+[waveforms_out, spectra_out])          
 
             if ch>0:
@@ -292,14 +344,17 @@ class Test_CPTShort(Test):
                 chlist = [1,2,3,4]
 
 
+            def freq_to_bin(freq):  
+                bin = int(freq/0.025+1e-3)
+                if bin>2048:
+                    bin = 2048-bin
+                return bin
+
             for ch in chlist:
                 cfreq = freq_set[ch-1]
                 key = (ch,g,cfreq)
                 # now we need to isolate the power
-                bin = int(cfreq/0.025+1e-3)
-                if bin>2048:
-                    bin = 2048-bin # aliasing
-
+                bin = freq_to_bin(cfreq)
 
                 if key not in power_out:
                     power_out[key] = []
@@ -320,6 +375,14 @@ class Test_CPTShort(Test):
         pickle.dump(results_list, open(os.path.join(figures_dir, '../../data.pickle'), 'wb'))
         self.results['data_plots'] = "".join(figlist)
 
+        if self.superslow:
+            for key in power_in:
+                (ch,g,cfreq) = key
+                bin = freq_to_bin(cfreq)
+                power_in[key].append(0)
+                power_out[key].append(power_zero[(ch,g)][0][bin])
+
+
         print ('... plotting telemetry ...')
 
         self.plot_telemetry(C.spectra, figures_dir)
@@ -338,6 +401,8 @@ class Test_CPTShort(Test):
         conversion = {}
         for key in power_out:
             c,g,f = key
+            if f==0:
+                continue
             fi = self.freqs.index(f)
             #print (key, power_out[key], power_in[key])
             if np.any(np.array(power_out[key])==0):            
