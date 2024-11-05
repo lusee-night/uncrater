@@ -247,7 +247,11 @@ def main():
             )
         print("Test result:", "PASSED" if t.results["result"] else "FAILED")
         print("Done.")
-        sys.exit(0 if t.results["result"] else 1)
+
+        if t.results["result"]:
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
     if args.inspect:
         workdir = args.workdir.replace("%test_name%", args.test_name)
