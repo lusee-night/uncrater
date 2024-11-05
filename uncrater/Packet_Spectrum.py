@@ -127,6 +127,7 @@ class Packet_SpectrumBase(PacketBase):
 
         self._is_read = True
 
+
     @property
     def frequency(self):
         return self.meta.frequency

@@ -12,6 +12,7 @@
     Heartbeat packets received    & ++heartbeat_received++                                       \\
     Hearbeat no missing packets   & \bcheckmark{++heartbeat_not_missing++}                       \\
     Spectral packets received     & ++sp_packets_received++                                      \\
+    TR spectra packets received     & ++tr_sp_packets_received++                                      \\
 \end{tabular}
 
 \section{Spectra}
@@ -20,7 +21,14 @@
 \begin{tabular}{p{5cm}p{5cm}}
     Full spectra present            & ++sp_num++                      \\
     All 16 products present         & \bcheckmark {++sp_all++}        \\
-    High spectra fraction           & ++frac_high++                   \\
-    Med spectra fraction            & ++frac_med++                   \\
-    Low spectra fraction            & ++frac_low++                    \\
+    Shape of TR spectra OK          & \bcheckmark {++tr_shape_ok++}        \\
+    CRC OK                          & \bcheckmark {++sp_crc_ok++}        \\
+    TR CRC OK                       & \bcheckmark {++tr_sp_crc_ok++}        \\
 \end{tabular}
+
+\newpage
+
+\section{Plots}
+++tr_plots_str++
+
+\newpage
