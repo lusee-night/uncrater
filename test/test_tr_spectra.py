@@ -28,6 +28,7 @@ class Test_TRSpectra(Test):
         "time": 30,
         "navg1": 14,
         "navg2": 3,
+        "ramp": False,
         "tr_start": 0,
         "tr_stop": 8,
         "tr_avg_shift": 2,
@@ -36,6 +37,7 @@ class Test_TRSpectra(Test):
         "time": "Total time to run the test.",
         "navg1": "Phase 1 (moving from FPGA) averages over 2^navg1 values.",
         "navg2": "Phase 2 (moving to TICK/TOCK) averages over 2^navg2 values.",
+        "ramp": "Use ramp mode for ADCs.",
         "tr_start": "Start of time-resolved window.",
         "tr_stop": "End of time-resolved window.",
         "tr_avg_shift": "Average over every 2^tr_avg_shift values.",
@@ -50,7 +52,9 @@ class Test_TRSpectra(Test):
         scripter = Scripter()
         scripter.reset()
         scripter.wait(5)
-
+        if self.ramp:
+            scripter.ADC_special_mode('ramp')
+        scripter.set_cdi_delay(2)
         scripter.set_Navg(Navg1=self.navg1, Navg2=self.navg2)
         scripter.set_tr_start_lsb(self.tr_start)
         scripter.set_tr_stop_lsb(self.tr_stop)
@@ -59,7 +63,7 @@ class Test_TRSpectra(Test):
         scripter.start()
         scripter.wait(self.time)
         scripter.stop()
-
+        scripter.wait(5)
         return scripter
 
     def get_tr_shape(self):
