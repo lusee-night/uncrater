@@ -9,7 +9,7 @@ class Packet_Waveform(PacketBase):
         return  "Raw Waveform"
 
     def _read(self):
-        if hasattr(self,"waveform"):
+        if self._is_read:
             return
         super()._read()
         fmt = "16384H"
@@ -18,7 +18,8 @@ class Packet_Waveform(PacketBase):
         self.ch = self.appid - 0x2f0
         if self.ch>=512:
             self.ch -= 512
-        
+        self._is_read = True
+                
     def info (self):
         self._read()
         desc = f"Raw waveform for channel {self.ch}\n"        

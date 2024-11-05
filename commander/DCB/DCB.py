@@ -4,10 +4,10 @@ from BackendBase import BackendBase
 import threading
 import time
 
-class DCBEmulator(BackendBase):
+class DCB(BackendBase):
     def __init__ (self, clog, uart_log, session):
         super().__init__(clog, uart_log, session)
-        self.clog.log ("DCB Emulator backend initializing\n\n")
+        self.clog.log ("DCB backend initializing\n\n")
         
         self.clog.log("Attempting to open UART serial...\n")
         self.uart = None
@@ -49,9 +49,5 @@ class DCBEmulator(BackendBase):
         self.uartStop = False
         tu.start()    
         self.clog.log("\n\nStarting data collection threads.\n")   
-        te1 = threading.Thread(target = self.ether.ListenForData, args = (0,), daemon=True)
-        te2 = threading.Thread(target = self.ether.ListenForData, args = (1,), daemon=True)
+        te1 = threading.Thread(target = self.ether.ListenForData, daemon=True)
         te1.start()
-        te2.start()
-    
-        

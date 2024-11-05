@@ -24,6 +24,14 @@ class LuSEE_ETHERNET:
         self.PORT_DATA = 32004
         self.BUFFER_SIZE = 9014
 
+        self.TCP_IP = 'localhost'
+        self.PORT_TCP = 5004
+        self.ssl_delimiter = 0xEB90
+
+        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (self.TCP_IP, self.PORT_TCP)
+        self.tcp_socket.connect(server_address)
+
         self.KEY1 = 0xDEAD
         self.KEY2 = 0xBEEF
         self.FOOTER = 0xFFFF
@@ -56,21 +64,11 @@ class LuSEE_ETHERNET:
         self.BL_JUMP = 0x1
         self.BL_PROGRAM_CHECK = 0x2
         self.BL_PROGRAM_VERIFY = 0x3
-        self.sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        self.sock_read_hk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock_read_hk.bind((self.PC_IP, self.PORT_HK))
-
-        self.sock_read_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock_read_data.bind((self.PC_IP, self.PORT_DATA))
-
-        self.data_ports = [(self.sock_read_hk,self.PORT_HK), (self.sock_read_data,self.PORT_DATA)]
 
         self.packet_count = 0
         
         self.clog.log(f"Initialized LuSEE_ETHERNET with version {self.version}.\n")
-        self.clog.log(f"UDP IP is {self.UDP_IP} and PC IP is {self.PC_IP}.\n")
-        self.clog.log(f"Listening on ports {self.PORT_DATA}\n")
+        self.clog.log(f"TCP IP is {self.TCP_IP} and TCP port is {self.PORT_TCP}.\n")
         self.etherStop = False
                 
     def reset(self, clog):
@@ -144,27 +142,33 @@ class LuSEE_ETHERNET:
         resp = self.read_cdi_reg(self.readback_register)
         return int(resp)
 
-    def write_cdi_reg(self, reg, data):
-
-        regVal = int(reg)
+    def write_cdi_reg(self, data):
         dataVal = int(data)
-        #Splits the register up, since both halves need to go through socket.htons seperately
-        dataValMSB = ((dataVal >> 16) & 0xFFFF)
+        dataValMSB = ((dataVal >> 16) & 0xFF)
         dataValLSB = dataVal & 0xFFFF
-        WRITE_MESSAGE = struct.pack('HHHHHHHHH',socket.htons( self.KEY1  ), socket.htons( self.KEY2 ),
-                                    socket.htons(regVal),socket.htons(dataValMSB),
-                                    socket.htons(dataValLSB),socket.htons( self.FOOTER ), 0x0, 0x0, 0x0  )
+        WRITE_MESSAGE = struct.pack('>BH', dataValMSB, dataValLSB)
+        print(f"Writing {WRITE_MESSAGE}")
 
-        #Set up socket for IPv4 and UDP, attach the correct PC IP
+        #sock_write = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        self.sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.FEMB_PORT_WREG ))
+        # Define the server address and port
+        #server_address = ("130.130.130.130", 10000)
+
+        # Connect the socket to the server
+        #sock_write.connect(server_address)
+
+        try:
+            # Send data
+            #message = '"\A0\00\00"
+            self.tcp_socket.sendall(WRITE_MESSAGE)
+
+            # data = sock_write.recv(1024)
+            # print('Received:', data.decode())
+        except:
+            print(f"Python Ethernet --> Couldn't write {hex(data)}, trying again...")
 
     def cdi_command(self,cmd,arg):
-        self.write_cdi_reg(0x0002, (cmd<<16)+arg)
-        self.write_cdi_reg(0x0001, 0x01)
-        self.write_cdi_reg(0x0001, 0x00)
-
-
+        self.write_cdi_reg((cmd<<16)+arg)
 
     #Read a full register from the FEMB FPGA.  Returns the 32 bits in an integer form
     def read_cdi_reg(self, reg):
@@ -287,25 +291,18 @@ class LuSEE_ETHERNET:
         else:
             return formatted_data
 
-    #Unpack the header files into a dictionary, this is common for all CDI responses
     def organize_header(self, formatted_data):
-        header_dict = {} 
-        hex = lambda x:x
-        header_dict["udp_packet_num"] = hex((formatted_data[0] << 16) + formatted_data[1])
-        header_dict["header_user_info"] = hex((formatted_data[2] << 48) + (formatted_data[3] << 32) + (formatted_data
-[4] << 16) + formatted_data[5])
-        header_dict["system_status"] = hex((formatted_data[6] << 16) + formatted_data[7])
-        header_dict["message_id"] = hex(formatted_data[8] >> 10)
-        header_dict["message_length"] = hex(formatted_data[8] & 0x3FF)
-        header_dict["message_spare"] = hex(formatted_data[9])
-        header_dict["ccsds_version"] = hex(formatted_data[10] >> 13)
-        header_dict["ccsds_packet_type"] = hex((formatted_data[10] >> 12) & 0x1)
-        header_dict["ccsds_secheaderflag"] = hex((formatted_data[10] >> 11) & 0x1)
-        header_dict["ccsds_appid"] = hex(formatted_data[10] & 0x7FF)
-        header_dict["ccsds_groupflags"] = hex(formatted_data[11] >> 14)
-        header_dict["ccsds_sequence_cnt"] = hex(formatted_data[11] & 0x3FFF)
-        header_dict["ccsds_packetlen"] = hex(formatted_data[12])
-
+        header_dict = {}
+        header_dict["message_id"] = hex(formatted_data[0] >> 10)
+        header_dict["message_length"] = hex(formatted_data[0] & 0x3FF)
+        header_dict["message_spare"] = hex(formatted_data[1])
+        header_dict["ccsds_version"] = hex(formatted_data[2] >> 13)
+        header_dict["ccsds_packet_type"] = hex((formatted_data[2] >> 12) & 0x1)
+        header_dict["ccsds_secheaderflag"] = hex((formatted_data[2] >> 11) & 0x1)
+        header_dict["ccsds_appid"] = hex(formatted_data[2] & 0x7FF)
+        header_dict["ccsds_groupflags"] = hex(formatted_data[3] >> 14)
+        header_dict["ccsds_sequence_cnt"] = hex(formatted_data[3] & 0x3FFF)
+        header_dict["ccsds_packetlen"] = hex(formatted_data[4])
         return header_dict
 
     def check_data_adc(self, data):
@@ -531,22 +528,58 @@ class LuSEE_ETHERNET:
         program_info_dict["default_vals_loaded"] = packet[1]
         return program_info_dict
 
-    def ListenForData(self, port_id = 0):
-        sock_read,port = self.data_ports[port_id]
-        full_packet = bytearray(0)
-        last_num = None
+    def ListenForData(self):
+        # sock_read,port = self.data_ports[port_id]
+        # full_packet = bytearray(0)
+        # last_num = None
         while not self.etherStop:
-            data, addr = sock_read.recvfrom(5000)  # arg is buffer size
-            if len(data)>0:
-                # we dont't really need this    
-                formatted_data = struct.unpack_from(f">13H",data[:26])
-                header_dict = self.organize_header(formatted_data)
-                udp_packet_num = header_dict['udp_packet_num']
-                if last_num is not None:
-                    if udp_packet_num != last_num+1:
-                        print(f"UDP packet skip {last_num} -> {udp_packet_num}")
-                last_num = udp_packet_num
-                self.save_data(data[20:])
+            data = self.tcp_socket.recv(self.BUFFER_SIZE)
+            print(f"Received data from TCP, it's {data}")
+            if (len(data) < 10):
+                print(f"We got a small packet of {packet}. Throw it back like a fish")
+
+            unpack_buffer = int((len(data))/2)
+            formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
+            for i in formatted_data:
+                print(hex(i))
+            if (formatted_data[0] != self.ssl_delimiter):
+                print(f"The first 2 bytes of the packet were {hex(formatted_data[0])}, not {hex(self.ssl_delimiter)}!")
+                sys.exit("Delimiter error")
+            header_dict = self.organize_header(formatted_data[1:])
+            print(header_dict)
+            cdi_packet_size = int(header_dict['ccsds_packetlen'], 16)
+            if (int(header_dict["ccsds_appid"], 16) == 0x200):
+                extra_packets = 12
+            else:
+                extra_packets = 13
+            if (len(data) != cdi_packet_size+extra_packets): #Account for the delimiter 0xEB90
+                print(f"CDI packet is supposed to have a size of {cdi_packet_size}, however, we only received {len(data)}")
+                self.tcp_socket.settimeout(1)
+                while (len(data) < cdi_packet_size+extra_packets):  #Account for delimiter 0xEB90
+                    try:
+                        packet = self.tcp_socket.recv(cdi_packet_size+extra_packets - len(data))  #Receive the remaining bytes needed only, although may receive less with partial chunks
+                    except socket.timeout:
+                        print(f"Socket timed out trying to get a length of {cdi_packet_size+extra_packets}. Returning packet with a current length of {len(data)}")
+                        break
+                print(f"CDI packet with size of {cdi_packet_size+extra_packets} is now matched by data with {len(data)}")
+                self.tcp_socket.settimeout(None)
+
+            print(f"Incoming APID is {header_dict['ccsds_appid']}")
+            print(f"First few bytes are {data[:4]} and last few bytes are {data[-4:]}")
+            self.save_data(data[6:])
+
+            #Anze's stuff
+            # data, addr = sock_read.recvfrom(5000)  # arg is buffer size
+            # if len(data)>0:
+            #     # we dont't really need this
+            #     formatted_data = struct.unpack_from(f">13H",data[:26])
+            #     header_dict = self.organize_header(formatted_data)
+            #     udp_packet_num = header_dict['udp_packet_num']
+            #     if last_num is not None:
+            #         if udp_packet_num != last_num+1:
+            #             print(f"UDP packet skip {last_num} -> {udp_packet_num}")
+            #     last_num = udp_packet_num
+            #     self.save_data(data[20:])
 
                 # if (diff <= 4):
                 #     ndx =  header_dict['message_length']*4+20
