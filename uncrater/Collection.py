@@ -6,6 +6,8 @@ from datetime import datetime
 
 from .Packet import *
 
+from .error_utils import *
+
 
 class Collection:
 
@@ -201,6 +203,15 @@ class Collection:
                     )
                     return 0
         return 1
+
+
+    def all_meta_error_free(self) -> int:
+        result = 1
+        for i, sp in enumerate(self.spectra):
+            if sp["meta"].errormask:
+                print(f"Errors in {i}: {error_mask_pretty_print(sp["meta"].errormask)}")
+                result = 0
+        return result
 
     def xxd(self, i, intro=False):
         if intro:

@@ -145,12 +145,14 @@ class Test_TRSpectra(Test):
         self.results["sp_packets_received"] = coll.num_spectra_packets()
         self.results["tr_sp_packets_received"] = coll.num_tr_spectra_packets()
         self.results["tr_plots_str"] = self.plot_tr_spectra(coll, figures_dir)
+        self.results["all_meta_error_free"] = coll.all_meta_error_free()
 
         passed = (
             self.results["sp_all"]
             and self.results["tr_sp_all"]
             and self.results["sp_crc_ok"]
             and self.results["tr_sp_crc_ok"]
+            and self.results["all_meta_error_free"]
             and tr_shape_ok
         )
 
