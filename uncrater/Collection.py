@@ -209,7 +209,7 @@ class Collection:
         result = 1
         for i, sp in enumerate(self.spectra):
             if sp["meta"].errormask:
-                print(f"Errors in {i}: {error_mask_pretty_print(sp["meta"].errormask)}")
+                print(f"Errors in {i}: {error_mask_pretty_print(sp['meta'].errormask)}")
                 result = 0
         return result
 

@@ -24,11 +24,13 @@ class Test_Route(Test):
     instructions = """ It will attempt to setup signals at 2 3 5 7 MHz across J4-J7 """
     default_options = {
         "auto_only" : False,
-        "Navg2":  3
+        "Navg2":  3,
+        "Vpp": 30,
     } ## dictinary of options for the test
     options_help = {
         "auto_only" : "Only take the auto spectra",
-        "Navg2": "Navg2 setting for the second stage"  
+        "Navg2": "Navg2 setting for the second stage",
+        "Vpp": "Vpp for the tones"
     } ## dictionary of help for the options
 
 
@@ -60,7 +62,7 @@ class Test_Route(Test):
         S.set_dispatch_delay(6)
         S.awg_init()
         for i,f in enumerate(self.get_tone_freqs()):
-            S.awg_tone(i, f, 30)
+            S.awg_tone(i, f, self.Vpp)
         
         ## these setting are appropriate for the SSL with no amplifiers -- fix later
         S.set_ana_gain('MMMM')
