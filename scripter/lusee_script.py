@@ -39,7 +39,7 @@ class Scripter:
     def spectrometer_command(self,cmd,arg):
         assert(arg<256)
         assert(cmd<256)
-        self.command(lc.RFS_SETTINGS,(cmd<<8)+arg)     
+        self.command(lc.RFS_SETTINGS,(cmd<<8)+arg)
 
     def wait (self, dt):
         """ Wait for dt in seconds, rounted to 100ms. If negative, wait forever"""
@@ -81,7 +81,7 @@ class Scripter:
             raise ValueError("Unknown stored_state")
         master = lc.RFS_SPECIAL if special else lc.RFS_SETTINGS
         self.command(master, (lc.RFS_SET_RESET<<8)+arg_low) ## special CO
-        
+
     def ADC_special_mode (self, mode='normal'):
         print (mode)
         assert(mode in ['normal', 'ramp','zeros', 'ones'])
@@ -193,11 +193,22 @@ class Scripter:
         assert val in [1, 2, 3, 4]
         self.spectrometer_command(lc.RFS_SET_AVG_FREQ, val)
 
-    def set_tr_start_lsb(self, val: int):
+    def set_tr_start_stop(self, start: int, stop: int):
+        assert 0 <= start <= 2048 and 0 <= stop <= 2048
+        start_lsb, stop_lsb = start & 0xFF, stop & 0xFF
+        start_msb_part, stop_msb_part  = (start >> 8) & 0x0F, (stop >> 8) & 0x0F
+        # combine bits 12-8 of start and stop into one byte tr_st
+        tr_st = (stop_msb_part << 4) | start_msb_part
+        self.spectrometer_command(lc.RFS_SET_TR_START_LSB, start_lsb)
+        self.spectrometer_command(lc.RFS_SET_TR_STOP_LSB, stop_lsb)
+        self.spectrometer_command(lc.RFS_SET_TR_ST_MSB, tr_st)
+
+    # low-level commands are not supposed to be used directly, keep just in case
+    def _set_tr_start_lsb(self, val: int):
         assert val < 0xFF
         self.spectrometer_command(lc.RFS_SET_TR_START_LSB, val)
 
-    def set_tr_stop_lsb(self, val: int):
+    def _set_tr_stop_lsb(self, val: int):
         assert val < 0xFF
         self.spectrometer_command(lc.RFS_SET_TR_STOP_LSB, val)
 

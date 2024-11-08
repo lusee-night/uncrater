@@ -16,7 +16,7 @@ from collections import defaultdict
 
 
 class Test_Science(Test):
-    
+
     name = "science"
     version = 0.2
     description = """ Runs the spectrometer in close to the real science mode"""
@@ -35,16 +35,16 @@ class Test_Science(Test):
         """ Generates a script for the test """
         if self.preset not in ['simple', 'debug', 'agc-test', 'simplest']:
             raise ValueError ("Unknown preset.")
-            
+
         if self.time_mins>100:
             raise ValueError ("Use time <100 mins or forever (0).");
-            
 
 
 
         S = Scripter()
         S.wait(1)
         S.reset()
+
         S.wait(3)
         if self.preset in ['simple']:
             S.set_Navg(14,6)
@@ -71,18 +71,18 @@ class Test_Science(Test):
             S.set_ana_gain('AAAA')
         else:
             S.set_ana_gain('MMMM')
-            
+
         if self.preset=='agc-test':
             for i in range(4):
                 S.set_agc_settings(i,848,7)
                 pass
             S.start()
-            for steps in range(300):                
+            for steps in range(300):
                 awg_amplitude = awg_amplitude*(1+awg_fact)
                 awg_fact[(awg_amplitude>4000) | (awg_amplitude<5)] *= -1
                 for i in range(4):
                     S.awg_tone(i, awg_frequecy, awg_amplitude[i] if awg_amplitude[i]>20 else 0)
-                    
+
 
                 S.wait(2)
             S.awg_close()
@@ -98,71 +98,39 @@ class Test_Science(Test):
 
 
         return S
-    
-    def analyze(self, C, uart, commander, figures_dir):
-        """ Analyzes the results of the test. 
+
+    def analyze(self, C: uc.Collection, uart, commander, figures_dir):
+        """ Analyzes the results of the test.
             Returns true if test has passed.
         """
         self.results = {}
         passed = True
-        
+
         self.results['packets_received'] = len(C.cont)
         self.get_versions(C)
-        
-        num_hb, num_sp = 0,0
-        last_hb = None
-        heartbeat_counter_ok = True
-        sp_crc_ok = True
-        hk_start = None
-        hk_end = None
-        hk_end = None
-        last_hbtime = None
-        hb_tmin = 0
-        hb_tmax = 0
-        for P in C.cont:
-            if type(P) == uc.Packet_Heartbeat:
-                P._read()
-                num_hb += 1
-                if last_hb is None:
-                    last_hb = P.packet_count
-                    last_hbtime = P.time
-                    hb_tmin = 1e9
-                else:
-                    if P.packet_count != last_hb+1 or P.ok == False:
-                        heartbeat_counter_ok = False
-                    else:
-                        last_hb = P.packet_count
-                    dt = P.time - last_hbtime
-                    last_hbtime = P.time
-                    hb_tmin = min(hb_tmin, dt)
-                    hb_tmax = max(hb_tmax, dt)
 
-            if type(P) == uc.Packet_Spectrum:
-                num_sp += 1
-                P._read()
-                sp_crc_ok = (sp_crc_ok & (not P.error_crc_mismatch))
+        num_hb = C.num_heartbeats()
+        num_sp = C.num_spectra_packets()
+        heartbeat_counter_ok = C.heartbeat_counter_ok() and C.heartbeat_max_dt() < 11
 
         if num_hb == 0:
             heartbeat_counter_ok = False
-        
+
         self.results['heartbeat_received'] = num_hb
-        self.results['hearbeat_count'] = int(num_hb)
-        self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok & (hb_tmax<11))
-        self.results['heartbeat_mindt'] = f"{hb_tmin:.3f}"
-        self.results['heartbeat_maxdt'] = f"{hb_tmax:.3f}"
+        self.results['hearbeat_count'] = num_hb
+        self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok)
+        self.results['heartbeat_mindt'] = f"{C.heartbeat_min_dt():.3f}"
+        self.results['heartbeat_maxdt'] = f"{C.heartbeat_max_dt():.3f}"
         self.results['sp_packets_received'] = num_sp
-
-
 
         ## now plot spectra
         freq = np.arange(1,2048)*0.025
         wfall=[[] for i in range(16)]
-        
-        
-        crc_ok = True
-        sp_all = True
-        sp_rejections = 0
 
+
+        crc_ok = C.all_spectra_crc_ok()
+        sp_all = C.has_all_products()
+        sp_rejections = 0
 
         # first check if the last one has all the spectra
         # if not, we don't care, we just stopped acquisition in a unfortunate moment
@@ -174,18 +142,11 @@ class Test_Science(Test):
         if not (last_one_ok):
             C.spectra = C.spectra[:-1]
 
-
         # however, stuff during the normal run should have all the spectra.
-        for i,S in enumerate(C.spectra):                
-            for c in range(16):
-                if c not in S:
-                    sp_all = False
-                    print (f"Product {c} missing in spectra{i}.")
-
         if sp_all:
 
             def get_meta(name, C):
-                return np.array([S['meta'][name] for S in C.spectra]) 
+                return np.array([S['meta'][name] for S in C.spectra])
 
             weights = get_meta("base.weight_previous",C)
             time = get_meta("time",C)
@@ -193,7 +154,7 @@ class Test_Science(Test):
             errors = get_meta("base.errors",C)
             adc_min = get_meta("adc_min",C)
             adc_valid_count = get_meta("adc_valid_count",C)
-            adc_invalid_count_min = get_meta("adc_invalid_count_min",C) 
+            adc_invalid_count_min = get_meta("adc_invalid_count_min",C)
             adc_invalid_count_max = get_meta("adc_invalid_count_max",C)
             adc_max = get_meta("adc_max",C)
             adc_mean = get_meta("adc_mean",C)
@@ -205,13 +166,11 @@ class Test_Science(Test):
             d3 = get_meta('seq.gain',C)
             print (d1[0],d2[0],d3[0])
             #stop()
-                          
-
 
             sp_rejections = np.sum(64-weights)
 
             data = np.array([[ S[c].data for c in range(16)] for S in C.spectra])
-            
+
             data_mean = np.mean(data, axis=0)
             freq = C.spectra[0]['meta'].frequency
 
@@ -221,7 +180,7 @@ class Test_Science(Test):
             ax.set_xlabel('time [mins]')
             ax.set_ylabel('weights')
             fig.savefig(os.path.join(figures_dir,'weights.pdf'))
-        
+
             # plot errors
             fig,ax = plt.subplots()
 
@@ -258,7 +217,7 @@ class Test_Science(Test):
                 if y==0:
                     ax[x,y].set_ylabel('counts')
             fig.legend()
-            
+
             fig.tight_layout()
             fig.savefig(os.path.join(figures_dir,'adc_stats.pdf'))
 
@@ -288,8 +247,6 @@ class Test_Science(Test):
             fig.tight_layout()
             fig.savefig(os.path.join(figures_dir,'actual_gain.pdf'))
 
-
-
             fig,ax = plt.subplots()
             for i in range(4):
                 ax.plot(time, actual_bitslice[:,i], ls = '-', lw=2, color =colors[i],label='BITSLICE CH'+str(i+1))
@@ -299,8 +256,6 @@ class Test_Science(Test):
             ax.set_ylim(0,32)
             fig.tight_layout()
             fig.savefig(os.path.join(figures_dir,'actual_bitslice.pdf'))
-
-
 
             #plot mean spectra
             fig_sp, ax_sp = plt.subplots(4,4,figsize=(12,12))
@@ -312,7 +267,7 @@ class Test_Science(Test):
                         ax_sp[x][y].set_xlim(0,51.2)
                     else:
                         ax_sp[x][y].plot(freq, data_mean[c])
-                        
+
 
             for i in range(4):
                 ax_sp[3][i].set_xlabel('frequency [MHz]')
@@ -320,7 +275,7 @@ class Test_Science(Test):
 
             fig_sp.tight_layout()
             fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
-            
+
             # waterfall plots
             fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
             for c in range(16):
@@ -350,7 +305,3 @@ class Test_Science(Test):
         passed = (passed and crc_ok and sp_all)
 
         self.results['result'] = int(passed)
-
-
-
-

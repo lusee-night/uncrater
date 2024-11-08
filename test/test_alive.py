@@ -120,13 +120,13 @@ class Test_Alive(Test):
         if self.waveform_type not in ['ramp','zeros','ones','input']:
             print ("Unknown waveform type. ")
             sys.exit(1)
-        
+
 
         S = Scripter()
         S.reset()
         ## this is the real wait
         S.wait(3)
-        
+
         S.set_cdi_delay(int(self.cdi_delay))
         S.set_dispatch_delay(220 if self.superslow else 6)
         S.house_keeping(0)
@@ -272,12 +272,14 @@ class Test_Alive(Test):
             self.results['sp_pk_ok'] = int(pk_ok)
             self.results['sp_num'] = len(C.spectra)
             self.results['sp_weights_ok'] = int(pk_weights_ok)
+            self.results["meta_error_free"] = C.all_meta_error_free()
         else:
             self.results['sp_crc'] = 0
             self.results['sp_all'] = 0
             self.results['sp_pk_ok'] = 0
             self.results['sp_num'] = 0
             self.results['sp_weights_ok'] = 0
+            self.results["meta_error_free"] = 0
 
         time, V1_0, V1_8, V2_5, T_FPGA = self.plot_telemetry(C.spectra, figures_dir)
         self.results['v1_0_min'] = f"{V1_0.min():3.2f}"
@@ -302,6 +304,7 @@ class Test_Alive(Test):
         self.results['t_fpga_ok'] = int(t_fpga_ok)
 
         passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok and v_1_0_ok and v_1_8_ok and v_2_5_ok and t_fpga_ok and wf_ch_ok[0] and wf_ch_ok[1] and wf_ch_ok[2] and wf_ch_ok[3])
+        passed = passed and self.results["meta_error_free"]
 
         fig_sp.tight_layout()
         fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))

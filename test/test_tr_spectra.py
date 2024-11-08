@@ -56,8 +56,7 @@ class Test_TRSpectra(Test):
             scripter.ADC_special_mode('ramp')
         scripter.set_cdi_delay(2)
         scripter.set_Navg(Navg1=self.navg1, Navg2=self.navg2)
-        scripter.set_tr_start_lsb(self.tr_start)
-        scripter.set_tr_stop_lsb(self.tr_stop)
+        scripter.set_tr_start_stop(self.tr_start, self.tr_stop)
         scripter.set_tr_avg_shift(self.tr_avg_shift)
 
         scripter.start()
@@ -146,12 +145,14 @@ class Test_TRSpectra(Test):
         self.results["sp_packets_received"] = coll.num_spectra_packets()
         self.results["tr_sp_packets_received"] = coll.num_tr_spectra_packets()
         self.results["tr_plots_str"] = self.plot_tr_spectra(coll, figures_dir)
+        self.results["all_meta_error_free"] = coll.all_meta_error_free()
 
         passed = (
             self.results["sp_all"]
             and self.results["tr_sp_all"]
             and self.results["sp_crc_ok"]
             and self.results["tr_sp_crc_ok"]
+            and self.results["all_meta_error_free"]
             and tr_shape_ok
         )
 
