@@ -15,7 +15,7 @@ import uncrater as uc
 
 
 class Test_Wave(Test):
-    
+
     name = "wave"
     version = 0.1
     description = """ Collects waveform data and checks the waveform statistics."""
@@ -44,7 +44,7 @@ class Test_Wave(Test):
 
         S = Scripter()
         S.reset()
-        
+
         S.wait(1)
 
         S.set_ana_gain(self.gain)
@@ -58,39 +58,33 @@ class Test_Wave(Test):
         S.wait(5)
 
         return S
-    
-    def analyze(self, C, uart, commander, figures_dir):
-        """ Analyzes the results of the test. 
+
+    def analyze(self, C: uc.Collection, uart, commander, figures_dir):
+        """ Analyzes the results of the test.
             Returns true if test has passed.
         """
         self.results = {}
         passed = True
-        
+
         self.results['packets_received'] = len(C.cont)
-        
+
         C.cut_to_hello()
-        self.get_versions(C)     
+        self.get_versions(C)
 
         # extract data
 
         waveforms = [None,None,None,None]
         hk = None
-        num_wf =0 
-        num_hk = 0
-        for P in C.cont:
+        num_wf =C.num_waveform_packets()
+        num_hk = C.num_housekeeping_packets()
+        for wf_packet in C.waveform_packets:
+            waveforms[wf_packet.ch] = wf_packet.waveform
 
-            if type(P) == uc.Packet_Waveform:
-                num_wf += 1
-                P._read()
-                waveforms[P.ch] = P.waveform
+        for hk_packet in C.housekeeping_packets:
+            if hk_packet.hk_type == 1:
+                hk = hk_packet
 
-            if type(P) == uc.Packet_Housekeep:
-                P._read()
-                if P.hk_type == 1:
-                    hk = P
-                    num_hk += 1
-
-        if (num_wf!=4) or num_hk != 1:
+        if (num_wf !=4 ) or num_hk != 1:
             print ("ERROR: Missing waveforms or housekeeping packets.")
             passed = False
 
@@ -106,7 +100,7 @@ class Test_Wave(Test):
             ax2 = fig.add_subplot(gs[0,2])
             ax1.plot(waveforms[ch])
             ax1.set_title(f"Waveform {ch+1}")
-            ax2.hist(waveforms[ch], bins=100)            
+            ax2.hist(waveforms[ch], bins=100)
             ax2.axvline(hk.min[ch], color='r', ls='-',lw=2)
             ax2.axvline(hk.max[ch], color='r', ls='-',lw=2)
             ax2.axvline(hk.mean[ch], color='b', ls='-',lw=2)
@@ -126,7 +120,3 @@ class Test_Wave(Test):
         self.results['actual_gain'] = " ".join(hk['actual_gain'])
 
         self.results['result'] = int(passed)
-
-
-
-
