@@ -56,8 +56,7 @@ class Test_TRSpectra(Test):
             scripter.ADC_special_mode('ramp')
         scripter.set_cdi_delay(2)
         scripter.set_Navg(Navg1=self.navg1, Navg2=self.navg2)
-        scripter.set_tr_start_lsb(self.tr_start)
-        scripter.set_tr_stop_lsb(self.tr_stop)
+        scripter.set_tr_start_stop(self.tr_start, self.tr_stop)
         scripter.set_tr_avg_shift(self.tr_avg_shift)
 
         scripter.start()
