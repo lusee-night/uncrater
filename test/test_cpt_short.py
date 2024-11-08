@@ -200,7 +200,7 @@ class Test_CPTShort(Test):
             S.wait(6.0)
             S.stop(no_flash=True)
             #S.wait()
-                
+        S.wait(6.0)
         S.awg_close()
         return S
     
@@ -235,7 +235,14 @@ class Test_CPTShort(Test):
             if type(P) == uc.Packet_Waveform:
                 num_wf += 1
                 P._read()
-                waveforms[P.ch].append(P.waveform)
+                if self.superslow:
+                    for ch in range(4):
+                        if ch==P.ch:
+                            waveforms[ch].append(P.waveform)
+                        else:
+                            waveforms[ch].append(None)
+                else:
+                    waveforms[P.ch].append(P.waveform)
 
         num_sp = len(C.spectra)
         
@@ -299,8 +306,9 @@ class Test_CPTShort(Test):
                 
                 for ich in range(4):
                     ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
-                    if (len(waveforms[ich])>cc):
-                        ax_large.plot(waveforms[ich][cc][:ndxmax], label=f'Channel {ich+1}')
+                    wform = waveforms[ich][cc]
+                    if wform is not None:
+                        ax_large.plot(wform[:ndxmax], label=f'Channel {ich+1}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 
@@ -468,12 +476,13 @@ class Test_CPTShort(Test):
         # doign real space  analysis:
         figlist_res_real = []
         v2adu_emi = {'L':5.37E-02,	'M':8.07E-03,	'H':1.22E-03}
+        print (len(waveforms[0]),len(waveforms[1]))
         for g in self.gains:
             fig, ax = plt.subplots(1,1, figsize=(12,6))
             for ch in chlist:
                 rat = []
                 for f in self.freqs:
-                    ampl_max =0
+                    ampl_max =0                    
                     for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
                         if ch_ == ch and _g == g and freq_set_[ch-1] == f and ampl_set_[ch-1]>ampl_max:
                             ampl_max = ampl_set_[ch-1]

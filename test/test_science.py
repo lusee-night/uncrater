@@ -26,14 +26,14 @@ class Test_Science(Test):
         "time_mins" : 0
     } ## dictinary of options for the test
     options_help = {
-        "preset" : "Type of science preset. Can be 'simple', 'agc-test', more to come.",
+        "preset" : "Type of science preset. Can be 'simple', 'agc-test', 'simplest', more to come.",
         "time_mins" : "Total time to run the test in minutes (up to 100), zero for forever."
     } ## dictionary of help for the options
 
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple', 'debug', 'agc-test']:
+        if self.preset not in ['simple', 'debug', 'agc-test', 'simplest']:
             raise ValueError ("Unknown preset.")
             
         if self.time_mins>100:
@@ -41,12 +41,20 @@ class Test_Science(Test):
             
 
 
+
         S = Scripter()
+        S.wait(1)
         S.reset()
-        
         S.wait(3)
         if self.preset in ['simple']:
             S.set_Navg(14,6)
+        elif self.preset in ['simplest']:
+            S.set_Navg(14,4)
+            S.start()
+            S.wait(90)
+            S.stop()
+            return S
+
         elif self.preset in ['agc-test']:
             S.set_Navg(14,3)
             S.awg_init()
