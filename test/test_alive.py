@@ -16,16 +16,16 @@ from collections import defaultdict
 
 def test_waveform(wf, type):
     if type == 'ramp':
-        
-        
+
+
         pred_val = wf[0]
         for sign in [+1, -1]:
             ok = True
             for next_val in wf[1:]:
-                if sign>1:
-                    pred_val = pred_val+1 if pred_val<8192 else -8191    
+                if sign>0:
+                    pred_val = pred_val+1 if pred_val<8192 else -8191
                 else:
-                    pred_val = pred_val-1 if pred_val>-8191 else 8192    
+                    pred_val = pred_val-1 if pred_val>-8191 else 8192
                 if (next_val != pred_val):
                     ok = False
                     break
@@ -137,12 +137,12 @@ class Test_Alive(Test):
                 S.cdi_wait_seconds(7)
         else:
             S.waveform(4)
-                
+
         S.set_Navg(14,6 if self.superslow else 3)
-        S.start()        
+        S.start()
         S.cdi_wait_seconds(120 if self.superslow else 50)
         S.stop()
-        
+
         S.house_keeping(0)
         S.ADC_special_mode('normal')
         S.wait(180 if self.superslow else 65)
@@ -195,7 +195,7 @@ class Test_Alive(Test):
         if (hk_start is not None) and (hk_end is not None):
             delta_t = hk_end.time - hk_start.time
             delta_t_exp = 152 if self.superslow else 60
-            self.results['timer_ok'] = int (np.abs(delta_t-delta_t_exp)<5) 
+            self.results['timer_ok'] = int (np.abs(delta_t-delta_t_exp)<5)
             self.results['no_errors'] =  int(hk_start.core_state.base.errors == 0 and hk_end.core_state.base.errors == 0)
         else:
             self.results['timer_ok'] = 0
@@ -211,7 +211,8 @@ class Test_Alive(Test):
         ax_wf.set_ylabel("ADC Value")
         ax_wf.set_xlabel("Sample")
         ax_wf.legend()
-        fig_wf.savefig(os.path.join(figures_dir,'waveforms.pdf'))
+        if not (figures_dir is None):
+            fig_wf.savefig(os.path.join(figures_dir,'waveforms.pdf'))
         fig_wf.tight_layout()
         for i in range(4):
             self.results[f'wf_ch{i+1}'] = int(wf_ch[i])
@@ -307,7 +308,8 @@ class Test_Alive(Test):
         passed = passed and self.results["meta_error_free"]
 
         fig_sp.tight_layout()
-        fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
+        if not (figures_dir is None):
+            fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
         for c in range(16):
             x,y = c//4, c%4
             data = np.array(wfall[c])
@@ -318,5 +320,6 @@ class Test_Alive(Test):
             ax_sp2[x][y].imshow(data, origin='upper',aspect='auto', interpolation='nearest')
 
         fig_sp2.tight_layout()
-        fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
+        if not (figures_dir is None):
+            fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
         self.results['result'] = int(passed)

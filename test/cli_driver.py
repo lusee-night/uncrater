@@ -11,6 +11,7 @@
 
 import sys, os
 
+
 sys.path.append(".")
 sys.path.append("./scripter/")
 sys.path.append("./commander/")
@@ -26,6 +27,7 @@ from test_route import Test_Route
 # from test_crosstalk import Test_CrossTalk
 from test_data_interface import Test_DataInterface
 from test_tr_spectra import Test_TRSpectra
+from test.test_encoding_format import Test_EncodingFormat
 
 from commander import Commander
 import uncrater as uc
@@ -47,7 +49,8 @@ Tests = [
     Test_CPTShort,
     Test_DataInterface,
     Test_TRSpectra,
-    Test_Route
+    Test_Route,
+    Test_EncodingFormat,
 ]
 
 
@@ -223,12 +226,15 @@ def main():
         uart_log = read_and_fix(os.path.join(workdir, "uart.log"))
         commander_log = read_and_fix(os.path.join(workdir, "commander.log"))
         report_dir = os.path.join(workdir, "report")
-        fig_dir = os.path.join(report_dir, "Figures")
-        try:
-            os.mkdir(report_dir)
-            os.mkdir(fig_dir)
-        except:
-            pass
+        if not args.skip_report:
+            fig_dir = os.path.join(report_dir, "Figures")
+            try:
+                os.mkdir(report_dir)
+                os.mkdir(fig_dir)
+            except:
+                pass
+        else:
+            fig_dir = None
         print("Starting analysis...")
         t.analyze(C, uart_log, commander_log, fig_dir)
         if not args.skip_report:
