@@ -1,5 +1,8 @@
 import sys, os
 
+import bootloader as bl
+
+
 # LuSEE script module
 
 if os.environ.get("CORELOOP_DIR") is not None:
@@ -81,6 +84,90 @@ class Scripter:
             raise ValueError("Unknown stored_state")
         master = lc.RFS_SPECIAL if special else lc.RFS_SETTINGS
         self.command(master, (lc.RFS_SET_RESET<<8)+arg_low) ## special CO
+
+    def reboot(self):
+        # there are low-level commands outside coreloop
+        self.command(bl.CMD_REBOOT, 0);
+    
+
+    def bootloader_stay(self):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_STAY)
+
+    def bootloader_check(self):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_GET_INFO)
+
+    def bootloader_load_region(self, region):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_LOAD_REGION+(region-1))
+
+    def bootloader_launch(self):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_LAUNCH)
+
+    def bootloader_delete_region(self,region):
+        self.write_register(0x630,0xDEAD0000+region)
+        self.command(bl.CMD_BOOTLOADER, bl.BL_DELETE_REGION+(region<<8))
+        self.wait(1)
+        self.write_register(0x630,0)
+
+
+    def bootloader_write_region(self, region, write_array):
+
+        def write_hex_page(page, page_num, region):
+            #Jack does 16 bit checksums for each page, so I need to split the 32 bit int to add it for the running checksum
+            running_sum = 0
+            for num,chunk in enumerate(page):
+                running_sum += chunk & 0xFFFF
+                running_sum += (chunk & 0xFFFF0000) >> 16
+                self.write_register(0x640 + num, chunk)
+
+            print(f"Page {page_num} checksum is {hex(bl.convert_checksum(running_sum, 16))}")
+            self.write_register(0x621, bl.convert_checksum(running_sum, 16))
+            self.write_register(0x620, page_num)
+            self.command(bl.CMD_BOOTLOADER, bl.BL_WRITE_FLASH + (region << 8))
+            self.wait(0.1)
+
+        print(f"Rearranged the input data.")
+        array_length = len(write_array)  #Total number of 32 bit chunks
+        pages = array_length // 64 #Each page in Flash is 64 of these 32 bit chunks, for 256 bytes (2048 bits) total
+        leftover = array_length % 64 #The last page may not be filled, so we need to know when to start padding 0s
+        effective_pages = pages
+        if leftover:
+            effective_pages += 1
+        program_size = effective_pages * 64
+        program_checksum = bl.convert_checksum(sum(write_array), 32)
+        print(f"Program size is {hex(program_size)} and program checksum is {hex(program_checksum)}")
+        self.write_register(0x630, 0xFEED0000 + region)
+        #Run through all full pages
+        for i in range(pages):
+            print(f"Writing page {i}/{pages}")
+            page = write_array[i*64:(i+1)*64]
+            write_hex_page(page, i, region)
+        #And do the final partial page if necessary
+        if (leftover):
+            print(f"Writing page {pages}/{pages}")
+            #Fill the rest of this partial page with 0s
+            final_page = write_array[pages*64:]
+            filled_zeros = [0] * (64-leftover)
+            final_page.extend(filled_zeros)
+            write_hex_page(final_page, pages, region)
+
+        self.write_register(0x630, 0)
+
+        #Write all the metadata
+        self.write_register(0x632, 0xFEED0000 + region)
+        self.write_register(0x630, program_size)
+        self.write_register(0x631, program_checksum)
+        self.command(bl.CMD_BOOTLOADER, bl.BL_WRITE_METADATA + (region << 8))
+        self.wait(1)
+        self.write_register(0x632, 0)
+
+
+    def write_register(self, reg, val):
+        self.command(bl.CMD_REG_LSB, val & 0xFFFF)
+        self.command(bl.CMD_REG_MSB, val >> 16)
+        self.command(bl.CMD_REG_ADDR, reg)
+
+
+    
 
     def ADC_special_mode (self, mode='normal'):
         print (mode)

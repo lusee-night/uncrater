@@ -26,6 +26,7 @@ from test_route import Test_Route
 # from test_crosstalk import Test_CrossTalk
 from test_data_interface import Test_DataInterface
 from test_tr_spectra import Test_TRSpectra
+from test_bootload import Test_Bootload
 
 from commander import Commander
 import uncrater as uc
@@ -47,7 +48,8 @@ Tests = [
     Test_CPTShort,
     Test_DataInterface,
     Test_TRSpectra,
-    Test_Route
+    Test_Route,
+    Test_Bootload,
 ]
 
 
