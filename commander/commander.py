@@ -13,12 +13,14 @@ from AWGBackendSSL import AWGBackendSSL
 
 try:
     import pycoreloop as cl
-    from pycoreloop import command_from_value, format_from_value
+    from pycoreloop import command_from_value#, format_from_value
 except ImportError:
     print("Can't import pycoreloop\n")
     print(
         "Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [commander.py]"
     )
+    import pycoreloop 
+    from pycoreloop import command_from_value#, format_from_value
     sys.exit(1)
 
 

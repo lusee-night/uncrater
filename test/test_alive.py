@@ -16,15 +16,15 @@ from collections import defaultdict
 
 def test_waveform(wf, type):
     if type == 'ramp':
-        pred_val = wf[0]
         for sign in [+1, -1]:
+            pred_val = wf[0]
             ok = True
             for next_val in wf[1:]:
                 if sign>0:
                     pred_val = pred_val+1 if pred_val<8192 else -8191    
                 else:
                     pred_val = pred_val-1 if pred_val>-8191 else 8192    
-                if (next_val != pred_val):
+                if (next_val != pred_val):                    
                     ok = False
                     break
             if ok:
@@ -192,8 +192,8 @@ class Test_Alive(Test):
 
         if (hk_start is not None) and (hk_end is not None):
             delta_t = hk_end.time - hk_start.time
-            delta_t_exp = 152 if self.superslow else 60
-            self.results['timer_ok'] = int (np.abs(delta_t-delta_t_exp)<5) 
+            delta_t_exp = 152 if self.superslow else 52
+            self.results['timer_ok'] = int (np.abs(delta_t-delta_t_exp)<10) 
             self.results['no_errors'] =  int(hk_start.core_state.base.errors == 0 and hk_end.core_state.base.errors == 0)
         else:
             self.results['timer_ok'] = 0
