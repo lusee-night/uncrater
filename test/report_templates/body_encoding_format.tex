@@ -1,0 +1,35 @@
+
+\section{Basic Info}
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Packets Received              & ++packets_received++                                         \\
+    Startup packet received       & \bcheckmark{++hello++}                                       \\
+    Software Version              & ++SW_version++                                               \\
+    Firmware Version              & ++FW_version++                                               \\
+    Firmware ID                   & ++FW_ID++                                                    \\
+    Firmware Date                 & ++FW_Date++                                                  \\
+    Firmware Time                 & ++FW_Time++                                                  \\
+    Heartbeat packets received    & ++heartbeat_received++                                       \\
+    Hearbeat no missing packets   & \bcheckmark{++heartbeat_not_missing++}                       \\
+    Spectral packets received     & ++sp_packets_received++                                      \\
+    No errors in metadata packets  & \bcheckmark{++all_meta_error_free++}                        \\
+\end{tabular}
+
+\section{Spectra}
+
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Full spectra present            & ++sp_num++                      \\
+    All 16 products present         & \bcheckmark {++sp_all++}        \\
+    CRC OK                          & \bcheckmark {++sp_crc_ok++}        \\
+\end{tabular}
+
+\newpage
+
+\section{Plots (calibrated)}
+++plots_calibrated_str++
+
+\section{Plots (raw)}
+++plots_raw_str++
+
+\newpage

@@ -175,120 +175,119 @@ class Test_Science(Test):
             freq = C.spectra[0]['meta'].frequency
 
             # plot weights
-            fig,ax = plt.subplots()
-            ax.plot(time, weights)
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('weights')
-            fig.savefig(os.path.join(figures_dir,'weights.pdf'))
+            if not (figures_dir is None):
+                fig,ax = plt.subplots()
+                ax.plot(time, weights)
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('weights')
+                fig.savefig(os.path.join(figures_dir,'weights.pdf'))
 
-            # plot errors
-            fig,ax = plt.subplots()
+                # plot errors
+                fig,ax = plt.subplots()
 
-            errs = [cl.error_bits[1<<i] for i in range(32)]
-            bitmask = np.zeros((len(time),32))
-            for i in range(32):
-                bitmask[:,i] = (errors & (1<<i))>0
-            ax.imshow(bitmask.T, aspect='auto', interpolation='nearest', extent=[time[0],time[-1],31.5,-0.5])
-            ax.set_yticks(np.arange(32))
-            ax.set_yticklabels(errs)
-            ax.set_xlabel('time')
-            ax.set_ylabel('errors_mask')
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'errors.pdf'))
+                errs = [cl.error_bits[1<<i] for i in range(32)]
+                bitmask = np.zeros((len(time),32))
+                for i in range(32):
+                    bitmask[:,i] = (errors & (1<<i))>0
+                ax.imshow(bitmask.T, aspect='auto', interpolation='nearest', extent=[time[0],time[-1],31.5,-0.5])
+                ax.set_yticks(np.arange(32))
+                ax.set_yticklabels(errs)
+                ax.set_xlabel('time')
+                ax.set_ylabel('errors_mask')
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'errors.pdf'))
 
-            #plot adc stats
-            #print (adc_min[:,0])
-            #print (adc_max[:,0])
-            #print (adc_valid_count[:,0])
-            #print (adc_mean[:,0])
-            #print (adc_rms[:,0])
-            fig,ax = plt.subplots(2,2)
-            colors = 'rgby'
-            for i in range(4):
-                x= i//2
-                y= i%2
-                ax[x,y].plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='CH'+str(i+1))
-                ax[x,y].plot(time, adc_min[:,i], ls = '-', lw=2, color =colors[i])
-                ax[x,y].plot(time, adc_mean[:,i],ls = '-', lw=2, color =colors[i])
-                ax[x,y].plot(time, adc_mean[:,i]+adc_rms[:,i],ls = ':', lw=2, color =colors[i])
-                ax[x,y].plot(time, adc_mean[:,i]-adc_rms[:,i],ls = ':', lw=2, color =colors[i])
-                if x==1:
-                    ax[x,y].set_xlabel('time [mins]')
-                if y==0:
-                    ax[x,y].set_ylabel('counts')
-            fig.legend()
+                #plot adc stats
+                #print (adc_min[:,0])
+                #print (adc_max[:,0])
+                #print (adc_valid_count[:,0])
+                #print (adc_mean[:,0])
+                #print (adc_rms[:,0])
+                fig,ax = plt.subplots(2,2)
+                colors = 'rgby'
+                for i in range(4):
+                    x= i//2
+                    y= i%2
+                    ax[x,y].plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='CH'+str(i+1))
+                    ax[x,y].plot(time, adc_min[:,i], ls = '-', lw=2, color =colors[i])
+                    ax[x,y].plot(time, adc_mean[:,i],ls = '-', lw=2, color =colors[i])
+                    ax[x,y].plot(time, adc_mean[:,i]+adc_rms[:,i],ls = ':', lw=2, color =colors[i])
+                    ax[x,y].plot(time, adc_mean[:,i]-adc_rms[:,i],ls = ':', lw=2, color =colors[i])
+                    if x==1:
+                        ax[x,y].set_xlabel('time [mins]')
+                    if y==0:
+                        ax[x,y].set_ylabel('counts')
+                fig.legend()
 
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'adc_stats.pdf'))
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'adc_stats.pdf'))
 
 
-            fig,ax = plt.subplots()
-            colors = 'rgby'
-            for i in range(4):
-                ax.plot(time, adc_valid_count[:,i], ls = ':', lw=2, color =colors[i],label='VALID CH'+str(i+1))
-            for i in range(4):
-                ax.plot(time, adc_invalid_count_max[:,i],ls = '-', lw=2, color =colors[i], label='INVALID MAX' if i==0 else None)
-                ax.plot(time, adc_invalid_count_min[:,i],ls = '--', lw=2, color =colors[i], label='INVALID MIN' if i==0 else None)
-            fig.legend()
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('ADC samples ')
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'adc_stats2.pdf'))
+                fig,ax = plt.subplots()
+                colors = 'rgby'
+                for i in range(4):
+                    ax.plot(time, adc_valid_count[:,i], ls = ':', lw=2, color =colors[i],label='VALID CH'+str(i+1))
+                for i in range(4):
+                    ax.plot(time, adc_invalid_count_max[:,i],ls = '-', lw=2, color =colors[i], label='INVALID MAX' if i==0 else None)
+                    ax.plot(time, adc_invalid_count_min[:,i],ls = '--', lw=2, color =colors[i], label='INVALID MIN' if i==0 else None)
+                fig.legend()
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('ADC samples ')
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'adc_stats2.pdf'))
 
-            fig,ax = plt.subplots()
-            for i in range(4):
-                ax.plot(time, actual_gain[:,i], ls = '-', lw=2, color =colors[i],label='GAIN CH'+str(i+1))
-            fig.legend()
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('actual gain')
-            ax.set_yticks([0,1,2,3])
-            ax.set_yticklabels(['L','M','H','D'])
-            ax.set_ylim(-0.5,3.5)
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'actual_gain.pdf'))
+                fig,ax = plt.subplots()
+                for i in range(4):
+                    ax.plot(time, actual_gain[:,i], ls = '-', lw=2, color =colors[i],label='GAIN CH'+str(i+1))
+                fig.legend()
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('actual gain')
+                ax.set_yticks([0,1,2,3])
+                ax.set_yticklabels(['L','M','H','D'])
+                ax.set_ylim(-0.5,3.5)
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'actual_gain.pdf'))
 
-            fig,ax = plt.subplots()
-            for i in range(4):
-                ax.plot(time, actual_bitslice[:,i], ls = '-', lw=2, color =colors[i],label='BITSLICE CH'+str(i+1))
-            fig.legend()
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('actual bitslice')
-            ax.set_ylim(0,32)
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'actual_bitslice.pdf'))
+                fig,ax = plt.subplots()
+                for i in range(4):
+                    ax.plot(time, actual_bitslice[:,i], ls = '-', lw=2, color =colors[i],label='BITSLICE CH'+str(i+1))
+                fig.legend()
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('actual bitslice')
+                ax.set_ylim(0,32)
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'actual_bitslice.pdf'))
 
-            #plot mean spectra
-            fig_sp, ax_sp = plt.subplots(4,4,figsize=(12,12))
-            for c in range(16):
+                #plot mean spectra
+                fig_sp, ax_sp = plt.subplots(4,4,figsize=(12,12))
+                for c in range(16):
+                        x,y = c//4, c%4
+                        if c<4:
+                            ax_sp[x][y].plot(freq, data_mean[c])
+                            ax_sp[x][y].set_yscale('log')
+                            ax_sp[x][y].set_xlim(0,51.2)
+                        else:
+                            ax_sp[x][y].plot(freq, data_mean[c])
+
+
+                for i in range(4):
+                    ax_sp[3][i].set_xlabel('frequency [MHz]')
+                    ax_sp[i][0].set_ylabel('power [uncalibrated]')
+
+                fig_sp.tight_layout()
+                fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
+
+                # waterfall plots
+                fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
+                for c in range(16):
                     x,y = c//4, c%4
+                    cdata = data[:,c,:]
                     if c<4:
-                        ax_sp[x][y].plot(freq, data_mean[c])
-                        ax_sp[x][y].set_yscale('log')
-                        ax_sp[x][y].set_xlim(0,51.2)
-                    else:
-                        ax_sp[x][y].plot(freq, data_mean[c])
+                        cdata=np.log10(cdata)
+                    ax_sp2[x][y].imshow(cdata, origin='upper',aspect='auto', interpolation='nearest')
 
-
-            for i in range(4):
-                ax_sp[3][i].set_xlabel('frequency [MHz]')
-                ax_sp[i][0].set_ylabel('power [uncalibrated]')
-
-            fig_sp.tight_layout()
-            fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
-
-            # waterfall plots
-            fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
-            for c in range(16):
-                x,y = c//4, c%4
-                cdata = data[:,c,:]
-                if c<4:
-                    cdata=np.log10(cdata)
-                ax_sp2[x][y].imshow(cdata, origin='upper',aspect='auto', interpolation='nearest')
-
-            fig_sp2.tight_layout()
-            fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
-
-
+                fig_sp2.tight_layout()
+                fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
 
         if len(C.spectra)>0:
             self.results['sp_crc'] = int(crc_ok)

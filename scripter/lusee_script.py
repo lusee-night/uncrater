@@ -11,13 +11,13 @@ if os.environ.get("CORELOOP_DIR") is not None:
 # now try to import pycoreloop
 try:
     from pycoreloop import command as lc
-    from pycoreloop import command_from_value, value_from_command
 except ImportError:
     print("Can't import pycoreloop\n")
     print(
         "Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [lusee_script.py]"
     )
     sys.exit(1)
+
 
 
 class Scripter:
@@ -43,6 +43,7 @@ class Scripter:
         assert(arg<256)
         assert(cmd<256)
         self.command(lc.RFS_SETTINGS,(cmd<<8)+arg)
+
 
     def wait (self, dt):
         """ Wait for dt in seconds, rounted to 100ms. If negative, wait forever"""
@@ -301,6 +302,9 @@ class Scripter:
 
     def set_tr_avg_shift(self, val: int):
         self.spectrometer_command(lc.RFS_SET_TR_AVG_SHIFT, val)
+
+    def set_spectra_format(self, val: int):
+        self.spectrometer_command(lc.RFS_SET_OUTPUT_FORMAT, val)
 
     def time_to_die(self):
         cmd = lc.RFS_SET_TIME_TO_DIE
