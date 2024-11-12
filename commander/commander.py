@@ -13,12 +13,14 @@ from AWGBackendSSL import AWGBackendSSL
 
 try:
     import pycoreloop as cl
-    from pycoreloop import command_from_value, format_from_value
+    from pycoreloop import command_from_value#, format_from_value
 except ImportError:
     print("Can't import pycoreloop\n")
     print(
         "Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [commander.py]"
     )
+    import pycoreloop 
+    from pycoreloop import command_from_value#, format_from_value
     sys.exit(1)
 
 
@@ -76,6 +78,8 @@ class Commander:
 
         if backend == "DCBEmu":
             self.backend = DCBEmulator(self.clog, self.uart_log, self.session)
+        elif backend == "DCBEmu_nouart":
+            self.backend = DCBEmulator(self.clog, None, self.session)
         elif backend == "coreloop":
             self.backend = CoreloopBackend(self.clog, self.uart_log, self.session)
         elif backend == "DCB":
@@ -157,10 +161,8 @@ class Commander:
                             dt = arg / 10 if arg < 65000 else 1e100  # 65000 is forever
                             self.clog.logt(f"Waiting for {dt}s.\n")
                         else:
-                            pretty_cmd = command_from_value[cmd] if cmd in command_from_value else f"UNKNOWN! {hex(cmd)} refresh pycoreloop? "
-                            if cmd != 0x10:
-                                log_str = f"Sending command {pretty_cmd} {hex(cmd)} with argument {hex(arg)}."
-                            else:
+                            if (cmd ==0x10) or (cmd == 0x11):
+                                pretty_cmd = command_from_value[cmd] if cmd in command_from_value else f"UNKNOWN! {hex(cmd)} refresh pycoreloop? "
                                 arg_hi, arg_lo = (arg & 0xFF00) >> 8, arg & 0x00FF
                                 pretty_arg_cmd = command_from_value[arg_hi] if arg_hi in command_from_value else f"UNKNOWN {hex(arg_hi)}! refresh pycoreloop? "
                                 if arg_hi == cl.value_from_command["RFS_SET_OUTPUT_FORMAT"]:
@@ -168,6 +170,9 @@ class Commander:
                                     log_str = f"Sending command {pretty_cmd}, {pretty_arg_cmd} with argument {arg_str}.\n"
                                 else:
                                     log_str = f"Sending command {pretty_cmd}, {pretty_arg_cmd} with argument {arg_lo} = {hex(arg_lo)}.\n"
+                            else:
+                                log_str = f"Sending FW command {hex(cmd)} with argument {hex(arg)}."
+
                             print(log_str)
                             self.backend.send_command(cmd, arg)
                             self.clog.logt(log_str)

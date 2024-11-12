@@ -8,14 +8,17 @@ class DCBEmulator(BackendBase):
     def __init__ (self, clog, uart_log, session):
         super().__init__(clog, uart_log, session)
         self.clog.log ("DCB Emulator backend initializing\n\n")
-        
-        self.clog.log("Attempting to open UART serial...\n")
-        self.uart = None
-        self.uartStop = False
-        luseeUart = LuSEE_UART(self.clog)
-        if luseeUart.get_connections():
-            if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
-                self.uart = luseeUart
+
+        self.uart = None        
+        if uart_log is not None:            
+            self.clog.log("Attempting to open UART serial...\n")
+
+            self.uartStop = False
+            luseeUart = LuSEE_UART(self.clog)
+            if luseeUart.get_connections():
+                if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
+                    self.uart = luseeUart
+
         self.ether = LuSEE_ETHERNET(self.clog, self.save_ccsds)
 
         
@@ -36,7 +39,9 @@ class DCBEmulator(BackendBase):
         self.ether.etherStop = True
         # give time for threads to stop
         time.sleep(1)
-        self.uart_log.close()
+        if self.uart is not None:
+            self.uart.close()
+
         
 
 
@@ -44,10 +49,12 @@ class DCBEmulator(BackendBase):
         self.ether.cdi_command(cmd, arg)
         
     def run(self):
-        self.clog.log('Starting UART thread \n')
-        tu = threading.Thread (target = self.uart_thread, daemon = True)
-        self.uartStop = False
-        tu.start()    
+        if self.uart is not None:
+            self.clog.log('Starting UART thread \n')
+            self.uartStop = False
+            tu = threading.Thread (target = self.uart_thread, daemon = True)            
+            tu.start()    
+
         self.clog.log("\n\nStarting data collection threads.\n")   
         te1 = threading.Thread(target = self.ether.ListenForData, args = (0,), daemon=True)
         te2 = threading.Thread(target = self.ether.ListenForData, args = (1,), daemon=True)
