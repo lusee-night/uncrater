@@ -15,6 +15,15 @@ import uncrater as uc
 from collections import defaultdict
 
 
+def hex_parse(str,bits):
+    if str[:2]=='0x':
+        val = int(str,16)
+    else:
+        val = int(str)
+    if val<0 or (val>2**bits-1):
+        raise ValueError(f"Value {val} is out of range for {bits} bits")
+    return val
+
 class Test_Bootload(Test):
 
     name = "bootload"
@@ -25,7 +34,8 @@ class Test_Bootload(Test):
         "cmd": "reboot",
     } ## dictinary of options for the test
     options_help = {
-        "cmd" : r" Test command to execute. Can be 'reboot', 'reboot_only', 'check', 'launch {region}', 'delete {region}' or 'write {region} {hex file}'"            
+        "cmd" : r""" Test command to execute. Can be 'reboot', 'reboot_only', 'check', 'command {val} {arg}', 
+                    'register {addres} {arg}', 'wait {seconds}', 'launch {region}', 'delete {region}' or 'write {region} {hex file}'"""            
     } ## dictionary of help for the options
 
 
@@ -89,6 +99,8 @@ class Test_Bootload(Test):
         return write_array
 
 
+
+
     def generate_script(self):
 
         S = Scripter()
@@ -98,20 +110,35 @@ class Test_Bootload(Test):
             cmd = [a.strip() for a in cmd.split()]
             
             command, args = cmd[0], cmd[1:]
-            print (command, args)
-            if command not in ['reboot', 'reboot_only', 'check','launch','delete','write']:
-                raise ValueError(f"Unknown command {command}")
+            print (f'>>>>> {command}, {args}')
 
             if command == 'reboot':
                 S.reboot()
+                S.wait(1)
                 S.bootloader_stay()
 
             elif command == 'reboot_only':
                 S.reboot()
+                S.wait(1)
 
             elif command == 'check':
                 S.bootloader_check()
             
+            elif command == 'cmd':
+                val,arg  = hex_parse(args[0],8), hex_parse(args[1],16)
+                S.command(val, arg)
+
+            elif command == 'register':
+                address, val = hex_parse(args[0],16), hex_parse(args[1],32)
+                S.write_register(address, val)
+
+            elif command == 'wait':
+                try:
+                    seconds = int(args[0])
+                except:
+                    raise ValueError("Please provide a number of seconds")
+                S.wait(seconds)
+
             elif command == 'launch':
                 try:
                     region = int(args[0])
@@ -138,6 +165,8 @@ class Test_Bootload(Test):
                     raise ValueError("Please provide a filename")
                 write_array = self.read_file(self.filename)
                 S.bootloader_write_region(region, write_array)
+            else:
+                raise ValueError(f"Command {command} not recognized")
 
         S.wait(5)
         return S

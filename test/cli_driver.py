@@ -155,7 +155,7 @@ def main():
         sys.exit(0)
 
     if args.run:
-        if args.backend not in ["DCBEmu", "DCB", "coreloop"]:
+        if args.backend not in ["DCBEmu", "DCBEmu_nouart", "DCB", "coreloop"]:
             print("Unknown backend: ", args.backend)
             sys.exit(1)
         t = Name2Test(args.test_name)
