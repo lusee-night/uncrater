@@ -65,23 +65,24 @@ class Test_Bootload(Test):
             sys.exit(f"Line {num} of file {self.file_path} has a calculated checksum of {hex(calculated_checksum)} and a checksum at the end of the line of {hex(line_checksum)}. The total line is {line}")
 
 
-    def read_file(self, filename):
-        
+    def read_file_old(self, filename):        
         if (not os.path.isfile(filename)):
             sys.exit(f"The given path {filename} is not a valid file. Point to a microcontroller hex file")
-        f = open(self.filename, mode="rb")
+        f = open(filename, mode="rb")
         lines = f.read().splitlines() #Because line usually ends with \r\n
         #We will end up with an array of 32 bit integers, because that's how all this data is written to the FPGA registers
         write_array = []
         last_hex_line = b':00000001FF'
+        
         for num,i in enumerate(lines):
+
             self.hex_line_error_checking(num, i)
             #Part of Intel Hex Format
             line_type = int(i[1:3])
             if (line_type == 10):
                 line_number = int(i[2:6], 16)
-                if (line_number != num):
-                    sys.exit(f"The binary file's line number was {line_number} but the program was at line {num}")
+                #if (line_number != num):
+                #    sys.exit(f"The binary file's line number was {line_number} but the program was at line {num}")
                 #In a normal data line, there are 4 sets of 32 bit integers
                 for j in range(4):
                     #First I grab them as 8 byte, two nibble values. The first 9 bits are the : character and the line number
@@ -90,12 +91,57 @@ class Test_Bootload(Test):
                     rearranged_bytes = (four_bytes[3] << (8*3)) + (four_bytes[2] << (8*2)) + (four_bytes[1] << 8) + (four_bytes[0])
                     write_array.append(rearranged_bytes)
             #Jack includes this line that's written in the hex file, don't know if we need to. It doesn't have the line number
+
+            
             elif (line_type == 4):
                 four_bytes = [int(i[9+(k*2):9+(k*2)+2], 16) for k in range(4)]
                 rearranged_bytes = (four_bytes[3] << (8*3)) + (four_bytes[2] << (8*2)) + (four_bytes[1] << 8) + (four_bytes[0])
                 write_array.append(rearranged_bytes)
             elif (i != last_hex_line):
                 sys.exit(f"Line {num} of file {filename} should be the final line. Instead of being {last_hex_line}, it's {i}")
+        return write_array
+
+
+
+    def read_file(self, filename):        
+        if (not os.path.isfile(filename)):
+            sys.exit(f"The given path {filename} is not a valid file. Point to a microcontroller hex file")
+        f = open(filename, mode="rb")
+        lines = f.read().splitlines() #Because line usually ends with \r\n
+        #We will end up with an array of 32 bit integers, because that's how all this data is written to the FPGA registers
+        write_array = []
+        
+        for num,i in enumerate(lines):
+            self.hex_line_error_checking(num, i)
+            assert(i[0]==58) ##58 == :
+            ll = int(i[1:3],16)
+            aa = int(i[3:7],16)            
+            tt = int(i[7:9],16)
+            
+            dd = [int(i[9+j*2:9+j*2+2],16) for j in range(ll)]
+            
+            if tt==0x04 or tt==0x05:
+                print (f'Ignoring address record at line {num}')
+                continue # ignore extended address records
+            if tt==0x01:
+                break   # end of file
+            if (tt!=0):
+                raise ValueError(f"Unknown record type {tt} in line {num}, {i}")
+            if len(write_array*4)<aa:
+                print (f'Appending zeros at line {i}')
+                write_array += [0]*(aa//4-len(write_array))
+
+
+            ## now rearrange data:
+            #print (i)
+            print (f"{len(write_array)*4:x}")
+            for j in range(0,ll,4):  
+                try:
+                    val = dd[j] + (dd[j+1]<<8) + (dd[j+2]<<16) + (dd[j+3]<<24)
+                except:
+                    # do just two
+                    val = (dd[j] + (dd[j+1]<<8))
+                write_array.append(val)
         return write_array
 
 
@@ -163,7 +209,12 @@ class Test_Bootload(Test):
                     self.filename = args[1]
                 except:
                     raise ValueError("Please provide a filename")
+                
                 write_array = self.read_file(self.filename)
+                #write_array2 = self.read_file_old(self.filename)                
+                #print (len(write_array), len(write_array2))
+                ##for i in range(20):
+                #    print (f'{write_array[i]:08x} {write_array2[i]:08x}')                
                 S.bootloader_write_region(region, write_array)
             else:
                 raise ValueError(f"Command {command} not recognized")

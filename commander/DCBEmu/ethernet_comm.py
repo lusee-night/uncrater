@@ -160,6 +160,13 @@ class LuSEE_ETHERNET:
         self.sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.FEMB_PORT_WREG ))
 
     def cdi_command(self,cmd,arg):
+        if (cmd == 0xFE):
+            print ("HEREHERE")
+            self.write_cdi_reg(0x003,0)
+            time.sleep(1)
+            self.write_cdi_reg(0x003,1)            
+            self.toggle_cdi_latch()
+
         self.write_cdi_reg(0x0002, (cmd<<16)+arg)
         self.write_cdi_reg(0x0001, 0x01)
         self.write_cdi_reg(0x0001, 0x00)
