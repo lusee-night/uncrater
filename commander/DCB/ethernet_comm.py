@@ -147,7 +147,7 @@ class LuSEE_ETHERNET:
         dataValMSB = ((dataVal >> 16) & 0xFF)
         dataValLSB = dataVal & 0xFFFF
         WRITE_MESSAGE = struct.pack('>BH', dataValMSB, dataValLSB)
-        print(f"Writing {WRITE_MESSAGE}")
+        #print(f"Writing {WRITE_MESSAGE}")
 
         #sock_write = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -532,41 +532,32 @@ class LuSEE_ETHERNET:
         # sock_read,port = self.data_ports[port_id]
         # full_packet = bytearray(0)
         # last_num = None
+        data = bytearray(0)
         while not self.etherStop:
-            data = self.tcp_socket.recv(self.BUFFER_SIZE)
-            print(f"Received data from TCP, it's {data}")
-            if (len(data) < 10):
-                print(f"We got a small packet of {packet}. Throw it back like a fish")
+            cdata = self.tcp_socket.recv(self.BUFFER_SIZE)
+            data = data+cdata
+            print(f".",end="")
+            
 
             unpack_buffer = int((len(data))/2)
             formatted_data = struct.unpack_from(f">{unpack_buffer}H",data)
-            for i in formatted_data:
-                print(hex(i))
             if (formatted_data[0] != self.ssl_delimiter):
                 print(f"The first 2 bytes of the packet were {hex(formatted_data[0])}, not {hex(self.ssl_delimiter)}!")
                 sys.exit("Delimiter error")
             header_dict = self.organize_header(formatted_data[1:])
-            print(header_dict)
             cdi_packet_size = int(header_dict['ccsds_packetlen'], 16)
             if (int(header_dict["ccsds_appid"], 16) == 0x200):
                 extra_packets = 12
             else:
                 extra_packets = 13
-            if (len(data) != cdi_packet_size+extra_packets): #Account for the delimiter 0xEB90
-                print(f"CDI packet is supposed to have a size of {cdi_packet_size}, however, we only received {len(data)}")
-                self.tcp_socket.settimeout(1)
-                while (len(data) < cdi_packet_size+extra_packets):  #Account for delimiter 0xEB90
-                    try:
-                        packet = self.tcp_socket.recv(cdi_packet_size+extra_packets - len(data))  #Receive the remaining bytes needed only, although may receive less with partial chunks
-                    except socket.timeout:
-                        print(f"Socket timed out trying to get a length of {cdi_packet_size+extra_packets}. Returning packet with a current length of {len(data)}")
-                        break
-                print(f"CDI packet with size of {cdi_packet_size+extra_packets} is now matched by data with {len(data)}")
-                self.tcp_socket.settimeout(None)
-
-            print(f"Incoming APID is {header_dict['ccsds_appid']}")
-            print(f"First few bytes are {data[:4]} and last few bytes are {data[-4:]}")
-            self.save_data(data[6:])
+            tsize = cdi_packet_size + extra_packets
+            if (len(data) < tsize): #Account for the delimiter 0xEB90
+                #print(f"CDI packet is supposed to have a size of {cdi_packet_size}, however, we only received {len(data)} waiting for more")
+                pass
+            else:
+                self.save_data(data[6:tsize])
+                data = data[tsize:]    
+                #print(f"Incoming APID is {header_dict['ccsds_appid']}")
 
             #Anze's stuff
             # data, addr = sock_read.recvfrom(5000)  # arg is buffer size

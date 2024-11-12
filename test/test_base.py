@@ -206,6 +206,7 @@ class Test:
         ax[3].set_xlabel("Time [s]")
         ax[3].set_ylim(T_FPGA.min() - 5, T_FPGA.max() + 5)
         ax[3].legend()
-        fig.savefig(os.path.join(figures_dir, "telemetry.pdf"))
+        if not figures_dir is None:
+            fig.savefig(os.path.join(figures_dir, "telemetry.pdf"))
 
         return time, V1_0, V1_8, V2_5, T_FPGA

@@ -12,7 +12,8 @@ from AWGBackendLab7 import AWGBackendLab7
 from AWGBackendSSL import AWGBackendSSL
 
 try:
-    from pycoreloop import command_from_value
+    import pycoreloop as cl
+    from pycoreloop import command_from_value, format_from_value
 except ImportError:
     print("Can't import pycoreloop\n")
     print(
@@ -162,7 +163,11 @@ class Commander:
                             else:
                                 arg_hi, arg_lo = (arg & 0xFF00) >> 8, arg & 0x00FF
                                 pretty_arg_cmd = command_from_value[arg_hi] if arg_hi in command_from_value else f"UNKNOWN {hex(arg_hi)}! refresh pycoreloop? "
-                                log_str = f"Sending command {pretty_cmd}, {pretty_arg_cmd} with argument {arg_lo} = {hex(arg_lo)}.\n"
+                                if arg_hi == cl.value_from_command["RFS_SET_OUTPUT_FORMAT"]:
+                                    arg_str = f"{format_from_value[arg_lo] if arg_lo in format_from_value else 'UNKNOWN_FORMAT'} = {arg_lo} = {hex(arg_lo)}"
+                                    log_str = f"Sending command {pretty_cmd}, {pretty_arg_cmd} with argument {arg_str}.\n"
+                                else:
+                                    log_str = f"Sending command {pretty_cmd}, {pretty_arg_cmd} with argument {arg_lo} = {hex(arg_lo)}.\n"
                             print(log_str)
                             self.backend.send_command(cmd, arg)
                             self.clog.logt(log_str)

@@ -19,7 +19,7 @@ from scipy.interpolate import interp1d
 
 
 class Test_CPTShort(Test):
-    
+
     name = "cpt-short"
     version = 0.1
     description = """ Comprehensive Performance Test - Short Version."""
@@ -34,7 +34,7 @@ class Test_CPTShort(Test):
         'superslow': False
     } ## dictinary of options for the test
     options_help = {
-        'channels': 'List of channels used in test. 1234 will loop over channels 1 by 1, all_same will do all the same time, all_robin will round-robin frequncies.', 
+        'channels': 'List of channels used in test. 1234 will loop over channels 1 by 1, all_same will do all the same time, all_robin will round-robin frequncies.',
         'gains' : 'List of gains used in the test.',
         'freqs': 'Frequencies used in the test. They are staggered by input channel.',
         'amplitudes': 'Amplitudes used in the test. ',
@@ -52,18 +52,18 @@ class Test_CPTShort(Test):
                 gain_ok = False
         if not gain_ok:
             raise ValueError (f"Invalid gains seettings.")
-            
+
 
         try:
             self.freqs = [float(x) for x in self.freqs.split()]
         except:
             raise ValueError ("Invalid frequencies settings")
-        
+
         try:
             self.amplitudes = [float(x) for x in self.amplitudes.split()]
         except:
             raise ValueError ("Invalid amplitudes settings.")
-            
+
 
         try:
             self.bitslices = [int(x) for x in self.bitslices.split()]
@@ -79,8 +79,8 @@ class Test_CPTShort(Test):
             self.amplitude_fact = float(self.amplitude_fact)
         except:
             raise ValueError ("Invalid amplitude_factor setting.")
-            
-        
+
+
         if self.channels == 'all_same':
             channels = [0]
             all = "same"
@@ -101,7 +101,7 @@ class Test_CPTShort(Test):
                 raise ValueError ("Invalid channels settings.")
             all = "separate"
         self.channels = channels
-        
+
         print ("Superslow settings:", self.superslow)
 
 
@@ -121,7 +121,7 @@ class Test_CPTShort(Test):
 
                 for i,f in enumerate(self.freqs):
                     if all == "robin":
-                        freq_set = (freq0[i],freq1[i],freq2[i],freq3[i])    
+                        freq_set = (freq0[i],freq1[i],freq2[i],freq3[i])
                     else:
                         freq_set = (f,f,f,f)
                     for a,s in zip(self.amplitudes, self.bitslices):
@@ -153,9 +153,9 @@ class Test_CPTShort(Test):
         """ Generates a script for the test """
 
         # check if self.gain is a valid gain setting
-        
+
         self.prepare_list()
-        
+
 
         S = Scripter()
         S.awg_init()
@@ -171,15 +171,15 @@ class Test_CPTShort(Test):
         if not self.superslow:
             S.select_products('auto_only')
         old_gain = None
-    
+
         for gain, ch, freq, ampl, bslice in self.todo_list:
             if gain != old_gain:
                 gain_set = f'{gain}{gain}{gain}{gain}'
                 S.set_ana_gain(gain_set)
                 S.wait(0.2) # settle
                 old_gain = gain
-                
-            for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):      
+
+            for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
                 S.awg_tone(i,f,a)
                 S.set_bitslice(i,s)
             S.wait(0.1)
@@ -200,27 +200,27 @@ class Test_CPTShort(Test):
             S.wait(6.0)
             S.stop(no_flash=True)
             #S.wait()
-                
+        S.wait(6.0)
         S.awg_close()
         return S
-    
-    def analyze(self, C, uart, commander, figures_dir):
-        """ Analyzes the results of the test. 
+
+    def analyze(self, C: uc.Collection, uart, commander, figures_dir):
+        """ Analyzes the results of the test.
             Returns true if test has passed.
         """
         self.results = {}
         passed = True
-        
+
         self.results['packets_received'] = len(C.cont)
-        
+
         C.cut_to_hello()
-        self.get_versions(C)     
+        self.get_versions(C)
 
         # extract data
 
         waveforms = [[],[],[],[]]
         hk = None
-        num_wf =0 
+        num_wf =0
 
         self.prepare_list()
         if self.superslow:
@@ -229,16 +229,23 @@ class Test_CPTShort(Test):
         else:
             num_sp_expected = len(self.todo_list)
             num_wf_expected = num_sp_expected*4
-        
+
         for P in C.cont:
 
             if type(P) == uc.Packet_Waveform:
                 num_wf += 1
                 P._read()
-                waveforms[P.ch].append(P.waveform)
+                if self.superslow:
+                    for ch in range(4):
+                        if ch==P.ch:
+                            waveforms[ch].append(P.waveform)
+                        else:
+                            waveforms[ch].append(None)
+                else:
+                    waveforms[P.ch].append(P.waveform)
 
         num_sp = len(C.spectra)
-        
+
 
         if (num_wf!=num_wf_expected):
             print ("ERROR: Missing waveforms or housekeeping packets.")
@@ -282,10 +289,10 @@ class Test_CPTShort(Test):
 
         for cc, sp in enumerate(C.spectra):
             g, ch, freq_set, ampl_set, bitslic = self.todo_list[cc]
- 
+
 
             if data_plots:
-            
+
                 fig = plt.figure(figsize=(12, 8))
                 title = f"Gain {g}" + " ({0:.1f} {1:.1f} {2:.1f} {3:.1f})MHz".format(*freq_set)+ " ({0:.1f} {1:.1f} {2:.1f} {3:.1f})mVpp".format(*ampl_set)
                 fig.suptitle(title)
@@ -296,18 +303,19 @@ class Test_CPTShort(Test):
                 ax_right = fig.add_subplot(gs[1, 1])
 
                 # Plot waveforms in the large plot
-                
+
                 for ich in range(4):
                     ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
-                    if (len(waveforms[ich])>cc):
-                        ax_large.plot(waveforms[ich][cc][:ndxmax], label=f'Channel {ich+1}')
+                    wform = waveforms[ich][cc]
+                    if wform is not None:
+                        ax_large.plot(wform[:ndxmax], label=f'Channel {ich+1}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 
                 # Plot spectra in the left plot (linear scale)
                 for ich in range(4):
                     if ich in sp:
-                        sp[ich]._read()    
+                        sp[ich]._read()
                         ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
                 ax_left.set_title('Spectra (Linear Scale)')
                 ax_left.set_xlabel('Frequency')
@@ -325,7 +333,7 @@ class Test_CPTShort(Test):
                 plt.tight_layout(rect=[0, 0, 1, 0.96])
                 plt.savefig(os.path.join(figures_dir, f'data_{cc}.png'))
                 plt.close()
-                
+
                 figlist.append("\n\includegraphics[width=0.8\\textwidth]{Figures/data_%d.png}\n"%cc)
 
             waveforms_out = []
@@ -336,7 +344,7 @@ class Test_CPTShort(Test):
                 if i in sp:
                     sp[i]._read()
                     spectra_out.append(sp[i].data)
-            results_list.append(list(self.todo_list[cc])+[waveforms_out, spectra_out])          
+            results_list.append(list(self.todo_list[cc])+[waveforms_out, spectra_out])
 
             if ch>0:
                 chlist = [ch]
@@ -344,7 +352,7 @@ class Test_CPTShort(Test):
                 chlist = [1,2,3,4]
 
 
-            def freq_to_bin(freq):  
+            def freq_to_bin(freq):
                 bin = int(freq/0.025+1e-3)
                 if bin>2048:
                     bin = 2048-bin
@@ -359,13 +367,13 @@ class Test_CPTShort(Test):
                 if key not in power_out:
                     power_out[key] = []
                     power_in[key] = []
-                    
+
                 sppow = sp[ch-1].data* (2**(bitslic[ch-1]-31))
                 #print (cfreq,sppow[bin-1],sppow[bin],sppow[bin+1])
 
                 power_out[key].append(sppow[bin])
                 ## we have *1000 to get from mV to V, *1e-4 to account for 40dB attenuation, *(1e9)**2 to get from V^2 to nV^2, /25e3 to get from 25kHz bandwidth to get to nV^2/Hz
-                power_in[key].append((ampl_set[ch-1]/1000)**2*(attenuation_fact**2) *(1e9)**2 /25e3)  
+                power_in[key].append((ampl_set[ch-1]/1000)**2*(attenuation_fact**2) *(1e9)**2 /25e3)
                 #print ('here',ch, ampl_set, power_in[key][-1], power_out[key][-1])
                 if ampl_set[ch-1] == 0:
                     if (ch,g) not in power_zero:
@@ -387,7 +395,7 @@ class Test_CPTShort(Test):
 
         self.plot_telemetry(C.spectra, figures_dir)
 
-        
+
 
 
         print ("... fitting straight lines ...")
@@ -405,7 +413,7 @@ class Test_CPTShort(Test):
                 continue
             fi = self.freqs.index(f)
             #print (key, power_out[key], power_in[key])
-            if np.any(np.array(power_out[key])==0):            
+            if np.any(np.array(power_out[key])==0):
                 print (f"WARNING: Zero power detected for {key}. Skipping.")
                 offset, slope = 0,0
             else:
@@ -435,7 +443,7 @@ class Test_CPTShort(Test):
             chlist = [1,2,3,4]
         else:
             chlist = self.channels
-        
+
         for ch in chlist:
             for g in self.gains:
                 pzero_fit = np.array([power_zero_fit[(ch,g,f)] for f in self.freqs])
@@ -443,7 +451,7 @@ class Test_CPTShort(Test):
                 conv_fit = interp1d(self.freqs, conv, kind='linear', fill_value='extrapolate')
                 fig, ax = plt.subplots(1,2, figsize=(12,6))
                 ffreq=np.arange(2048)*0.025
-                pzero = np.array(power_zero[(ch,g)])    
+                pzero = np.array(power_zero[(ch,g)])
                 pzero = pzero.mean(axis=0)
                 self.freqs=np.array(self.freqs)
                 ax[0].plot(ffreq,np.sqrt(pzero/conv_fit(ffreq)) , 'b-')
@@ -456,7 +464,7 @@ class Test_CPTShort(Test):
                 ax[0].set_ylabel('Noise [nV/sqrt(Hz)]')
                 ax[1].set_xlabel('Frequency [MHz]')
                 ax[1].set_ylabel('Conversion [SDU/(nV^2/Hz)]')
-                fig.suptitle(f"Channel {ch} Gain {g}")  
+                fig.suptitle(f"Channel {ch} Gain {g}")
                 fig.savefig(os.path.join(figures_dir, f'results_pk_{ch}_{g}.png'))
                 figlist_res.append("\n\includegraphics[width=1.0\\textwidth]{Figures/results_pk_"+f"{ch}_{g}"+".png}\n")
 
@@ -468,12 +476,13 @@ class Test_CPTShort(Test):
         # doign real space  analysis:
         figlist_res_real = []
         v2adu_emi = {'L':5.37E-02,	'M':8.07E-03,	'H':1.22E-03}
+        print (len(waveforms[0]),len(waveforms[1]))
         for g in self.gains:
             fig, ax = plt.subplots(1,1, figsize=(12,6))
             for ch in chlist:
                 rat = []
                 for f in self.freqs:
-                    ampl_max =0
+                    ampl_max =0                    
                     for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
                         if ch_ == ch and _g == g and freq_set_[ch-1] == f and ampl_set_[ch-1]>ampl_max:
                             ampl_max = ampl_set_[ch-1]
@@ -481,7 +490,7 @@ class Test_CPTShort(Test):
                     wform = waveforms[ch-1][cc_max]
                     adu_range = wform.max()-wform.min()
                     Vpp = ampl_max*1e-3*attenuation_fact #1e-3 for mV to V, 1e-2 for 40dB power attenuation
-                    rat.append(Vpp/adu_range*1e4)   
+                    rat.append(Vpp/adu_range*1e4)
                 ax.plot(self.freqs, rat, label=f'Channel {ch}')
                 ax.axhline(v2adu_emi[g], color='r', linestyle='--')
             ax.set_xlabel('Frequency [MHz]')
@@ -491,10 +500,6 @@ class Test_CPTShort(Test):
             figlist_res_real.append("\n\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
 
 
-        self.results['ps_results'] = "".join(figlist_res)   
+        self.results['ps_results'] = "".join(figlist_res)
         self.results['real_results'] = "".join(figlist_res_real)
         self.results['result'] = int(passed)
-
-
-
-

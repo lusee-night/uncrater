@@ -121,6 +121,8 @@ class Test_DataInterface(Test):
             probs = [self.frac_high, self.frac_med, 1.0 - self.frac_high - self.frac_med]
             passed = passed and fits([occurences[key] for key in ["high", "med", "low"]], probs, p_value=0.05)
 
+        passed = passed and coll.all_meta_error_free() == 1
+
         self.results['packets_received'] = len(coll.cont)
         self.results['sp_all'] = int(sp_all)
         self.results['sp_num'] = len(coll.spectra)
@@ -129,4 +131,5 @@ class Test_DataInterface(Test):
         self.results['hearbeat_count'] = int(hb_num)
         self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok & (hb_tmax < 11))
         self.results['sp_packets_received'] = sp_num
+        self.results['meta_error_free'] = coll.all_meta_error_free()
         self.results['result'] = int(passed)
