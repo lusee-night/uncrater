@@ -23,7 +23,7 @@ class Test_Route(Test):
     description = """ Runs the spectrometer and iterates over routing combinations"""
     instructions = """ It will attempt to setup signals at 2 3 5 7 MHz across J4-J7 """
     default_options = {
-        "auto_only" : False,
+        "auto_only" : True,
         "Navg2":  3,
         "Vpp": 30,
     } ## dictinary of options for the test
@@ -60,6 +60,7 @@ class Test_Route(Test):
         S.reset()
         S.wait(3)
         S.set_dispatch_delay(6)
+        S.enable_heartbeat(False)
         S.awg_init()
         for i,f in enumerate(self.get_tone_freqs()):
             S.awg_tone(i, f, self.Vpp)
@@ -87,7 +88,11 @@ class Test_Route(Test):
             S.stop()
             S.wait(3 if self.auto_only else 8)    
 
+        # force empty buffer with a HK request
+        S.wait(1)
+        S.house_keeping(0)
         # wait for the buffer to empty up
+
         S.wait(10)
         return S
     

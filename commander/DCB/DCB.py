@@ -45,6 +45,7 @@ class DCB(BackendBase):
 
     def send_command(self, cmd, arg):
         self.ether.cdi_command(cmd, arg)
+        time.sleep(0.03)
         
     def run(self):
         self.clog.log('Starting UART thread \n')

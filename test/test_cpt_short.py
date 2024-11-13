@@ -31,6 +31,7 @@ class Test_CPTShort(Test):
         'amplitudes': '280 200 140 0',
         'bitslices': '25 23 21 16',
         'amplitude_fact': '5',
+        'invert_input': False,
         'superslow': False
     } ## dictinary of options for the test
     options_help = {
@@ -40,6 +41,7 @@ class Test_CPTShort(Test):
         'amplitudes': 'Amplitudes used in the test. ',
         'bitslices' : 'List of bitslices to use for the test. Must the same size as amplitudes. If empty, will assume 31 throughout.',
         'amplitude_fact': 'Factor to multiply the amplitude by for L gain and divide by for H gain.',
+        'invert_input': 'Route inputs to minus rather than plus',
         'superslow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need'
     } ## dictionary of help for the options
 
@@ -172,6 +174,10 @@ class Test_CPTShort(Test):
             S.select_products('auto_only')
         old_gain = None
 
+        if self.invert_input:
+            for i in range(4):
+                S.set_route(i,None,i)
+
         for gain, ch, freq, ampl, bslice in self.todo_list:
             if gain != old_gain:
                 gain_set = f'{gain}{gain}{gain}{gain}'
@@ -201,6 +207,8 @@ class Test_CPTShort(Test):
             S.stop(no_flash=True)
             #S.wait()
         S.wait(6.0)
+        if self.superslow:
+            S.wait(5.0)
         S.awg_close()
         return S
 

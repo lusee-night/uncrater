@@ -23,11 +23,22 @@ class Test_Science(Test):
     instructions = """ Connect anything you want. For agc-test you need to connect a signal generator to the input and run with an --awg option. """
     default_options = {
         "preset": "simple",
-        "time_mins" : 0
+        "route" : "inverse",
+        "notch" : False,
+        "disable_awg": False,
+        "bitslicer" : 'auto',
+        "time_mins" : 0,
+        "slow": False
     } ## dictinary of options for the test
     options_help = {
         "preset" : "Type of science preset. Can be 'simple', 'agc-test', 'simplest', more to come.",
-        "time_mins" : "Total time to run the test in minutes (up to 100), zero for forever."
+        "route": "Routing scheme. Can be 'default', 'inverse', 'pairs'.",
+        "notch" : "Enable notch filter",
+        "disable_awg" : "Disable the AWG before doing anything",
+        "bitslicer"   : "bitslicer setting, can be 'auto' or a number",
+        "time_mins" : "Total time to run the test in minutes (up to 100), zero for forever.",
+        "slow": "Run the test in slow mode for SSL"
+
     } ## dictionary of help for the options
 
 
@@ -42,12 +53,21 @@ class Test_Science(Test):
 
 
         S = Scripter()
+
+        if self.disable_awg and not 'agc-test' in self.preset:
+            S.awg_init()
+            for i in range(4):
+                S.awg_tone(i,0,0)   
+            
         S.wait(1)
         S.reset()
-
         S.wait(3)
+
+        if self.slow:
+            S.set_dispatch_delay(150)
         if self.preset in ['simple']:
             S.set_Navg(14,6)
+            
         elif self.preset in ['simplest']:
             S.set_Navg(14,4)
             S.start()
@@ -64,13 +84,29 @@ class Test_Science(Test):
         elif self.preset in ['debug']:
             S.set_Navg(14,3)
 
-        for ch in range(4):
-            S.set_route (ch,ch,None)
+        if self.route == 'default':
+            for ch in range(4):
+                S.set_route (ch,ch,None)
+        elif self.route == 'inverse':
+            for ch in range(4):
+                S.set_route (ch,None,ch)
+        elif self.route == 'pairs':
+            S.set_route (0,2,0)
+            S.set_route (1,3,1)
+            S.set_route (2,None,0)
+            S.set_route (2,None,1)
+
         if self.preset in ['simple']:
-            S.set_bitslice_auto(8)
+            if self.bitslicer == 'auto':
+                S.set_bitslice_auto(10)
+            else:
+                S.set_bitslice('all',int(self.bitslicer))
             S.set_ana_gain('AAAA')
         else:
             S.set_ana_gain('MMMM')
+
+        if self.notch:
+            S.set_notch(True)
 
         if self.preset=='agc-test':
             for i in range(4):

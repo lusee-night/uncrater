@@ -119,6 +119,7 @@ class Scripter:
                 running_sum += chunk & 0xFFFF
                 running_sum += (chunk & 0xFFFF0000) >> 16
                 self.write_register(0x640 + num, chunk)
+                
 
             print(f"Page {page_num} checksum is {hex(bl.convert_checksum(running_sum, 16))}")
             self.write_register(0x621, bl.convert_checksum(running_sum, 16))
@@ -208,6 +209,11 @@ class Scripter:
             arg = (arg << 2) + "LMHA".index(c)
         self.spectrometer_command(cmd, arg)
 
+    def set_notch(self, Nshift=3):
+        cmd = lc.RFS_SET_AVG_NOTCH
+        arg = Nshift
+        self.spectrometer_command(cmd, arg)
+
     def waveform(self, ch):
         arg = ch
         self.spectrometer_command(lc.RFS_SET_WAVEFORM, arg)
@@ -217,8 +223,15 @@ class Scripter:
             bitmask = 0b1111
         self.spectrometer_command(lc.RFS_SET_DISABLE_ADC, bitmask)
 
+    def enable_heartbeat (self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_HEARTBEAT, int(enable))
+
     def set_bitslice(self, ch, value):
         assert value < 32
+        if ch=='all':
+            for ch in range(16):
+                self.set_bitslice(ch, value)
+            return
         if ch < 8:
             cmd = lc.RFS_SET_BITSLICE_LOW
         else:
