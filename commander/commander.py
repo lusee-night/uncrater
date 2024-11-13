@@ -19,8 +19,6 @@ except ImportError:
     print(
         "Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [commander.py]"
     )
-    import pycoreloop 
-    from pycoreloop import command_from_value#, format_from_value
     sys.exit(1)
 
 
