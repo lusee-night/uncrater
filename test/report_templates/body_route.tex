@@ -1,0 +1,35 @@
+
+\section{Basic Info}
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Startup packet received       & \bcheckmark{++hello++}                                       \\
+    Software Version              & ++SW_version++                                               \\
+    Firmware Version              & ++FW_version++                                               \\
+    Firmware ID                   & ++FW_ID++                                                    \\
+    Firmware Date                 & ++FW_Date++                                                  \\
+    Firmware Time                 & ++FW_Time++                                                  \\
+\end{tabular}
+
+\section{Spectra \& Routing}
+\begin{tabular}{p{5cm}p{5cm}}
+    Spectra Received             & ++nspectra++                                         \\
+    Expected Number of Spectra  & \bcheckmark{++nspectra_ok++}                              \\
+    Routing OK for CH0      & \bcheckmark{++route0_ok++}                            \\
+    Routing OK for CH1      & \bcheckmark{++route1_ok++}                            \\
+    Routing OK for CH2      & \bcheckmark{++route2_ok++}                            \\
+    Routing OK for CH3      & \bcheckmark{++route3_ok++}                            \\
+
+\end{tabular}
+
+\vspace*{1cm}
+++routing_table++
+
+
+\section{Plots}
+
+Below is the list of all individual spectra. The dashed horizontal like determines the detection threshold for a tone to be considered detected.
+Green markers are expected tones that are detected. Red markes are either tones that should be there, but are not, or tones that shouldn't be there, but are.
+Black markers are tones that are not expected, but might be there due to cross-talk.
+\vspace*{1cm}
+
+++plot_list++

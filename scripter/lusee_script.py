@@ -1,5 +1,8 @@
 import sys, os
 
+import bootloader as bl
+
+
 # LuSEE script module
 
 if os.environ.get("CORELOOP_DIR") is not None:
@@ -8,13 +11,13 @@ if os.environ.get("CORELOOP_DIR") is not None:
 # now try to import pycoreloop
 try:
     from pycoreloop import command as lc
-    from pycoreloop import command_from_value, value_from_command
 except ImportError:
     print("Can't import pycoreloop\n")
     print(
         "Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [lusee_script.py]"
     )
     sys.exit(1)
+
 
 
 class Scripter:
@@ -39,7 +42,8 @@ class Scripter:
     def spectrometer_command(self,cmd,arg):
         assert(arg<256)
         assert(cmd<256)
-        self.command(lc.RFS_SETTINGS,(cmd<<8)+arg)     
+        self.command(lc.RFS_SETTINGS,(cmd<<8)+arg)
+
 
     def wait (self, dt):
         """ Wait for dt in seconds, rounted to 100ms. If negative, wait forever"""
@@ -81,7 +85,92 @@ class Scripter:
             raise ValueError("Unknown stored_state")
         master = lc.RFS_SPECIAL if special else lc.RFS_SETTINGS
         self.command(master, (lc.RFS_SET_RESET<<8)+arg_low) ## special CO
-        
+
+    def reboot(self):
+        # there are low-level commands outside coreloop
+        self.command(bl.CMD_REBOOT, 0);
+    
+
+    def bootloader_stay(self):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_STAY)
+
+    def bootloader_check(self):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_GET_INFO)
+
+    def bootloader_load_region(self, region):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_LOAD_REGION+(region-1))
+
+    def bootloader_launch(self):
+        self.command(bl.CMD_BOOTLOADER, bl.BL_LAUNCH)
+
+    def bootloader_delete_region(self,region):
+        self.write_register(0x630,0xDEAD0000+region)
+        self.command(bl.CMD_BOOTLOADER, bl.BL_DELETE_REGION+(region<<8))
+        self.wait(1)
+        self.write_register(0x630,0)
+
+
+    def bootloader_write_region(self, region, write_array):
+
+        def write_hex_page(page, page_num, region):
+            #Jack does 16 bit checksums for each page, so I need to split the 32 bit int to add it for the running checksum
+            running_sum = 0
+            for num,chunk in enumerate(page):
+                running_sum += chunk & 0xFFFF
+                running_sum += (chunk & 0xFFFF0000) >> 16
+                self.write_register(0x640 + num, chunk)
+                
+
+            print(f"Page {page_num} checksum is {hex(bl.convert_checksum(running_sum, 16))}")
+            self.write_register(0x621, bl.convert_checksum(running_sum, 16))
+            self.write_register(0x620, page_num)
+            self.command(bl.CMD_BOOTLOADER, bl.BL_WRITE_FLASH + (region << 8))
+            self.wait(0.1)
+
+        print(f"Rearranged the input data.")
+        array_length = len(write_array)  #Total number of 32 bit chunks
+        pages = array_length // 64 #Each page in Flash is 64 of these 32 bit chunks, for 256 bytes (2048 bits) total
+        leftover = array_length % 64 #The last page may not be filled, so we need to know when to start padding 0s
+        effective_pages = pages
+        if leftover:
+            effective_pages += 1
+        program_size = effective_pages * 64
+        program_checksum = bl.convert_checksum(sum(write_array), 32)
+        print(f"Program size is {hex(program_size)} and program checksum is {hex(program_checksum)}")
+        self.write_register(0x630, 0xFEED0000 + region)
+        #Run through all full pages
+        for i in range(pages):
+            print(f"Writing page {i}/{pages}")
+            page = write_array[i*64:(i+1)*64]
+            write_hex_page(page, i, region)
+        #And do the final partial page if necessary
+        if (leftover):
+            print(f"Writing page {pages}/{pages}")
+            #Fill the rest of this partial page with 0s
+            final_page = write_array[pages*64:]
+            filled_zeros = [0] * (64-leftover)
+            final_page.extend(filled_zeros)
+            write_hex_page(final_page, pages, region)
+
+        self.write_register(0x630, 0)
+
+        #Write all the metadata
+        self.write_register(0x632, 0xFEED0000 + region)
+        self.write_register(0x630, program_size)
+        self.write_register(0x631, program_checksum)
+        self.command(bl.CMD_BOOTLOADER, bl.BL_WRITE_METADATA + (region << 8))
+        self.wait(1)
+        self.write_register(0x632, 0)
+
+
+    def write_register(self, reg, val):
+        self.command(bl.CMD_REG_LSB, val & 0xFFFF)
+        self.command(bl.CMD_REG_MSB, val >> 16)
+        self.command(bl.CMD_REG_ADDR, reg)
+
+
+    
+
     def ADC_special_mode (self, mode='normal'):
         print (mode)
         assert(mode in ['normal', 'ramp','zeros', 'ones'])
@@ -120,6 +209,11 @@ class Scripter:
             arg = (arg << 2) + "LMHA".index(c)
         self.spectrometer_command(cmd, arg)
 
+    def set_notch(self, Nshift=3):
+        cmd = lc.RFS_SET_AVG_NOTCH
+        arg = Nshift
+        self.spectrometer_command(cmd, arg)
+
     def waveform(self, ch):
         arg = ch
         self.spectrometer_command(lc.RFS_SET_WAVEFORM, arg)
@@ -129,8 +223,15 @@ class Scripter:
             bitmask = 0b1111
         self.spectrometer_command(lc.RFS_SET_DISABLE_ADC, bitmask)
 
+    def enable_heartbeat (self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_HEARTBEAT, int(enable))
+
     def set_bitslice(self, ch, value):
         assert value < 32
+        if ch=='all':
+            for ch in range(16):
+                self.set_bitslice(ch, value)
+            return
         if ch < 8:
             cmd = lc.RFS_SET_BITSLICE_LOW
         else:
@@ -193,16 +294,30 @@ class Scripter:
         assert val in [1, 2, 3, 4]
         self.spectrometer_command(lc.RFS_SET_AVG_FREQ, val)
 
-    def set_tr_start_lsb(self, val: int):
+    def set_tr_start_stop(self, start: int, stop: int):
+        assert 0 <= start <= 2048 and 0 <= stop <= 2048
+        start_lsb, stop_lsb = start & 0xFF, stop & 0xFF
+        start_msb_part, stop_msb_part  = (start >> 8) & 0x0F, (stop >> 8) & 0x0F
+        # combine bits 12-8 of start and stop into one byte tr_st
+        tr_st = (stop_msb_part << 4) | start_msb_part
+        self.spectrometer_command(lc.RFS_SET_TR_START_LSB, start_lsb)
+        self.spectrometer_command(lc.RFS_SET_TR_STOP_LSB, stop_lsb)
+        self.spectrometer_command(lc.RFS_SET_TR_ST_MSB, tr_st)
+
+    # low-level commands are not supposed to be used directly, keep just in case
+    def _set_tr_start_lsb(self, val: int):
         assert val < 0xFF
         self.spectrometer_command(lc.RFS_SET_TR_START_LSB, val)
 
-    def set_tr_stop_lsb(self, val: int):
+    def _set_tr_stop_lsb(self, val: int):
         assert val < 0xFF
         self.spectrometer_command(lc.RFS_SET_TR_STOP_LSB, val)
 
     def set_tr_avg_shift(self, val: int):
         self.spectrometer_command(lc.RFS_SET_TR_AVG_SHIFT, val)
+
+    def set_spectra_format(self, val: int):
+        self.spectrometer_command(lc.RFS_SET_OUTPUT_FORMAT, val)
 
     def time_to_die(self):
         cmd = lc.RFS_SET_TIME_TO_DIE

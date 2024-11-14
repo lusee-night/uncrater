@@ -1,11 +1,13 @@
 from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time, process_ADC_stats, process_telemetry
-from .c_utils import decode_10plus6
+from .c_utils import decode_10plus6, decode_5_into_4
 import os, sys
 import struct
 import numpy as np
 import binascii
 from typing import Tuple
+
+from icecream import ic
 
 if os.environ.get("CORELOOP_DIR") is not None:
     sys.path.append(os.environ.get("CORELOOP_DIR"))
@@ -13,6 +15,7 @@ if os.environ.get("CORELOOP_DIR") is not None:
 # now try to import pycoreloop
 try:
     from pycoreloop import appId as id
+    from pycoreloop import pystruct as cl
 except ImportError:
     print("Can't import pycoreloop\n")
     print("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
@@ -164,21 +167,41 @@ class Packet_Spectrum(Packet_SpectrumBase):
             self.product = self.appid - id.AppID_SpectraLow
 
     def parse_spectra(self):
-        if self.meta.format == 0 and len(self._blob[8:]) // 4 > 2048:
+        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[8:]) // 4 > 2048:
             print("Spurious data, trimming!!!")
             self._blob = self._blob[: 8 + 2048 * 4]
 
         fmt, ptype = self.get_fmt_and_ptype()
 
-        if self.meta.format == 0:
+        if self.meta.format == cl.OUTPUT_32BIT:
             Ndata = len(self._blob[8:]) // 4
             try:
                 data = struct.unpack(f"<{Ndata}{fmt}", self._blob[8:])
             except:
                 self.error_data_read = True
                 data = np.zeros(Ndata)
+        elif self.meta.format in [cl.OUTPUT_16BIT_10_PLUS_6, cl.OUTPUT_16BIT_4_TO_5]:
+            Ndata = len(self._blob[8:]) // 2
+            try:
+                compressed_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
+                compressed_data = np.array(compressed_data, dtype=np.uint16)
+            except:
+                print("ERROR unpacking byte sequence")
+                self.error_data_read = True
+                compressed_data = np.zeros(Ndata, dtype=np.uint16)
+            try:
+                if self.meta.format == cl.OUTPUT_16BIT_10_PLUS_6:
+                    data = decode_10plus6(compressed_data)
+                else:
+                    assert self.meta.format == cl.OUTPUT_16BIT_4_TO_5
+                    data = decode_5_into_4(compressed_data)
+            except:
+                print("ERROR calling decode function")
+                self.error_data_read = True
+                data = np.zeros(Ndata // 2, dtype=np.int32)
         else:
-            raise NotImplementedError("Only format 0 is supported")
+            raise NotImplementedError(f"Format {self.meta.format} is not supported")
+
         self.data = np.array(data, dtype=ptype).astype(np.float64)
 
 

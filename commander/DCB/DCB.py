@@ -22,7 +22,10 @@ class DCB(BackendBase):
     def uart_thread (self):
         if self.uart is not None:
             while not self.uartStop:
-                uart_data = self.uart.read()
+                try:
+                    uart_data = self.uart.read()
+                except:
+                    pass
                 if not self.uart_log.closed:
                     self.uart_log.write(uart_data) 
                     self.uart_log.flush()
@@ -42,6 +45,7 @@ class DCB(BackendBase):
 
     def send_command(self, cmd, arg):
         self.ether.cdi_command(cmd, arg)
+        time.sleep(0.03)
         
     def run(self):
         self.clog.log('Starting UART thread \n')

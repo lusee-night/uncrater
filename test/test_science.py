@@ -16,37 +16,65 @@ from collections import defaultdict
 
 
 class Test_Science(Test):
-    
+
     name = "science"
     version = 0.2
     description = """ Runs the spectrometer in close to the real science mode"""
     instructions = """ Connect anything you want. For agc-test you need to connect a signal generator to the input and run with an --awg option. """
     default_options = {
         "preset": "simple",
-        "time_mins" : 0
+        "route" : "inverse",
+        "notch" : False,
+        "disable_awg": False,
+        "bitslicer" : 'auto',
+        "time_mins" : 0,
+        "slow": False
     } ## dictinary of options for the test
     options_help = {
-        "preset" : "Type of science preset. Can be 'simple', 'agc-test', more to come.",
-        "time_mins" : "Total time to run the test in minutes (up to 100), zero for forever."
+        "preset" : "Type of science preset. Can be 'simple', 'agc-test', 'simplest', more to come.",
+        "route": "Routing scheme. Can be 'default', 'inverse', 'pairs'.",
+        "notch" : "Enable notch filter",
+        "disable_awg" : "Disable the AWG before doing anything",
+        "bitslicer"   : "bitslicer setting, can be 'auto' or a number",
+        "time_mins" : "Total time to run the test in minutes (up to 100), zero for forever.",
+        "slow": "Run the test in slow mode for SSL"
+
     } ## dictionary of help for the options
 
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple', 'debug', 'agc-test']:
+        if self.preset not in ['simple', 'debug', 'agc-test', 'simplest']:
             raise ValueError ("Unknown preset.")
-            
+
         if self.time_mins>100:
             raise ValueError ("Use time <100 mins or forever (0).");
-            
+
 
 
         S = Scripter()
+
+        if self.disable_awg and not 'agc-test' in self.preset:
+            S.awg_init()
+            for i in range(4):
+                S.awg_tone(i,0,0)   
+            
+        S.wait(1)
         S.reset()
-        
         S.wait(3)
+
+        if self.slow:
+            S.set_dispatch_delay(150)
         if self.preset in ['simple']:
             S.set_Navg(14,6)
+            
+        elif self.preset in ['simplest']:
+            S.set_Navg(14,4)
+            S.start()
+            S.wait(90)
+            S.stop()
+            return S
+
         elif self.preset in ['agc-test']:
             S.set_Navg(14,3)
             S.awg_init()
@@ -56,25 +84,41 @@ class Test_Science(Test):
         elif self.preset in ['debug']:
             S.set_Navg(14,3)
 
-        for ch in range(4):
-            S.set_route (ch,ch,None)
+        if self.route == 'default':
+            for ch in range(4):
+                S.set_route (ch,ch,None)
+        elif self.route == 'inverse':
+            for ch in range(4):
+                S.set_route (ch,None,ch)
+        elif self.route == 'pairs':
+            S.set_route (0,2,0)
+            S.set_route (1,3,1)
+            S.set_route (2,None,0)
+            S.set_route (2,None,1)
+
         if self.preset in ['simple']:
-            S.set_bitslice_auto(8)
+            if self.bitslicer == 'auto':
+                S.set_bitslice_auto(10)
+            else:
+                S.set_bitslice('all',int(self.bitslicer))
             S.set_ana_gain('AAAA')
         else:
             S.set_ana_gain('MMMM')
-            
+
+        if self.notch:
+            S.set_notch(True)
+
         if self.preset=='agc-test':
             for i in range(4):
                 S.set_agc_settings(i,848,7)
                 pass
             S.start()
-            for steps in range(300):                
+            for steps in range(300):
                 awg_amplitude = awg_amplitude*(1+awg_fact)
                 awg_fact[(awg_amplitude>4000) | (awg_amplitude<5)] *= -1
                 for i in range(4):
                     S.awg_tone(i, awg_frequecy, awg_amplitude[i] if awg_amplitude[i]>20 else 0)
-                    
+
 
                 S.wait(2)
             S.awg_close()
@@ -90,71 +134,39 @@ class Test_Science(Test):
 
 
         return S
-    
-    def analyze(self, C, uart, commander, figures_dir):
-        """ Analyzes the results of the test. 
+
+    def analyze(self, C: uc.Collection, uart, commander, figures_dir):
+        """ Analyzes the results of the test.
             Returns true if test has passed.
         """
         self.results = {}
         passed = True
-        
+
         self.results['packets_received'] = len(C.cont)
         self.get_versions(C)
-        
-        num_hb, num_sp = 0,0
-        last_hb = None
-        heartbeat_counter_ok = True
-        sp_crc_ok = True
-        hk_start = None
-        hk_end = None
-        hk_end = None
-        last_hbtime = None
-        hb_tmin = 0
-        hb_tmax = 0
-        for P in C.cont:
-            if type(P) == uc.Packet_Heartbeat:
-                P._read()
-                num_hb += 1
-                if last_hb is None:
-                    last_hb = P.packet_count
-                    last_hbtime = P.time
-                    hb_tmin = 1e9
-                else:
-                    if P.packet_count != last_hb+1 or P.ok == False:
-                        heartbeat_counter_ok = False
-                    else:
-                        last_hb = P.packet_count
-                    dt = P.time - last_hbtime
-                    last_hbtime = P.time
-                    hb_tmin = min(hb_tmin, dt)
-                    hb_tmax = max(hb_tmax, dt)
 
-            if type(P) == uc.Packet_Spectrum:
-                num_sp += 1
-                P._read()
-                sp_crc_ok = (sp_crc_ok & (not P.error_crc_mismatch))
+        num_hb = C.num_heartbeats()
+        num_sp = C.num_spectra_packets()
+        heartbeat_counter_ok = C.heartbeat_counter_ok() and C.heartbeat_max_dt() < 11
 
         if num_hb == 0:
             heartbeat_counter_ok = False
-        
+
         self.results['heartbeat_received'] = num_hb
-        self.results['hearbeat_count'] = int(num_hb)
-        self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok & (hb_tmax<11))
-        self.results['heartbeat_mindt'] = f"{hb_tmin:.3f}"
-        self.results['heartbeat_maxdt'] = f"{hb_tmax:.3f}"
+        self.results['hearbeat_count'] = num_hb
+        self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok)
+        self.results['heartbeat_mindt'] = f"{C.heartbeat_min_dt():.3f}"
+        self.results['heartbeat_maxdt'] = f"{C.heartbeat_max_dt():.3f}"
         self.results['sp_packets_received'] = num_sp
-
-
 
         ## now plot spectra
         freq = np.arange(1,2048)*0.025
         wfall=[[] for i in range(16)]
-        
-        
-        crc_ok = True
-        sp_all = True
-        sp_rejections = 0
 
+
+        crc_ok = C.all_spectra_crc_ok()
+        sp_all = C.has_all_products()
+        sp_rejections = 0
 
         # first check if the last one has all the spectra
         # if not, we don't care, we just stopped acquisition in a unfortunate moment
@@ -166,18 +178,11 @@ class Test_Science(Test):
         if not (last_one_ok):
             C.spectra = C.spectra[:-1]
 
-
         # however, stuff during the normal run should have all the spectra.
-        for i,S in enumerate(C.spectra):                
-            for c in range(16):
-                if c not in S:
-                    sp_all = False
-                    print (f"Product {c} missing in spectra{i}.")
-
         if sp_all:
 
             def get_meta(name, C):
-                return np.array([S['meta'][name] for S in C.spectra]) 
+                return np.array([S['meta'][name] for S in C.spectra])
 
             weights = get_meta("base.weight_previous",C)
             time = get_meta("time",C)
@@ -185,7 +190,7 @@ class Test_Science(Test):
             errors = get_meta("base.errors",C)
             adc_min = get_meta("adc_min",C)
             adc_valid_count = get_meta("adc_valid_count",C)
-            adc_invalid_count_min = get_meta("adc_invalid_count_min",C) 
+            adc_invalid_count_min = get_meta("adc_invalid_count_min",C)
             adc_invalid_count_max = get_meta("adc_invalid_count_max",C)
             adc_max = get_meta("adc_max",C)
             adc_mean = get_meta("adc_mean",C)
@@ -197,135 +202,128 @@ class Test_Science(Test):
             d3 = get_meta('seq.gain',C)
             print (d1[0],d2[0],d3[0])
             #stop()
-                          
-
 
             sp_rejections = np.sum(64-weights)
 
             data = np.array([[ S[c].data for c in range(16)] for S in C.spectra])
-            
+
             data_mean = np.mean(data, axis=0)
             freq = C.spectra[0]['meta'].frequency
 
             # plot weights
-            fig,ax = plt.subplots()
-            ax.plot(time, weights)
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('weights')
-            fig.savefig(os.path.join(figures_dir,'weights.pdf'))
-        
-            # plot errors
-            fig,ax = plt.subplots()
+            if not (figures_dir is None):
+                fig,ax = plt.subplots()
+                ax.plot(time, weights)
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('weights')
+                fig.savefig(os.path.join(figures_dir,'weights.pdf'))
 
-            errs = [cl.error_bits[1<<i] for i in range(32)]
-            bitmask = np.zeros((len(time),32))
-            for i in range(32):
-                bitmask[:,i] = (errors & (1<<i))>0
-            ax.imshow(bitmask.T, aspect='auto', interpolation='nearest', extent=[time[0],time[-1],31.5,-0.5])
-            ax.set_yticks(np.arange(32))
-            ax.set_yticklabels(errs)
-            ax.set_xlabel('time')
-            ax.set_ylabel('errors_mask')
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'errors.pdf'))
+                # plot errors
+                fig,ax = plt.subplots()
 
-            #plot adc stats
-            #print (adc_min[:,0])
-            #print (adc_max[:,0])
-            #print (adc_valid_count[:,0])
-            #print (adc_mean[:,0])
-            #print (adc_rms[:,0])
-            fig,ax = plt.subplots(2,2)
-            colors = 'rgby'
-            for i in range(4):
-                x= i//2
-                y= i%2
-                ax[x,y].plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='CH'+str(i+1))
-                ax[x,y].plot(time, adc_min[:,i], ls = '-', lw=2, color =colors[i])
-                ax[x,y].plot(time, adc_mean[:,i],ls = '-', lw=2, color =colors[i])
-                ax[x,y].plot(time, adc_mean[:,i]+adc_rms[:,i],ls = ':', lw=2, color =colors[i])
-                ax[x,y].plot(time, adc_mean[:,i]-adc_rms[:,i],ls = ':', lw=2, color =colors[i])
-                if x==1:
-                    ax[x,y].set_xlabel('time [mins]')
-                if y==0:
-                    ax[x,y].set_ylabel('counts')
-            fig.legend()
-            
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'adc_stats.pdf'))
+                errs = [cl.error_bits[1<<i] for i in range(32)]
+                bitmask = np.zeros((len(time),32))
+                for i in range(32):
+                    bitmask[:,i] = (errors & (1<<i))>0
+                ax.imshow(bitmask.T, aspect='auto', interpolation='nearest', extent=[time[0],time[-1],31.5,-0.5])
+                ax.set_yticks(np.arange(32))
+                ax.set_yticklabels(errs)
+                ax.set_xlabel('time')
+                ax.set_ylabel('errors_mask')
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'errors.pdf'))
 
+                #plot adc stats
+                #print (adc_min[:,0])
+                #print (adc_max[:,0])
+                #print (adc_valid_count[:,0])
+                #print (adc_mean[:,0])
+                #print (adc_rms[:,0])
+                fig,ax = plt.subplots(2,2)
+                colors = 'rgby'
+                for i in range(4):
+                    x= i//2
+                    y= i%2
+                    ax[x,y].plot(time, adc_max[:,i], ls = '-', lw=2, color =colors[i],label='CH'+str(i+1))
+                    ax[x,y].plot(time, adc_min[:,i], ls = '-', lw=2, color =colors[i])
+                    ax[x,y].plot(time, adc_mean[:,i],ls = '-', lw=2, color =colors[i])
+                    ax[x,y].plot(time, adc_mean[:,i]+adc_rms[:,i],ls = ':', lw=2, color =colors[i])
+                    ax[x,y].plot(time, adc_mean[:,i]-adc_rms[:,i],ls = ':', lw=2, color =colors[i])
+                    if x==1:
+                        ax[x,y].set_xlabel('time [mins]')
+                    if y==0:
+                        ax[x,y].set_ylabel('counts')
+                fig.legend()
 
-            fig,ax = plt.subplots()
-            colors = 'rgby'
-            for i in range(4):
-                ax.plot(time, adc_valid_count[:,i], ls = ':', lw=2, color =colors[i],label='VALID CH'+str(i+1))
-            for i in range(4):
-                ax.plot(time, adc_invalid_count_max[:,i],ls = '-', lw=2, color =colors[i], label='INVALID MAX' if i==0 else None)
-                ax.plot(time, adc_invalid_count_min[:,i],ls = '--', lw=2, color =colors[i], label='INVALID MIN' if i==0 else None)
-            fig.legend()
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('ADC samples ')
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'adc_stats2.pdf'))
-
-            fig,ax = plt.subplots()
-            for i in range(4):
-                ax.plot(time, actual_gain[:,i], ls = '-', lw=2, color =colors[i],label='GAIN CH'+str(i+1))
-            fig.legend()
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('actual gain')
-            ax.set_yticks([0,1,2,3])
-            ax.set_yticklabels(['L','M','H','D'])
-            ax.set_ylim(-0.5,3.5)
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'actual_gain.pdf'))
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'adc_stats.pdf'))
 
 
+                fig,ax = plt.subplots()
+                colors = 'rgby'
+                for i in range(4):
+                    ax.plot(time, adc_valid_count[:,i], ls = ':', lw=2, color =colors[i],label='VALID CH'+str(i+1))
+                for i in range(4):
+                    ax.plot(time, adc_invalid_count_max[:,i],ls = '-', lw=2, color =colors[i], label='INVALID MAX' if i==0 else None)
+                    ax.plot(time, adc_invalid_count_min[:,i],ls = '--', lw=2, color =colors[i], label='INVALID MIN' if i==0 else None)
+                fig.legend()
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('ADC samples ')
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'adc_stats2.pdf'))
 
-            fig,ax = plt.subplots()
-            for i in range(4):
-                ax.plot(time, actual_bitslice[:,i], ls = '-', lw=2, color =colors[i],label='BITSLICE CH'+str(i+1))
-            fig.legend()
-            ax.set_xlabel('time [mins]')
-            ax.set_ylabel('actual bitslice')
-            ax.set_ylim(0,32)
-            fig.tight_layout()
-            fig.savefig(os.path.join(figures_dir,'actual_bitslice.pdf'))
+                fig,ax = plt.subplots()
+                for i in range(4):
+                    ax.plot(time, actual_gain[:,i], ls = '-', lw=2, color =colors[i],label='GAIN CH'+str(i+1))
+                fig.legend()
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('actual gain')
+                ax.set_yticks([0,1,2,3])
+                ax.set_yticklabels(['L','M','H','D'])
+                ax.set_ylim(-0.5,3.5)
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'actual_gain.pdf'))
+
+                fig,ax = plt.subplots()
+                for i in range(4):
+                    ax.plot(time, actual_bitslice[:,i], ls = '-', lw=2, color =colors[i],label='BITSLICE CH'+str(i+1))
+                fig.legend()
+                ax.set_xlabel('time [mins]')
+                ax.set_ylabel('actual bitslice')
+                ax.set_ylim(0,32)
+                fig.tight_layout()
+                fig.savefig(os.path.join(figures_dir,'actual_bitslice.pdf'))
+
+                #plot mean spectra
+                fig_sp, ax_sp = plt.subplots(4,4,figsize=(12,12))
+                for c in range(16):
+                        x,y = c//4, c%4
+                        if c<4:
+                            ax_sp[x][y].plot(freq, data_mean[c])
+                            ax_sp[x][y].set_yscale('log')
+                            ax_sp[x][y].set_xlim(0,51.2)
+                        else:
+                            ax_sp[x][y].plot(freq, data_mean[c])
 
 
+                for i in range(4):
+                    ax_sp[3][i].set_xlabel('frequency [MHz]')
+                    ax_sp[i][0].set_ylabel('power [uncalibrated]')
 
-            #plot mean spectra
-            fig_sp, ax_sp = plt.subplots(4,4,figsize=(12,12))
-            for c in range(16):
+                fig_sp.tight_layout()
+                fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
+
+                # waterfall plots
+                fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
+                for c in range(16):
                     x,y = c//4, c%4
+                    cdata = data[:,c,:]
                     if c<4:
-                        ax_sp[x][y].plot(freq, data_mean[c])
-                        ax_sp[x][y].set_yscale('log')
-                        ax_sp[x][y].set_xlim(0,51.2)
-                    else:
-                        ax_sp[x][y].plot(freq, data_mean[c])
-                        
+                        cdata=np.log10(cdata)
+                    ax_sp2[x][y].imshow(cdata, origin='upper',aspect='auto', interpolation='nearest')
 
-            for i in range(4):
-                ax_sp[3][i].set_xlabel('frequency [MHz]')
-                ax_sp[i][0].set_ylabel('power [uncalibrated]')
-
-            fig_sp.tight_layout()
-            fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
-            
-            # waterfall plots
-            fig_sp2, ax_sp2 = plt.subplots(4,4,figsize=(12,12))
-            for c in range(16):
-                x,y = c//4, c%4
-                cdata = data[:,c,:]
-                if c<4:
-                    cdata=np.log10(cdata)
-                ax_sp2[x][y].imshow(cdata, origin='upper',aspect='auto', interpolation='nearest')
-
-            fig_sp2.tight_layout()
-            fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
-
-
+                fig_sp2.tight_layout()
+                fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
 
         if len(C.spectra)>0:
             self.results['sp_crc'] = int(crc_ok)
@@ -342,7 +340,3 @@ class Test_Science(Test):
         passed = (passed and crc_ok and sp_all)
 
         self.results['result'] = int(passed)
-
-
-
-

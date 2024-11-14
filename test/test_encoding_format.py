@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 
 from icecream import ic
 
+from scripter import pycoreloop
+import numpy as np
+
 sys.path.append(".")
 sys.path.append("./scripter/")
 sys.path.append("./commander/")
@@ -15,39 +18,42 @@ from test_base import Test
 from lusee_script import Scripter
 
 from pycoreloop import appId
+from pycoreloop import pystruct as cl
+from pycoreloop import format_from_value
 
 import uncrater as uc
 
 
-class Test_TRSpectra(Test):
-    name = "time_resolved"
+class Test_EncodingFormat(Test):
+    name = "encoding_format"
     version = 0.1
-    description = """ Check that time resolved spectra are received."""
+    description = """ Check that different compression formats work as expected."""
     instructions = """ Do not need to connect anything."""
     default_options = {
         "time": 30,
         "navg1": 14,
         "navg2": 3,
-        "ramp": False,
-        "tr_start": 0,
-        "tr_stop": 8,
-        "tr_avg_shift": 2,
+        "navgf": 1,
+        "ramp": True,
     }  ## dictinary of options for the test
     options_help = {
         "time": "Total time to run the test.",
         "navg1": "Phase 1 (moving from FPGA) averages over 2^navg1 values.",
         "navg2": "Phase 2 (moving to TICK/TOCK) averages over 2^navg2 values.",
+        "navgf": "Frequency averaging.",
         "ramp": "Use ramp mode for ADCs.",
-        "tr_start": "Start of time-resolved window.",
-        "tr_stop": "End of time-resolved window.",
-        "tr_avg_shift": "Average over every 2^tr_avg_shift values.",
     }  ## dictionary of help for the options
 
     def generate_script(self):
         """Generates a script for the test"""
-        if self.time < 30:
-            print("Time raised to 30 seconds.")
-            self.time = 30
+
+        self.formats = [cl.OUTPUT_32BIT, cl.OUTPUT_16BIT_10_PLUS_6, cl.OUTPUT_16BIT_4_TO_5]
+
+        min_time = 10 * len(self.formats)
+
+        if self.time < min_time:
+            print(f"Time raised to {min_time} seconds.")
+            self.time = min_time
 
         scripter = Scripter()
         scripter.reset()
@@ -56,54 +62,93 @@ class Test_TRSpectra(Test):
             scripter.ADC_special_mode('ramp')
         scripter.set_cdi_delay(2)
         scripter.set_Navg(Navg1=self.navg1, Navg2=self.navg2)
-        scripter.set_tr_start_stop(self.tr_start, self.tr_stop)
-        scripter.set_tr_avg_shift(self.tr_avg_shift)
+        scripter.set_avg_freq(self.navgf)
 
-        scripter.start()
-        scripter.wait(self.time)
-        scripter.stop()
-        scripter.wait(5)
+        for format in self.formats:
+            scripter.wait(5)
+            scripter.set_spectra_format(format)
+            scripter.start()
+            scripter.wait(self.time // len(self.formats))
+            scripter.stop()
+            scripter.wait(5)
+
         return scripter
 
-    def get_tr_shape(self):
-        return 1 << self.navg2, (self.tr_stop - self.tr_start) // (
-            1 << self.tr_avg_shift
-        )
-
-    # plot all TR spectra and return the string with includegraphics instruction
+    # plot all spectra as in test_alive and return the string with includegraphics instruction
     # do not know in advance how many plots we need
-    def plot_tr_spectra(self, coll: uc.Collection, figures_dir) -> str:
+    def plot_spectra_as_alive(self, coll: uc.Collection, figures_dir) -> str:
         figures_dir = os.path.abspath(figures_dir)
         result = "\n"
-        for tr_packet_idx, trs in enumerate(coll.tr_spectra):
+
+        # 2048, not 2049: we drop the first entry in data later
+        freq = np.arange(1, 2048) * 0.025
+        for sp_packet_idx, spec in enumerate(coll.spectra):
+
+            fmt = format_from_value[spec["meta"].format]
             fig, ax = plt.subplots(4, 4, figsize=(24, 24))
-            fig_fname = os.path.join(figures_dir, f"tr_spectra_{tr_packet_idx}.pdf")
+            fig_fname = os.path.join(figures_dir, f"spectra_as_alive_{sp_packet_idx}.pdf")
+
             for product_idx in range(16):
-                if product_idx not in trs:
+                if product_idx not in spec:
                     continue
                 x, y = product_idx // 4, product_idx % 4
-                data = trs[product_idx].data
+                if product_idx < 4:
+                    data = spec[product_idx].data[1:]
+                    ax[x][y].plot(freq, data, label=f"Product {product_idx+1}")
+                    ax[x][y].set_xscale('log')
+                    ax[x][y].set_yscale('log')
+                else:
+                    data= spec[product_idx].data[:400] * freq[:400]**2
+                    ax[x][y].plot(freq[:400], data)
+                ax[x][y].legend()
+                ax[x][y].set_title(f"Packet {sp_packet_idx+1}/{len(coll.spectra)}, encoding {fmt}")
+
+            for i in range(4):
+                ax[3][i].set_xlabel('frequency [MHz]')
+                ax[i][0].set_ylabel('power [uncalibrated]')
+
+            fig.tight_layout()
+            fig.savefig(fig_fname)
+            plt.close(fig)
+            result += f"\n\\includegraphics*[width=\\linewidth]{{{fig_fname}}}\n"
+
+            if sp_packet_idx > 20:
+                print(f"Warning: plotting only the first 20 spectra out of {len(coll.spectra)}")
+
+        return result
+
+
+    # plot all spectra and return the string with includegraphics instruction
+    # do not know in advance how many plots we need
+    def plot_spectra(self, coll: uc.Collection, figures_dir) -> str:
+        figures_dir = os.path.abspath(figures_dir)
+        result = "\n"
+        freq = np.arange(1, 2049)
+        for sp_packet_idx, spec in enumerate(coll.spectra):
+            fmt = format_from_value[spec["meta"].format]
+            fig, ax = plt.subplots(4, 4, figsize=(24, 24))
+            fig_fname = os.path.join(figures_dir, f"spectra_{sp_packet_idx}.pdf")
+            for product_idx in range(16):
+                if product_idx not in spec:
+                    continue
+                x, y = product_idx // 4, product_idx % 4
+                data = spec[product_idx].data
                 # do not plot more than 4 first bins, it'll be impossible to parse
-                for bin_idx in range(min(data.shape[1], 4)):
-                    ax[x][y].plot(data[:, bin_idx].flatten(), label=f"Bin {bin_idx+1}")
-                ax[x][y].set_title(
-                    f"Product {product_idx+1}/16 of packet {tr_packet_idx+1}/{len(coll.tr_spectra)}"
-                )
-                ax[x][y].set_xlabel(f"Phase 1 averaging index")
-                ax[x][y].set_xticks(
-                    range(0, data[:, 0].size, 1 << max(0, (self.navg2 - 3)))
-                )
+                ax[x][y].plot(freq, data, label=f"Product {product_idx+1}")
+                ax[x][y].set_title( f"Packet {sp_packet_idx+1}/{len(coll.spectra)}, encoding {fmt}" )
+                ax[x][y].set_xlabel(f"Frequency")
                 # TODO: how is this called?
                 ax[x][y].set_ylabel(f"Value")
+                if product_idx < 4:
+                    ax[x][y].set_xscale("log")
+                    ax[x][y].set_yscale("log")
                 ax[x][y].legend()
             fig.tight_layout()
             fig.savefig(fig_fname)
             plt.close(fig)
             result += f"\n\\includegraphics*[width=\\linewidth]{{{fig_fname}}}\n"
-            if tr_packet_idx > 5:
-                print(
-                    f"Warning: plotting only the first 5 TR spectra out of {len(coll.tr_spectra)}"
-                )
+            if sp_packet_idx > 30:
+                print( f"Warning: plotting only the first 30 spectra out of {len(coll.spectra)}" )
         return result
 
     def analyze(self, coll, uart, commander, figures_dir):
@@ -143,9 +188,10 @@ class Test_TRSpectra(Test):
             coll.heartbeat_counter_ok() and coll.heartbeat_max_dt() < 11
         )
         self.results["sp_packets_received"] = coll.num_spectra_packets()
-        self.results["tr_sp_packets_received"] = coll.num_tr_spectra_packets()
+        ic(figures_dir)
         if not (figures_dir is None):
-            self.results["tr_plots_str"] = self.plot_tr_spectra(coll, figures_dir)
+            self.results["plots_calibrated_str"] = self.plot_spectra_as_alive(coll, figures_dir)
+            self.results["plots_raw_str"] = self.plot_spectra(coll, figures_dir)
         self.results["all_meta_error_free"] = coll.all_meta_error_free()
 
         passed = (

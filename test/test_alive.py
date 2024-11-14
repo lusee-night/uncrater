@@ -16,12 +16,21 @@ from collections import defaultdict
 
 def test_waveform(wf, type):
     if type == 'ramp':
-        pred_val = wf[0]
-        for next_val in wf[1:]:
-            pred_val = pred_val+1 if pred_val<8192 else -8191
-            if next_val != pred_val:
-                return False
-        return True
+        for sign in [+1, -1]:
+            pred_val = wf[0]
+            ok = True
+            for next_val in wf[1:]:
+                if sign>0:
+                    pred_val = pred_val+1 if pred_val<8192 else -8191    
+                else:
+                    pred_val = pred_val-1 if pred_val>-8191 else 8192    
+                if (next_val != pred_val):                    
+                    ok = False
+                    break
+            if ok:
+                return True
+        return False
+
     if type == 'zeros':
         return np.all(wf==0)
     if type == 'ones':
@@ -93,10 +102,12 @@ class Test_Alive(Test):
     default_options = {
         "waveform_type": "ramp",
         "cdi_delay": 0,
+        "superslow": False,
     } ## dictinary of options for the test
     options_help = {
         "waveform_type" : "Waveform to be generated. Can be 'ramp', 'zeros', 'ones', or 'input'",
-        "cdi_delay": "Delay in units of 1.26ms for the CDI to space packets by (0=225ns)"
+        "cdi_delay": "Delay in units of 1.26ms for the CDI to space packets by (0=225ns)",
+        "superslow": "Snail mode for SSL"
     } ## dictionary of help for the options
 
 
@@ -107,28 +118,32 @@ class Test_Alive(Test):
         if self.waveform_type not in ['ramp','zeros','ones','input']:
             print ("Unknown waveform type. ")
             sys.exit(1)
-        
+
 
         S = Scripter()
         S.reset()
         ## this is the real wait
         S.wait(3)
-        
+
         S.set_cdi_delay(int(self.cdi_delay))
-        S.set_dispatch_delay(6)
+        S.set_dispatch_delay(220 if self.superslow else 6)
         S.house_keeping(0)
         S.ADC_special_mode(self.waveform_type)
-        S.waveform(4)
-        ## this takes over anyways
-        S.cdi_wait_seconds(1)
-        S.set_Navg(14,3)
-        S.start()
-        S.cdi_wait_seconds(50)
+        if self.superslow:
+            for i in range(4):
+                S.waveform(i)
+                S.cdi_wait_seconds(7)
+        else:
+            S.waveform(4)
+                
+        S.set_Navg(14,6 if self.superslow else 3)
+        S.start()        
+        S.cdi_wait_seconds(120 if self.superslow else 50)
         S.stop()
-        S.cdi_wait_seconds(3)
+        
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(65)
+        S.wait(180 if self.superslow else 65)
         return S
 
     def analyze(self, C, uart, commander, figures_dir):
@@ -177,7 +192,8 @@ class Test_Alive(Test):
 
         if (hk_start is not None) and (hk_end is not None):
             delta_t = hk_end.time - hk_start.time
-            self.results['timer_ok'] = int ((delta_t>55) and (delta_t<65))
+            delta_t_exp = 152 if self.superslow else 52
+            self.results['timer_ok'] = int (np.abs(delta_t-delta_t_exp)<10) 
             self.results['no_errors'] =  int(hk_start.core_state.base.errors == 0 and hk_end.core_state.base.errors == 0)
         else:
             self.results['timer_ok'] = 0
@@ -193,7 +209,8 @@ class Test_Alive(Test):
         ax_wf.set_ylabel("ADC Value")
         ax_wf.set_xlabel("Sample")
         ax_wf.legend()
-        fig_wf.savefig(os.path.join(figures_dir,'waveforms.pdf'))
+        if not (figures_dir is None):
+            fig_wf.savefig(os.path.join(figures_dir,'waveforms.pdf'))
         fig_wf.tight_layout()
         for i in range(4):
             self.results[f'wf_ch{i+1}'] = int(wf_ch[i])
@@ -214,7 +231,7 @@ class Test_Alive(Test):
 
         mean, std = np.load ('test/data/ramp_power.npy')
         for i,S in enumerate(C.spectra):
-            if S['meta'].base.weight_previous!=8:
+            if S['meta'].base.weight_previous!=(64 if self.superslow else 8):
                 pk_weights_ok = False
 
             for c in range(16):
@@ -254,12 +271,14 @@ class Test_Alive(Test):
             self.results['sp_pk_ok'] = int(pk_ok)
             self.results['sp_num'] = len(C.spectra)
             self.results['sp_weights_ok'] = int(pk_weights_ok)
+            self.results["meta_error_free"] = C.all_meta_error_free()
         else:
             self.results['sp_crc'] = 0
             self.results['sp_all'] = 0
             self.results['sp_pk_ok'] = 0
             self.results['sp_num'] = 0
             self.results['sp_weights_ok'] = 0
+            self.results["meta_error_free"] = 0
 
         time, V1_0, V1_8, V2_5, T_FPGA = self.plot_telemetry(C.spectra, figures_dir)
         self.results['v1_0_min'] = f"{V1_0.min():3.2f}"
@@ -283,10 +302,12 @@ class Test_Alive(Test):
         self.results['v_2_5_ok'] = int(v_2_5_ok)
         self.results['t_fpga_ok'] = int(t_fpga_ok)
 
-        passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok and v_1_0_ok and v_1_8_ok and v_2_5_ok and t_fpga_ok)
+        passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok and v_1_0_ok and v_1_8_ok and v_2_5_ok and t_fpga_ok and wf_ch_ok[0] and wf_ch_ok[1] and wf_ch_ok[2] and wf_ch_ok[3])
+        passed = passed and self.results["meta_error_free"]
 
         fig_sp.tight_layout()
-        fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
+        if not (figures_dir is None):
+            fig_sp.savefig(os.path.join(figures_dir,'spectra.pdf'))
         for c in range(16):
             x,y = c//4, c%4
             data = np.array(wfall[c])
@@ -297,5 +318,6 @@ class Test_Alive(Test):
             ax_sp2[x][y].imshow(data, origin='upper',aspect='auto', interpolation='nearest')
 
         fig_sp2.tight_layout()
-        fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
+        if not (figures_dir is None):
+            fig_sp2.savefig(os.path.join(figures_dir,'spectra_wf.pdf'))
         self.results['result'] = int(passed)
