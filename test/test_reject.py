@@ -25,38 +25,38 @@ class Test_Reject(Test):
     def generate_script(self):
         """ Generates a script for the test """
 
-        S = Scripter()
-        S.reset()
-        S.wait(1)
-        S.set_Navg(14,3)
-        S.set_reject (128, 20)
-        S.start()
-        S.wait(5)
+        scripter = Scripter()
+        scripter.reset()
+        scripter.wait(1)
+        scripter.set_Navg(14,3)
+        scripter.set_reject(128, 20)
+        scripter.start()
+        scripter.wait(5)
         ## inject 1000 outliers that are x2 in amplitude and type = 0 (spectrum independent)
-        S.inject_outlier(num=1000,fact=2,type=0)
-        S.wait(5)
+        scripter.inject_outlier(num=1000,fact=2,type=0)
+        scripter.wait(5)
         ## inject 1000 outliers that are x2 in amplitude and type = 1 (single bin)
-        S.inject_outlier(num=1000,fact=2,type=1)
-        S.wait(10)
+        scripter.inject_outlier(num=1000,fact=2,type=1)
+        scripter.wait(10)
         ## change the type of the spectrum -- see if it is going to accept new one after some time
-        S.ADC_special_mode('ramp')
-        S.wait(15)
-        S.stop()
-        S.ADC_special_mode('normal')
-        S.wait(1)
-        return S
+        scripter.ADC_special_mode('ramp')
+        scripter.wait(15)
+        scripter.stop()
+        scripter.ADC_special_mode('normal')
+        scripter.wait(1)
+        return scripter
     
-    def analyze(self, C, uart, commander, figures_dir):
+    def analyze(self, collection: uc.Collection, uart, commander, figures_dir):
         """ Analyzes the results of the test. 
             Returns true if test has passed.
         """
         self.results = {}
         passed = True
         
-        self.results['packets_received'] = len(C.cont)
+        self.results['packets_received'] = len(collection.cont)
         
-        C.cut_to_hello()
-        self.inspect_hello_packet(C)    
+        collection.cut_to_hello()
+        self.inspect_hello_packet(collection)
         # FIXME
         self.results['result'] = int(passed)
 

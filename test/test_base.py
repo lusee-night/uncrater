@@ -49,7 +49,7 @@ class Test:
         """Generates a script for the test"""
         raise NotImplementedError("generate_script not implemented in base class")
 
-    def analyze(self, work_dir, figures_dir):
+    def analyze(self, coll: uc.Collection, uart, commander, figures_dir):
         """Analyzes the results of the test.
         Returns true if test has passed.
         """

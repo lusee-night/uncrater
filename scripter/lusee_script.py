@@ -34,11 +34,6 @@ class Scripter:
         assert (arg >= 0) and (arg < 65536)
         self.script.append((cmd, arg))
 
-    def spectrometer_command(self, cmd, arg):
-        assert arg < 256
-        assert cmd < 256
-        self.command(0x10, (cmd << 8) + arg)
-
     def spectrometer_command(self,cmd,arg):
         assert(arg<256)
         assert(cmd<256)
@@ -58,6 +53,14 @@ class Scripter:
             dt = int(dt * 10)
             self.total_time += dt / 10
         self.command(lc.CTRL_WAIT, dt)
+
+    def set_reject(self, amp: int, num: int):
+        # TODO
+        pass
+
+    def inject_outlier(self, num: int, fact: int, type: int):
+        # TODO
+        pass
 
     def cdi_wait_ticks(self, dt):
         """Wait for dt in ticks (10ms) executed on the spectrometer board"""
