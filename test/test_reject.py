@@ -1,7 +1,4 @@
 import sys
-sys.path.append('.')
-sys.path.append('./scripter/')
-sys.path.append('./commander/')
 import matplotlib.pyplot as plt
 import os
 
@@ -9,7 +6,7 @@ import os
 import argparse
 import numpy as np
 from test_base import Test
-from  lusee_script import Scripter
+from  scripter.lusee_script import Scripter
 import uncrater as uc
 from collections import defaultdict
 
