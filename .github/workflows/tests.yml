@@ -1,0 +1,68 @@
+name: Run standalone Python Tests
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install packages
+      run: pip install -r requirements.txt
+
+    - name: Clone coreloop repo
+      uses: GuillaumeFalourd/clone-github-repo-action@v2.3
+      with:
+        owner: 'lusee-night'
+        repository: 'coreloop'
+
+    - name: Compile coreloop and generate pycoreloop
+      run: |
+        cd coreloop
+        cd pycoreloop
+        make clean
+        make -j
+        cd ..
+        mkdir build
+        cd build
+        cmake ..
+        make -j
+        cd ../..
+
+    - name: Set CORELOOP_DIR environment variable
+      run: echo "CORELOOP_DIR=$GITHUB_WORKSPACE/coreloop" >> $GITHUB_ENV
+
+    - name: Run test alive
+      run: |
+        python test/cli_driver.py -r alive -b coreloop --skip-report
+      env:
+        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
+
+    - name: Run test time_resolved
+      run: |
+        python test/cli_driver.py -r time_resolved -b coreloop --skip-report
+      env:
+        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
+
+    - name: Run test data_interface
+      run: |
+        python test/cli_driver.py -r data_interface -b coreloop --skip-report
+      env:
+        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
+
+    - name: Run Python tests with pytest
+      run: pytest test/standalone/
+      env:
+        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
+

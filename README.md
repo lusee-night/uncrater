@@ -1,3 +1,7 @@
+# test status
+
+![Automated tests now](https://github.com/lusee-night/uncrater/actions/workflows/tests.yml/badge.svg)
+
 # uncrater
 LuSEE Night binary blob unpackager
 
