@@ -15,6 +15,9 @@ import sys, os
 sys.path.append(".")
 sys.path.append("./scripter/")
 sys.path.append("./commander/")
+if "CORELOOP_DIR" in os.environ:
+    sys.path.append(os.environ["CORELOOP_DIR"])
+
 import argparse
 
 from test_alive import Test_Alive
@@ -29,6 +32,7 @@ from test_data_interface import Test_DataInterface
 from test_tr_spectra import Test_TRSpectra
 from test_bootload import Test_Bootload
 from test_encoding_format import Test_EncodingFormat
+from test_binresponse import Test_BinResponse
 
 from commander import Commander
 import uncrater as uc
@@ -52,6 +56,7 @@ Tests = [
     Test_TRSpectra,
     Test_Route,
     Test_Bootload,
+    Test_BinResponse,
     Test_EncodingFormat,
 ]
 
