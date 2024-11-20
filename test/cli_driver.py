@@ -29,6 +29,7 @@ from test_data_interface import Test_DataInterface
 from test_tr_spectra import Test_TRSpectra
 from test_bootload import Test_Bootload
 from test_encoding_format import Test_EncodingFormat
+from test_reject import Test_Reject
 
 from commander import Commander
 import uncrater as uc
@@ -53,6 +54,7 @@ Tests = [
     Test_Route,
     Test_Bootload,
     Test_EncodingFormat,
+    Test_Reject,
 ]
 
 

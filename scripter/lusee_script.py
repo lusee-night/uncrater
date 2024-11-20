@@ -54,12 +54,15 @@ class Scripter:
             self.total_time += dt / 10
         self.command(lc.CTRL_WAIT, dt)
 
-    def set_reject(self, amp: int, num: int):
-        # TODO
+    def set_reject(self, reject_ratio: int, maxbad: int):
+        self.spectrometer_command(lc.RFS_SET_REJ_SET, int(reject_ratio))
+        self.spectrometer_command(lc.RFS_SET_REJ_NBAD, int(maxbad))
         pass
 
-    def inject_outlier(self, num: int, fact: int, type: int):
-        # TODO
+    def inject_outlier(self, num: int, amp: int, bins: int):
+        self.command(lc.CTRL_OUTLIER_NUM, int(num))
+        self.command(lc.CTRL_OUTLIER_AMP, int(amp))
+        self.command(lc.CTRL_OUTLIER_BINS, int(bins))
         pass
 
     def cdi_wait_ticks(self, dt):
