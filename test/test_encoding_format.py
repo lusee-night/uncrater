@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 from icecream import ic
 
-from scripter import pycoreloop
 import numpy as np
 
 sys.path.append(".")
