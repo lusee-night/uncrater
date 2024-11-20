@@ -26,9 +26,9 @@ class Test_BinResponse(Test):
         "amplitude" : "40",
         "gain": "M",
         "bitslice": 31,
-        "notch": False,
+        "notch": "0",
         "channel" : 0,
-        "Df": 0.1,
+        "Df": 0.04,
         "Nf": 31,
     } ## dictinary of options for the test
     options_help = {
@@ -37,7 +37,7 @@ class Test_BinResponse(Test):
         "amplitude" : "Amplitude of the signal",
         "gain": "Gain setting",
         "bitslice": "Bitslicer setting",
-        "notch": "Enable notch filter",
+        "notch": "Enable notch filter by listing the Nnoth_shift values",
         "channel" : "Channel number (starting with 0).",
         "Df": "+/- frequency deviation",
         "Nf": "Number of frequencies to test"
@@ -57,21 +57,25 @@ class Test_BinResponse(Test):
         S.reset()
         S.wait(3)
 
-        S.select_products(0b1111)#1<<ch)
+        S.select_products(1<<ch)
         S.set_Navg(14,2)
-        #S.set_bitslice(ch,int(self.bitslice))
+        S.set_bitslice(ch,int(self.bitslice))
         S.set_ana_gain(self.gain*4)
         delta_freq = self.get_frequencies()
         central_freq= 0.025*self.bin
 
-        for i,df  in enumerate(delta_freq):
-            S.awg_tone(ch, central_freq+df, self.amplitude)
-            S.wait(0.5)
-            S.start()
-            S.wait(3)
-            S.stop()
-            S.wait(3)     
-               
+        notch = [int(i) for i in self.notch.split()]
+        for n in notch:
+            S.set_notch(n)
+            for i,df  in enumerate(delta_freq):
+                S.awg_tone(ch, central_freq+df, self.amplitude)
+                S.wait(0.5)
+                S.start()
+                S.wait(3)
+                S.stop()
+                S.wait(3)     
+
+        S.house_keeping(0) # just force them to spit something out               
         S.wait(5)
         S.stop()
 
@@ -90,9 +94,9 @@ class Test_BinResponse(Test):
 
         Ns = len(C.spectra)
         self.results['Ns'] = Ns
-        
-        self.results['Ns_expected'] = self.Nf
-        self.results['Ns_ok'] = int(self.Nf==Ns)
+        notch = [int(i) for i in self.notch.split()]
+        self.results['Ns_expected'] = self.Nf * len(notch)
+        self.results['Ns_ok'] = int(Ns == self.results['Ns_expected'])
 
         
         if self.results['Ns_expected']:
@@ -100,18 +104,16 @@ class Test_BinResponse(Test):
             adc_max = C.spectra[0]['meta'].adc_max[self.channel]    
             self.results['adc_min'] = adc_min
             self.results['adc_max'] = adc_max
-            self.results['bitslicer'] = 'X'
+            self.results['bitslicer'] = C.spectra[0]['meta'].seq.bitslice[self.channel]
             freqs = self.get_frequencies()
-            values = [S[self.channel].data[self.bin] for S in C.spectra]
-            fig, ax = plt.subplots(4,1, figsize=(10, 6))
-            ax[0].plot(freqs,values)
-            #ax[1].plot(freqs,values)
-            for i in range(3):
-                print (C.spectra[i][1].data)
-                ax[1].plot(C.spectra[i][1].data)
-                ax[2].plot(C.spectra[i][2].data)
-                ax[3].plot(C.spectra[i][3].data)
+            values = np.array([S[self.channel].data[self.bin] for S in C.spectra])
+            values = values.reshape((len(notch),self.Nf))
 
+            fig, ax = plt.subplots(2,1, figsize=(10, 6))
+            for n,v in zip(notch,values):                
+                ax[0].plot(freqs,v,label='Notch '+ ('off' if n==0 else "Nnotch = "+str(2**n))+'')
+                ax[1].plot(freqs,v)
+            ax[0].legend()
             ax[1].set_yscale('log')
             ax[0].set_xlabel('Frequency deviation (MHz)')
             ax[0].set_ylabel('Response')

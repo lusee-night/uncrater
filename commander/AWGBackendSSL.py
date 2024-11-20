@@ -15,7 +15,8 @@ class AWGBackendSSL(AWGBackendBase):
 
         self.ks1, self.ks2 = KS.KS33500(ip_address_12),KS.KS33500(ip_address_34)
         ##mapping
-        self.ch2awg = [ (self.ks2,0), (self.ks2,1), (self.ks1,1), (self.ks1,0)]
+        #self.ch2awg = [ (self.ks2,0), (self.ks2,1), (self.ks1,1), (self.ks1,0)]
+        self.ch2awg = [ (self.ks2,0), (self.ks2,1), (self.ks1,0), (self.ks1,1)]
 
         for ks in [self.ks1, self.ks2]:
             ks.init_33500()

@@ -21,17 +21,18 @@ from scipy.interpolate import interp1d
 class Test_CPTShort(Test):
 
     name = "cpt-short"
-    version = 0.1
+    version = 0.2
     description = """ Comprehensive Performance Test - Short Version."""
     instructions = """ Connect AWG."""
     default_options = {
-        'channels': '1234',
+        'channels': '0123',
         'gains': 'LMH',
         'freqs': '0.05 0.1 0.5 1 5 10 20 30 40 50 60 75 95',
         'amplitudes': '280 200 140 0',
         'bitslices': '25 23 21 16',
         'amplitude_fact': '5',
-        'invert_input': False,
+        'routing': 'default',
+        'notch': False, 
         'superslow': False
     } ## dictinary of options for the test
     options_help = {
@@ -41,7 +42,8 @@ class Test_CPTShort(Test):
         'amplitudes': 'Amplitudes used in the test. ',
         'bitslices' : 'List of bitslices to use for the test. Must the same size as amplitudes. If empty, will assume 31 throughout.',
         'amplitude_fact': 'Factor to multiply the amplitude by for L gain and divide by for H gain.',
-        'invert_input': 'Route inputs to minus rather than plus',
+        'routing': 'Routing: default, invert, alt1 ',
+        'notch': 'Enable notch filter',
         'superslow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need'
     } ## dictionary of help for the options
 
@@ -97,7 +99,7 @@ class Test_CPTShort(Test):
             try:
                 channels = [int(x) for x in self.channels]
                 for v in channels:
-                    if v < 1 or v > 4:
+                    if v < 0 or v > 3:
                         raise ValueError ("Invalid channel settings.")
             except:
                 raise ValueError ("Invalid channels settings.")
@@ -133,14 +135,14 @@ class Test_CPTShort(Test):
                             a = a*self.amplitude_fact
                         elif gain == "H":
                             a = a/self.amplitude_fact
-                        if ch==0:
+                        if ch==-1: ## do we ever use this?
                             ampl_set = (a,a,a,a)
                             bitslice_set = (s,s,s,s)
                         else:
                             ampl_set = [0,0,0,0]
                             bitslice_set = [31,31,31,31]
-                            ampl_set[ch-1] = a
-                            bitslice_set[ch-1] = s
+                            ampl_set[ch] = a
+                            bitslice_set[ch] = s
                         todo.append((gain, ch, freq_set,ampl_set,bitslice_set))
                 # also one at the end
                 if self.superslow:
@@ -174,9 +176,32 @@ class Test_CPTShort(Test):
             S.select_products('auto_only')
         old_gain = None
 
-        if self.invert_input:
+        
+        
+        if self.routing == 'default':
+            pass
+            awg_map = [0,1,2,3]
+        elif self.routing == 'invert':
             for i in range(4):
                 S.set_route(i,None,i)
+            awg_map = [0,1,2,3]
+        elif self.routing == 'alt1':
+            S.set_route(0,None,3)
+            S.set_route(1,None,2)
+            S.set_route(2,None,0)
+            S.set_route(3,None,1)
+            awg_map = [3,2,0,1]
+        elif self.routing == 'alt2':
+            S.set_route(0,None,2)
+            S.set_route(1,None,3)
+            S.set_route(2,None,1)
+            S.set_route(3,None,0)
+            awg_map = [2,3,1,0]           
+        else:
+            raise ValueError ("Invalid routing setting.")
+
+        if self.notch:
+            S.set_notch(4)
 
         for gain, ch, freq, ampl, bslice in self.todo_list:
             if gain != old_gain:
@@ -186,18 +211,18 @@ class Test_CPTShort(Test):
                 old_gain = gain
 
             for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
-                S.awg_tone(i,f,a)
+                S.awg_tone(awg_map[i],f,a)
                 S.set_bitslice(i,s)
             S.wait(0.1)
             if self.superslow:
-                S.waveform(ch-1)
+                S.waveform(ch)
                 S.wait(3.0)
             else:
                 S.waveform(4)
                 S.wait(3.0)
 
             if self.superslow:
-                S.select_products(1<<(ch-1))
+                S.select_products(1<<(ch))
 
             #for i in [0,1,2,3]:
             #    S.waveform(i)
@@ -316,7 +341,7 @@ class Test_CPTShort(Test):
                     ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
                     wform = waveforms[ich][cc]
                     if wform is not None:
-                        ax_large.plot(wform[:ndxmax], label=f'Channel {ich+1}')
+                        ax_large.plot(wform[:ndxmax], label=f'Channel {ich}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 
@@ -324,7 +349,7 @@ class Test_CPTShort(Test):
                 for ich in range(4):
                     if ich in sp:
                         sp[ich]._read()
-                        ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
+                        ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
                 ax_left.set_title('Spectra (Linear Scale)')
                 ax_left.set_xlabel('Frequency')
                 ax_left.set_ylabel('Amplitude')
@@ -332,7 +357,7 @@ class Test_CPTShort(Test):
                 # Plot spectra in the right plot (logarithmic scale)
                 for ich in range(4):
                     if ich in sp:
-                        ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich+1}')
+                        ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
                 ax_right.set_title('Spectra (Logarithmic Scale)')
                 ax_right.set_xlabel('Frequency')
                 ax_right.set_ylabel('Amplitude')
@@ -354,11 +379,12 @@ class Test_CPTShort(Test):
                     spectra_out.append(sp[i].data)
             results_list.append(list(self.todo_list[cc])+[waveforms_out, spectra_out])
 
-            if ch>0:
+
+            
+            if ch>=0:
                 chlist = [ch]
             else:
-                chlist = [1,2,3,4]
-
+                chlist = [0,1,2,3]
 
             def freq_to_bin(freq):
                 bin = int(freq/0.025+1e-3)
@@ -366,9 +392,9 @@ class Test_CPTShort(Test):
                     bin = 2048-bin
                 return bin
 
-            for ch in chlist:
-                cfreq = freq_set[ch-1]
-                key = (ch,g,cfreq)
+            for ich in chlist:
+                cfreq = freq_set[ich]
+                key = (ich,g,cfreq)
                 # now we need to isolate the power
                 bin = freq_to_bin(cfreq)
 
@@ -376,17 +402,17 @@ class Test_CPTShort(Test):
                     power_out[key] = []
                     power_in[key] = []
 
-                sppow = sp[ch-1].data* (2**(bitslic[ch-1]-31))
+                sppow = sp[ch].data* (2**(bitslic[ch]-31))
                 #print (cfreq,sppow[bin-1],sppow[bin],sppow[bin+1])
 
                 power_out[key].append(sppow[bin])
                 ## we have *1000 to get from mV to V, *1e-4 to account for 40dB attenuation, *(1e9)**2 to get from V^2 to nV^2, /25e3 to get from 25kHz bandwidth to get to nV^2/Hz
-                power_in[key].append((ampl_set[ch-1]/1000)**2*(attenuation_fact**2) *(1e9)**2 /25e3)
+                power_in[key].append((ampl_set[ich]/1000)**2*(attenuation_fact**2) *(1e9)**2 /25e3)
                 #print ('here',ch, ampl_set, power_in[key][-1], power_out[key][-1])
-                if ampl_set[ch-1] == 0:
-                    if (ch,g) not in power_zero:
-                        power_zero[(ch,g)] = []
-                    power_zero[(ch,g)].append(sppow)
+                if ampl_set[ich] == 0:
+                    if (ich,g) not in power_zero:
+                        power_zero[(ich,g)] = []
+                    power_zero[(ich,g)].append(sppow)
 
         pickle.dump(results_list, open(os.path.join(figures_dir, '../../data.pickle'), 'wb'))
         self.results['data_plots'] = "".join(figlist)
@@ -435,8 +461,8 @@ class Test_CPTShort(Test):
             #print (key, slope, offset, power_zero[key])
             power_zero_fit[key] = offset
             conversion[key] = slope
-            ax[fi][gain_ndx[g]].plot(power_in[key], power_out[key], 'o', color=clr[ch-1])
-            ax[fi][gain_ndx[g]].plot(power_in[key], np.array(power_in[key])*slope+offset,'-', color=clr[ch-1])
+            ax[fi][gain_ndx[g]].plot(power_in[key], power_out[key], 'o', color=clr[ch])
+            ax[fi][gain_ndx[g]].plot(power_in[key], np.array(power_in[key])*slope+offset,'-', color=clr[ch])
             ax[fi][0].set_ylabel(f"{f} MHz")
             #ax[fi][c-1].set_yscale('log')
             #ax[fi][c-1].set_xscale('log')
@@ -447,8 +473,8 @@ class Test_CPTShort(Test):
 
         print ("... plotting gain / noise curves...")
         figlist_res = []
-        if 0 in self.channels:
-            chlist = [1,2,3,4]
+        if -1 in self.channels:
+            chlist = [0,1,2,3]
         else:
             chlist = self.channels
 
@@ -492,10 +518,10 @@ class Test_CPTShort(Test):
                 for f in self.freqs:
                     ampl_max =0                    
                     for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
-                        if ch_ == ch and _g == g and freq_set_[ch-1] == f and ampl_set_[ch-1]>ampl_max:
-                            ampl_max = ampl_set_[ch-1]
+                        if ch_ == ch and _g == g and freq_set_[ch] == f and ampl_set_[ch]>ampl_max:
+                            ampl_max = ampl_set_[ch]
                             cc_max = cc
-                    wform = waveforms[ch-1][cc_max]
+                    wform = waveforms[ch][cc_max]
                     adu_range = wform.max()-wform.min()
                     Vpp = ampl_max*1e-3*attenuation_fact #1e-3 for mV to V, 1e-2 for 40dB power attenuation
                     rat.append(Vpp/adu_range*1e4)

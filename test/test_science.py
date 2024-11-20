@@ -31,8 +31,8 @@ class Test_Science(Test):
         "slow": False
     } ## dictinary of options for the test
     options_help = {
-        "preset" : "Type of science preset. Can be 'simple', 'agc-test', 'simplest', more to come.",
-        "route": "Routing scheme. Can be 'default', 'inverse', 'pairs'.",
+        "preset" : "Type of science preset. Can be 'simple', 'agc-test', 'simplest', 'trula', 'debug', more to come.",
+        "route": "Routing scheme. Can be 'default', 'inverse', 'pairs', 'alt1'.",
         "notch" : "Enable notch filter",
         "disable_awg" : "Disable the AWG before doing anything",
         "bitslicer"   : "bitslicer setting, can be 'auto' or a number",
@@ -44,7 +44,7 @@ class Test_Science(Test):
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple', 'debug', 'agc-test', 'simplest']:
+        if self.preset not in ['simple', 'debug', 'agc-test', 'simplest','trula']:
             raise ValueError ("Unknown preset.")
 
         if self.time_mins>100:
@@ -64,23 +64,25 @@ class Test_Science(Test):
         S.wait(3)
 
         if self.slow:
-            S.set_dispatch_delay(150)
+            S.set_dispatch_delay(120)
         if self.preset in ['simple']:
             S.set_Navg(14,6)
             
         elif self.preset in ['simplest']:
-            S.set_Navg(14,4)
+            S.set_dispatch_delay(120)
+            S.set_cdi_delay(0)
+            S.set_Navg(14,5)
             S.start()
             S.wait(90)
             S.stop()
             return S
 
         elif self.preset in ['agc-test']:
-            S.set_Navg(14,3)
+            S.set_Navg(14,5)
             S.awg_init()
             awg_amplitude = np.array([2000,1000,200,250])
             awg_fact = np.array([0.03,-0.03,0.05,-0.05])
-            awg_frequecy = 5.0
+            awg_frequency = [5.0, 7.0, 10.0, 12.0]
         elif self.preset in ['debug']:
             S.set_Navg(14,3)
 
@@ -95,10 +97,17 @@ class Test_Science(Test):
             S.set_route (1,3,1)
             S.set_route (2,None,0)
             S.set_route (2,None,1)
-
-        if self.preset in ['simple']:
+        elif self.route == 'alt1':
+            S.set_route(0,None,3)
+            S.set_route(1,None,2)
+            S.set_route(2,None,0)
+            S.set_route(3,None,1)
+        else:
+            raise ValueError ("Unknown routing scheme.")
+        
+        if self.preset in ['simple', 'agc-test']:
             if self.bitslicer == 'auto':
-                S.set_bitslice_auto(10)
+                S.set_bitslice_auto(15)
             else:
                 S.set_bitslice('all',int(self.bitslicer))
             S.set_ana_gain('AAAA')
@@ -106,7 +115,7 @@ class Test_Science(Test):
             S.set_ana_gain('MMMM')
 
         if self.notch:
-            S.set_notch(True)
+            S.set_notch(4)
 
         if self.preset=='agc-test':
             for i in range(4):
@@ -117,12 +126,42 @@ class Test_Science(Test):
                 awg_amplitude = awg_amplitude*(1+awg_fact)
                 awg_fact[(awg_amplitude>4000) | (awg_amplitude<5)] *= -1
                 for i in range(4):
-                    S.awg_tone(i, awg_frequecy, awg_amplitude[i] if awg_amplitude[i]>20 else 0)
+                    S.awg_tone(i, awg_frequency[i], awg_amplitude[i] if awg_amplitude[i]>20 else 0)
 
 
                 S.wait(2)
             S.awg_close()
             S.stop()
+        elif self.preset=='trula':
+            
+            S.write_adc_register(1, 0x42, 0x08)
+            S.write_adc_register(1, 0x25, 0x04)
+            S.write_adc_register(1, 0x2B, 0x04)
+            
+            S.set_ana_gain('HHHH')
+            S.set_bitslice('all',16)
+            S.set_dispatch_delay(120)
+
+            S.set_Navg(14,2)
+            S.select_products('auto_only')
+
+            for _ in range(500):
+                S.waveform(4)
+                S.wait(30)
+                S.set_notch(0)
+                S.start()
+                S.wait(3)
+                S.stop()
+                S.wait(6)
+                S.set_notch(2)
+                S.start()
+                S.wait(3)
+                S.stop()
+                S.wait(6)
+
+            
+                
+
         else:
             S.start()
             if self.time_mins>0:
@@ -165,7 +204,7 @@ class Test_Science(Test):
 
 
         crc_ok = C.all_spectra_crc_ok()
-        sp_all = C.has_all_products()
+        
         sp_rejections = 0
 
         # first check if the last one has all the spectra
@@ -177,7 +216,7 @@ class Test_Science(Test):
                 print (f"Product {c} missing in the last spectra, but we'll just chop that off.")
         if not (last_one_ok):
             C.spectra = C.spectra[:-1]
-
+        sp_all = C.has_all_products()
         # however, stuff during the normal run should have all the spectra.
         if sp_all:
 
