@@ -228,5 +228,17 @@ class Test_Bootload(Test):
         """
         self.results = {}
         passed = True
+        for i, packet in enumerate(C.cont):
+            if packet.appid == 0x208:
+                packet._read()
+                print (f"Packet {i}: bootloader")
+                print(packet.info())
+                
+            elif packet.appid == 0x209:
+                print (f"Packet {i}: SWS hello")
+                print(packet.info())
+
+            else:
+                print (f"Packet {i}: AppID={packet.appid}")
 
         self.results['result'] = int(passed)

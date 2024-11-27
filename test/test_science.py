@@ -102,6 +102,12 @@ class Test_Science(Test):
             S.set_route(1,None,2)
             S.set_route(2,None,0)
             S.set_route(3,None,1)
+        elif self.route == 'difftest':
+            S.set_route(0,0,1)
+            S.set_route(1,None,0)
+            S.set_route(2,None,1)
+            S.set_route(3,3,3)
+
         else:
             raise ValueError ("Unknown routing scheme.")
         
@@ -181,6 +187,7 @@ class Test_Science(Test):
         self.results = {}
         passed = True
 
+        C.cut_to_hello()
         self.results['packets_received'] = len(C.cont)
         self.get_versions(C)
 

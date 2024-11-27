@@ -21,6 +21,7 @@ from .Packet_Heartbeat import Packet_Heartbeat
 from .Packet_Housekeep import Packet_Housekeep
 from .Packet_Spectrum import Packet_Spectrum, Packet_TR_Spectrum, Packet_Metadata
 from .Packet_Waveform import Packet_Waveform
+from .Packet_Bootloader import Packet_Bootloader
 
 PacketDict = {
     id.AppID_uC_Housekeeping: Packet_Housekeep,
@@ -43,7 +44,7 @@ for i in range(4):
     PacketDict[id.AppID_RawADC + i] = Packet_Waveform
 ## workaround for FW bug
 PacketDict[0x4F0] = Packet_Waveform
-
+PacketDict[0x208] = Packet_Bootloader
 
 def Packet(appid, blob=None, blob_fn=None, **kwargs):
     if (blob is None) and (blob_fn is None):

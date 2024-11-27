@@ -126,7 +126,7 @@ class Test_Alive(Test):
         S.wait(3)
 
         S.set_cdi_delay(int(self.cdi_delay))
-        S.set_dispatch_delay(220 if self.superslow else 6)
+        S.set_dispatch_delay(150 if self.superslow else 6)
         S.house_keeping(0)
         S.ADC_special_mode(self.waveform_type)
         if self.superslow:
@@ -143,7 +143,7 @@ class Test_Alive(Test):
         
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(180 if self.superslow else 65)
+        S.wait(200 if self.superslow else 65)
         return S
 
     def analyze(self, C, uart, commander, figures_dir):

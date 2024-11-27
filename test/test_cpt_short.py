@@ -228,12 +228,12 @@ class Test_CPTShort(Test):
             #    S.waveform(i)
             #    S.wait(1.0)
             S.start(no_flash=True)
-            S.wait(6.0)
+            S.wait(4.5)
             S.stop(no_flash=True)
             #S.wait()
         S.wait(6.0)
         if self.superslow:
-            S.wait(5.0)
+            S.wait(15.0)
         S.awg_close()
         return S
 
@@ -286,7 +286,7 @@ class Test_CPTShort(Test):
             passed = False
         if (num_sp!=num_sp_expected):
             print ("ERROR: Missing spectra.")
-            print (num_sp, num_sp_expected)
+            print ('got=',num_sp, 'expected=',num_sp_expected)
             passed = False
 
         self.results['num_wf'] = num_wf
@@ -367,7 +367,7 @@ class Test_CPTShort(Test):
                 plt.savefig(os.path.join(figures_dir, f'data_{cc}.png'))
                 plt.close()
 
-                figlist.append("\n\includegraphics[width=0.8\\textwidth]{Figures/data_%d.png}\n"%cc)
+                figlist.append("\n\\includegraphics[width=0.8\\textwidth]{Figures/data_%d.png}\n"%cc)
 
             waveforms_out = []
             spectra_out = []
@@ -498,9 +498,13 @@ class Test_CPTShort(Test):
                 ax[0].set_ylabel('Noise [nV/sqrt(Hz)]')
                 ax[1].set_xlabel('Frequency [MHz]')
                 ax[1].set_ylabel('Conversion [SDU/(nV^2/Hz)]')
+                yl,yh = ax[1].get_ylim()
+                if yl/yh<1e-2:
+                    yl = yh/1e2
+                ax[1].set_ylim(yl,yh)
                 fig.suptitle(f"Channel {ch} Gain {g}")
                 fig.savefig(os.path.join(figures_dir, f'results_pk_{ch}_{g}.png'))
-                figlist_res.append("\n\includegraphics[width=1.0\\textwidth]{Figures/results_pk_"+f"{ch}_{g}"+".png}\n")
+                figlist_res.append("\n\\includegraphics[width=1.0\\textwidth]{Figures/results_pk_"+f"{ch}_{g}"+".png}\n")
 
 #                for f in self.freqs:
 #                    key = (ch,g,f)
@@ -531,7 +535,7 @@ class Test_CPTShort(Test):
             ax.set_ylabel('Amplitude @ 10kADU')
             plt.title(f'V2ADU at gain {g}')
             fig.savefig(os.path.join(figures_dir, f'v2adu_{g}.png'))
-            figlist_res_real.append("\n\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
+            figlist_res_real.append("\n\\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
 
 
         self.results['ps_results'] = "".join(figlist_res)
