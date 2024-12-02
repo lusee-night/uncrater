@@ -151,7 +151,7 @@ class Test_Science(Test):
             S.set_Navg(14,2)
             S.select_products('auto_only')
 
-            for _ in range(500):
+            for _ in range(50000):
                 S.waveform(4)
                 S.wait(30)
                 S.set_notch(0)
