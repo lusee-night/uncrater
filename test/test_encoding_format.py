@@ -3,7 +3,6 @@ import sys
 import matplotlib.pyplot as plt
 
 from icecream import ic
-
 import numpy as np
 
 sys.path.append(".")
@@ -14,8 +13,9 @@ if os.environ.get("CORELOOP_DIR") is not None:
     sys.path.append(os.environ.get("CORELOOP_DIR"))
 
 from test_base import Test
-from lusee_script import Scripter
 
+from lusee_script import Scripter
+import pycoreloop
 from pycoreloop import appId
 from pycoreloop import pystruct as cl
 from pycoreloop import format_from_value

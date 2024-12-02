@@ -168,6 +168,17 @@ class Scripter:
         self.command(bl.CMD_REG_MSB, val >> 16)
         self.command(bl.CMD_REG_ADDR, reg)
 
+  
+    def write_adc_register(self,adc, reg, val):
+        assert(reg < 256)
+        assert(val < 256)
+        final_val = reg + (val << 8)
+        ADC_REG_DATA = 0x303
+        ADC_FUNCTION = 0x302
+        self.write_register(ADC_REG_DATA, final_val)
+        self.write_register(ADC_FUNCTION, 1 << adc)
+        self.wait(0.1)
+        self.write_register(ADC_FUNCTION, 0)
 
     
 
@@ -209,7 +220,10 @@ class Scripter:
             arg = (arg << 2) + "LMHA".index(c)
         self.spectrometer_command(cmd, arg)
 
-    def set_notch(self, Nshift=3):
+    def set_notch(self, Nshift=4):
+        if (Nshift%2==1):
+            print("Warning: Nshift in notch should be even!")
+            raise ValueError
         cmd = lc.RFS_SET_AVG_NOTCH
         arg = Nshift
         self.spectrometer_command(cmd, arg)

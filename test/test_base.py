@@ -77,10 +77,13 @@ class Test:
             "options_table": self.generate_options_table(),
         }
 
-        header = open("test/report_templates/header.tex").read()
-        body = open(f"test/report_templates/body_{self.name}.tex").read()
-        footer = open(f"test/report_templates/footer.tex").read()
-        styfile = "test/report_templates/sansfontnotes.sty"
+
+
+        base_dir = os.path.dirname(__file__)
+        header = open(os.path.join(base_dir, "report_templates/header.tex")).read()
+        body = open(os.path.join(base_dir, f"report_templates/body_{self.name}.tex")).read()
+        footer = open(os.path.join(base_dir, "report_templates/footer.tex")).read()
+        styfile = os.path.join(base_dir, "report_templates/sansfontnotes.sty")
         output_tex = os.path.join(work_dir, "report.tex")
         template = header + body + footer
 

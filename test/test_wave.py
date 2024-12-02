@@ -51,12 +51,12 @@ class Test_Wave(Test):
         S.wait(0.1)
         S.adc_range()
         S.wait(1)
-        S.waveform(4)
-        #for i in [0,1,2,3]:
-        #    S.waveform(i)
-        #    S.cdi_wait_ticks(10)
-        S.wait(5)
-
+        #S.waveform(4)
+        for i in [0,1,2,3]:
+            S.waveform(i)
+            S.wait(5)
+        S.house_keeping(0)
+        S.wait(5)        
         return S
 
     def analyze(self, C: uc.Collection, uart, commander, figures_dir):
@@ -84,7 +84,7 @@ class Test_Wave(Test):
             if hk_packet.hk_type == 1:
                 hk = hk_packet
 
-        if (num_wf !=4 ) or num_hk != 1:
+        if (num_wf !=4 ) or num_hk < 1:
             print ("ERROR: Missing waveforms or housekeeping packets.")
             passed = False
 
