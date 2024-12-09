@@ -21,7 +21,6 @@ class DCBEmulator(BackendBase):
 
         self.ether = LuSEE_ETHERNET(self.clog, self.save_ccsds)
 
-        
     def uart_thread (self):
         if self.uart is not None:
             while not self.uartStop:

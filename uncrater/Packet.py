@@ -22,12 +22,16 @@ from .Packet_Housekeep import Packet_Housekeep
 from .Packet_Spectrum import Packet_Spectrum, Packet_TR_Spectrum, Packet_Metadata
 from .Packet_Waveform import Packet_Waveform
 from .Packet_Bootloader import Packet_Bootloader
+from .Packet_Calibrator import Packet_Cal_Metadata, Packet_Cal_Data, Packet_Cal_RawPFB, Packet_Cal_Debug
 
 PacketDict = {
     id.AppID_uC_Housekeeping: Packet_Housekeep,
     id.AppID_uC_Start: Packet_Hello,
     id.AppID_uC_Heartbeat: Packet_Heartbeat,
     id.AppID_MetaData: Packet_Metadata,
+    id.AppID_Calibrator_MetaData: Packet_Cal_Metadata,
+    id.AppID_Calibrator_Data: Packet_Cal_Data,
+    id.AppID_Calibrator_Debug: Packet_Cal_Debug,
 }
 
 for i in range(16):
@@ -42,6 +46,11 @@ for i in range(16):
 
 for i in range(4):
     PacketDict[id.AppID_RawADC + i] = Packet_Waveform
+    PacketDict[id.AppID_Calibrator_RawPFB + i] = Packet_Cal_RawPFB
+
+for i in range(3):
+    PacketDict[id.AppID_Calibrator_Debug + i] = Packet_Cal_Debug
+
 ## workaround for FW bug
 PacketDict[0x4F0] = Packet_Waveform
 PacketDict[0x208] = Packet_Bootloader
@@ -68,6 +77,14 @@ def appid_is_tr_spectrum(appid):
         or (appid >= id.AppID_SpectraTRLow and appid < id.AppID_SpectraTRLow + 16)
     )
 
+def appid_is_cal_data(appid):
+    return (appid >= id.AppID_Cal_Data) and (appid < id.AppID_Cal_Data + 16)
+
+def  appid_is_rawPFB(appid):
+    return (appid >= id.AppID_RawPFB) and (appid < id.AppID_RawPFB + 4)
+                        
+def appid_is_cal_debug(appid):
+    return (appid >= id.AppID_CalDebug) and (appid < id.AppID_CalDebug + 3)
 
 def appid_is_metadata(appid):
     return appid == id.AppID_MetaData

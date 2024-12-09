@@ -8,6 +8,7 @@ except:
     pyvisa = None
 
 from AWGBackendBase import AWGBackendBase
+from VWDriver import VWDriver
 
 class AWGBackendLab7(AWGBackendBase):
     def __init__ (self, channel = 3):
@@ -19,6 +20,8 @@ class AWGBackendLab7(AWGBackendBase):
         self.inst.write('OUTP1:STAT OFF')
         self.channel = channel
         print ("Initialized AWG backend for lab7, will respond to request for channel", self.channel)
+        self.calibrator = VWDriver()
+
     
     def tone (self, ch, frequency, amplitude):
         # ch is 0-4
@@ -34,9 +37,17 @@ class AWGBackendLab7(AWGBackendBase):
                 self.inst.write(f'SOUR1:FREQ 80 mhz') ## let's put it out of band
                 self.inst.write('OUTP1:STAT OFF')
         
+    def cal_on (self, alpha):
+        range_correction = alpha * 2.998e8 * 1e3 ## convert to mm/s 
+        print ("Applying range correction", range_correction)
+        self.calibrator.enable_PA(range_correction)
+    
+    def cal_off (self):
+        self.calibrator.disable_PA()
+        
     def stop(self):
         self.inst.write('OUTP1:STAT OFF')
-
+        del self.calibrator
 
 
 

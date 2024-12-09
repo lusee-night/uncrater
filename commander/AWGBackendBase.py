@@ -20,6 +20,14 @@ class AWGBackendBase:
             freq = float(command[2])
             amplitude = float(command[3])
             self.tone(ch, freq, amplitude)
+        if command[0] == 'CAL':
+            if command[1] == 'ON':
+                alpha = float(command[2])
+                self.cal_on(alpha)
+            elif command[1] == 'OFF':
+                self.cal_off()
+            else:
+                print ("AWG Unknown CAL command:", command)                
         elif command[0]=='STOP':
             self.stop()
         elif command[0]=='INIT':

@@ -360,3 +360,11 @@ class Scripter:
 
     def awg_tone(self, ch, freq, amplitude):
         self.script.append(f"AWG TONE  {ch}  {freq} {amplitude}")
+
+
+    def cal_on(self, alpha):
+        self.script.append(f"CAL ON {alpha}")
+    
+    def cal_off(self):
+        self.script.append("CAL OFF")
+        

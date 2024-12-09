@@ -21,6 +21,7 @@ class Collection:
         self.desc = []
         self.spectra = []
         tr_spectra = []
+        self.calib = []
         self.heartbeat_packets = []
         self.housekeeping_packets = []
         self.waveform_packets = []
@@ -41,6 +42,11 @@ class Collection:
                 self.spectra.append({"meta": packet})
                 tr_spectra.append({"meta": packet})
 
+            if isinstance(packet, Packet_Cal_Metadata):
+                cal_meta_packet = packet
+                self.calib.append({"meta": packet,'data':None,'gNacc':None,'gphase':None,'pfb':[None]*4, 'debug':[None]*24})
+
+
             if appid_is_spectrum(appid):
                 if meta_packet is not None:
                     packet.set_meta(meta_packet)
@@ -53,6 +59,21 @@ class Collection:
                     packet.set_meta(meta_packet)
                     packet.read()
                     tr_spectra[-1][appid & 0x0F] = packet
+
+            if appid_is_cal_data(appid):
+                if cal_meta_packet is not None:
+                    packet.set_meta(cal_meta_packet)
+                    packet.read()
+                    self.calib[-1]['Packet_'+str(appid & 0x0F)] = packet
+                    if appid == id.AppID_Cal_Data:                        
+                        self.calib[-1]['data'] = packet.data[i]
+                        self.calib[-1]['gNacc'] = packet.gNacc
+                        self.calib[-1]['gphase'] = packet.gphase
+                    elif appid_is_rawPFB(appid):
+                        self.calib[-1]['pfb'][packet.channel] = packet.data
+                    elif appid_is_cal_debug(appid):
+                        for i in range(6):                        
+                            self.calib[-1]['debug'][packet.debug_page*6+i] = packet.data[i]
 
             if isinstance(packet, Packet_Heartbeat):
                 self.heartbeat_packets.append(packet)
