@@ -61,6 +61,10 @@ class Test_Reject(Test):
         def get_meta(name, C):
             return np.array([S['meta'][name] for S in C.spectra])
 
+        # TODO: the expected output of base.weight_previous should be a decreasing series, until the signal recovers
+        # in this case, [8 7 6 5 4...8] or something like that
+        # right now it is [8 0 8 0 8 0], which is the same output as if none of the set_reject() commands were sent
+        # check where in coreloop or in test_reject this issue arises. Related TODO comments are in coreloop's src/spectrometer_interface.c spec_new_spectrum_ready()
         weights = get_meta("base.weight_previous", collection)
         print(weights)
         self.results['result'] = int(passed)
