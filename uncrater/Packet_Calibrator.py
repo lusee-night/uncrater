@@ -1,7 +1,8 @@
 from .PacketBase import PacketBase
-from .utils import Time2Time
+from .utils import Time2Time, cordic2rad
 from pycoreloop import appId as id
 import struct
+import numpy as np
 
 class Packet_Cal_Metadata(PacketBase):
     @property
@@ -13,8 +14,9 @@ class Packet_Cal_Metadata(PacketBase):
             return
         super()._read()        
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<H", self._blob[8:12])[0])        
-        self.registers = struct.unpack("<497I", self._blob[12:12+497*4])
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])        
+        self.registers = struct.unpack("<498I", self._blob[12:12+498*4])
+        self.reset = self.registers[0x00]
         self.Nac1 = self.registers[0x01]
         self.Nac2 = self.registers[0x02]
         self.notch_index = self.registers[0x03]
@@ -26,11 +28,11 @@ class Packet_Cal_Metadata(PacketBase):
         self.drift_fd_index = self.registers[0x09]
         self.drift_sd1_index = self.registers[0x0A]
         self.drift_sd2_index = self.registers[0x0B]
-        self.default_drift = self.registers[0x0C]
+        self.default_drift = cordic2rad(self.registers[0x0C])
         self.have_lock_value = self.registers[0x0D]
-        self.have_lock_radian = self.registers[0x0E]
-        self.lower_guard_value = self.registers[0x0F]
-        self.upper_guard_value = self.registers[0x10]
+        self.have_lock_radian = cordic2rad(self.registers[0x0E])
+        self.lower_guard_value = cordic2rad(self.registers[0x0F])
+        self.upper_guard_value = cordic2rad(self.registers[0x10])
         self.power_ratio = self.registers[0x11]
         self.antenna_enable = self.registers[0x12]
         self.error_stick = self.registers[0x13]
@@ -42,13 +44,13 @@ class Packet_Cal_Metadata(PacketBase):
         self.cf_drop_err = self.registers[0x19]
         self.cf_timestamp_lower = self.registers[0x1A]
         self.cf_timestamp_upper = self.registers[0x1B]
-        self.phaser = self.registers[0x1C]
-        self.averager_err_cnt = self.registers[0x24]
-        self.process_err_cnt = self.registers[0x34]
+        self.phaser_err = self.registers[0x1C:0x24]
+        self.averager_err_cnt = self.registers[0x24:0x34]
+        self.process_err_cnt = self.registers[0x34:0x3C]
         self.enable = self.registers[0x3C]
         self.power_index = self.registers[0x3D]
         self.fd_sd_index = self.registers[0x3E]
-        self.fd_xsdx_index = self.registers[0x3F]
+        self.fdx_sdx_index = self.registers[0x3F]
         self.hold_drift = self.registers[0x40]
         self.sum0_shift_index = self.registers[0x41]
         self.snron = self.registers[0x42]
@@ -90,15 +92,20 @@ class Packet_Cal_Data(PacketBase):
         if self.meta.unique_packet_id != self.unique_packet_id:
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
-
-        self.data = struct.unpack(f"<{len(self._blob[4:])//4}I", self._blob[4:])
-        self.data = []
-        for ch in range(4):
-            data = self.data[ch*1024:ch*1024+512]+1j*self.data[ch*1024+512:ch*1024+1024]
-            self.data.append(data)
-        self.gNacc = self.data[4*1024+1]
-        self.gphase = self.data[4*1024+2:]
-
+        self.data_page = self.appid - id.AppID_Calibrator_Data
+        data = struct.unpack(f"<{len(self._blob[4:])//4}i", self._blob[4:])
+        if self.data_page < 2:
+            assert(len(data) == 2048)
+            
+            self.data = np.array(data).reshape(4,512)
+            #for ch in range(2):
+            #    cdata = np.array(data[ch*1024:ch*1024+512])+1j*np.array(data[ch*1024+512:ch*1024+1024])
+            #    self.data.append(cdata)
+            #self.data = np.array(self.data)
+        else:
+            self.gNacc = data[0]
+            self.gphase = np.array(data[1:1025])
+            self.data = (self.gNacc, self.gphase)
 
         self._is_read = True
 
@@ -120,7 +127,8 @@ class Packet_Cal_RawPFB(PacketBase):
         if self._is_read:
             return
         super()._read()
-        self.channel = self.appid-id.AppID_RawPFB
+        self.channel = (self.appid-id.AppID_Calibrator_RawPFB)//2
+        self.part = (self.appid-id.AppID_Calibrator_RawPFB)%2
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
 
         if self.meta.unique_packet_id != self.unique_packet_id:
@@ -128,10 +136,8 @@ class Packet_Cal_RawPFB(PacketBase):
             self.packed_id_mismatch = True
 
 
-        self.data = struct.unpack(f"<{len(self._blob[4:])//4}I", self._blob[4:])
-        self.real = self.data[:1024]
-        self.imag = self.data[1024:]
-        self.data= self.real + 1j*self.imag
+        self.data = struct.unpack(f"<{len(self._blob[4:])//4}i", self._blob[4:])
+        self.data = self.data[:2048]
         self._is_read = True
 
     def info(self):
@@ -160,10 +166,44 @@ class Packet_Cal_Debug(PacketBase):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
 
-        self.debug_page = self.appid - id.AppID_CalDebug
-        self.data = np.array(struct.unpack(f"<{len(self._blob[4:])//4}I", self._blob[4:]))
-        self.data = self.data.reshape((6,1024))
-
+        self.debug_page = self.appid - id.AppID_Calibrator_Debug
+        datai = np.array(struct.unpack(f"<{len(self._blob[4:])//4}i", self._blob[4:])).reshape(3,1024)
+        datau = np.array(struct.unpack(f"<{len(self._blob[4:])//4}I", self._blob[4:])).reshape(3,1024)
+        # the reason we do it this way is because some numbers are unsigned and some are signed
+        # now based on page we interpret it right
+        if self.debug_page == 0:
+            self.have_lock = datau[0]&0xFF
+            self.lock_ant = (datau[0] &0x00FF0000) >> 16
+            self.drift = cordic2rad(datau[1])
+            self.powertop0 = datau[2]
+        elif self.debug_page == 1:
+            self.powertop1 = datau[0]
+            self.powertop2 = datau[1]
+            self.powertop3 = datau[2]
+        elif self.debug_page == 2:
+            self.powerbot0 = datau[0]
+            self.powerbot1 = datau[1]
+            self.powerbot2 = datau[2]
+        elif self.debug_page == 3:
+            self.powerbot3 = datau[0]
+            self.fd0 = datai[1]
+            self.fd1 = datai[2]
+        elif self.debug_page == 4:
+            self.fd2 = datai[0]
+            self.fd3 = datai[1]
+            self.sd0 = datai[2]
+        elif self.debug_page == 5:
+            self.sd1 = datai[0]
+            self.sd2 = datai[1]
+            self.sd3 = datai[2]
+        elif self.debug_page == 6:
+            self.fdx = datai[0]
+            self.sdx = datai[1]
+            self.snr0 = datau[2]
+        elif self.debug_page == 7:
+            self.snr1 = datau[0]
+            self.snr2 = datau[1]
+            self.snr3 = datau[2]
     def info(self):
         self._read()
         desc = " Calibrator Debug\n"

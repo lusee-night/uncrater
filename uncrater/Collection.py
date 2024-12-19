@@ -1,5 +1,6 @@
 import os, sys
 import glob
+import numpy as np
 
 
 from datetime import datetime
@@ -28,15 +29,25 @@ class Collection:
         flist = glob.glob(os.path.join(self.dir, "*.bin"))
         print(f"Analyzing {len(flist)} files from {self.dir}.")
         flist = sorted(flist, key=lambda x: int(x[x.rfind("/") + 1 :].split("_")[0]))
-        meta_packet = None
+        meta_packet, cal_meta_packet = None, None        
         for i, fn in enumerate(flist):
-            # print ("reading ",fn)
+            #print ("reading ",fn)
             appid = int(fn.replace(".bin", "").split("_")[-1], 16)
+            ## sometimes there is initial garbage to throw out
+            if appid_is_spectrum(appid) and meta_packet is None:
+                continue
+            if appid_is_tr_spectrum(appid) and meta_packet is None:
+                continue
+            if appid_is_cal_any(appid) and cal_meta_packet is None:
+                continue
+
+
             packet = Packet(appid, blob_fn=fn)
             # spectral/TR spectral packets must be read only after we set their metadata packet
             # all other packets: read immediately
-            if not (appid_is_spectrum(appid) or appid_is_tr_spectrum(appid)):
+            if not (appid_is_spectrum(appid) or appid_is_tr_spectrum(appid) or appid_is_cal_any(appid)):
                 packet.read()
+
             if isinstance(packet, Packet_Metadata):
                 meta_packet = packet
                 self.spectra.append({"meta": packet})
@@ -44,7 +55,7 @@ class Collection:
 
             if isinstance(packet, Packet_Cal_Metadata):
                 cal_meta_packet = packet
-                self.calib.append({"meta": packet,'data':None,'gNacc':None,'gphase':None,'pfb':[None]*4, 'debug':[None]*24})
+                self.calib.append({"meta": packet,'data':[None]*3,'gNacc':None,'gphase':None,'pfb':[None]*8, 'debug':[None]*8})
 
 
             if appid_is_spectrum(appid):
@@ -60,20 +71,23 @@ class Collection:
                     packet.read()
                     tr_spectra[-1][appid & 0x0F] = packet
 
-            if appid_is_cal_data(appid):
+            if appid_is_cal_any(appid):
                 if cal_meta_packet is not None:
                     packet.set_meta(cal_meta_packet)
                     packet.read()
-                    self.calib[-1]['Packet_'+str(appid & 0x0F)] = packet
-                    if appid == id.AppID_Cal_Data:                        
-                        self.calib[-1]['data'] = packet.data[i]
-                        self.calib[-1]['gNacc'] = packet.gNacc
-                        self.calib[-1]['gphase'] = packet.gphase
+                    #self.calib[-1]['Packet_'+str(appid & 0x0F)] = packet
+                    if appid_is_cal_data(appid):
+                        self.calib[-1]['data'][packet.data_page] = packet.data
                     elif appid_is_rawPFB(appid):
-                        self.calib[-1]['pfb'][packet.channel] = packet.data
+                        ch = packet.channel
+                        part = packet.part
+                        if (part==0): # real part, comes first
+                            self.calib[-1]['pfb'][packet.channel] = np.array(packet.data, complex)
+                        else:
+                            self.calib[-1]['pfb'][packet.channel] += 1j*np.array(packet.data, complex)
                     elif appid_is_cal_debug(appid):
-                        for i in range(6):                        
-                            self.calib[-1]['debug'][packet.debug_page*6+i] = packet.data[i]
+                        for i in range(3):                        
+                            self.calib[-1]['debug'][packet.debug_page]= packet
 
             if isinstance(packet, Packet_Heartbeat):
                 self.heartbeat_packets.append(packet)
@@ -93,6 +107,55 @@ class Collection:
                 )
             except:
                 pass
+        pfb = [[],[],[],[]]
+        for c in self.calib:
+            if (c['pfb'][0] is not None) and (c['pfb'][1] is not None) and (c['pfb'][2] is not None) and (c['pfb'][3] is not None):
+                for i in range(4):
+                    pfb[i].append(c['pfb'][i])
+        if len(pfb[0])>0:
+            self.pfb = np.array([np.hstack(p) for p in self.pfb])
+        
+        dacalib = [c for c in self.calib if ((c['data'][0] is not None) and c['data'][1] is not None) and (c['data'][2] is not None)]  ## look at the last one.
+        if len(dacalib)>0:
+            pass
+            data_real = np.array([c['data'][0] for c in dacalib])
+            data_imag = np.array([c['data'][1] for c in dacalib])
+            self.calib_data = np.array(data_real + 1j * data_imag).transpose(1, 0, 2)
+            self.gNacc = np.array([c['data'][2][0] for c in dacalib])
+            self.gphase = np.array([c['data'][2][1] for c in dacalib])
+
+        dcalib = [c for c in self.calib if c['debug'][0] is not None]
+        if len(dcalib)>0:
+            self.cd_have_lock = np.hstack([c['debug'][0].have_lock for c in dcalib])
+            self.cd_lock_ant = np.hstack([c['debug'][0].lock_ant for c in dcalib])
+            self.cd_drift = np.hstack([c['debug'][0].drift for c in dcalib])
+            self.cd_powertop0 = np.hstack([c['debug'][0].powertop0 for c in dcalib])
+            self.cd_powertop1 = np.hstack([c['debug'][1].powertop1 for c in dcalib])
+            self.cd_powertop2 = np.hstack([c['debug'][1].powertop2 for c in dcalib])
+            self.cd_powertop3 = np.hstack([c['debug'][1].powertop3 for c in dcalib])
+            self.cd_powerbot0 = np.hstack([c['debug'][2].powerbot0 for c in dcalib])
+            self.cd_powerbot1 = np.hstack([c['debug'][2].powerbot1 for c in dcalib])
+            self.cd_powerbot2 = np.hstack([c['debug'][2].powerbot2 for c in dcalib])
+            self.cd_powerbot3 = np.hstack([c['debug'][3].powerbot3 for c in dcalib])
+            self.cd_fd0 = np.hstack([c['debug'][3].fd0 for c in dcalib])
+            self.cd_fd1 = np.hstack([c['debug'][3].fd1 for c in dcalib])
+            self.cd_fd2 = np.hstack([c['debug'][4].fd2 for c in dcalib])
+            self.cd_fd3 = np.hstack([c['debug'][4].fd3 for c in dcalib])
+            self.cd_sd0 = np.hstack([c['debug'][4].sd0 for c in dcalib])
+            self.cd_sd1 = np.hstack([c['debug'][5].sd1 for c in dcalib])
+            self.cd_sd2 = np.hstack([c['debug'][5].sd2 for c in dcalib])
+            self.cd_sd3 = np.hstack([c['debug'][5].sd3 for c in dcalib])
+            self.cd_fdx = np.hstack([c['debug'][6].fdx for c in dcalib])
+            self.cd_sdx = np.hstack([c['debug'][6].sdx for c in dcalib])
+            self.cd_snr0 = np.hstack([c['debug'][6].snr0 for c in dcalib])
+            self.cd_snr1 = np.hstack([c['debug'][7].snr1 for c in dcalib])
+            self.cd_snr2 = np.hstack([c['debug'][7].snr2 for c in dcalib])
+            self.cd_snr3 = np.hstack([c['debug'][7].snr3 for c in dcalib])
+
+
+
+
+
         # we don't always send TR spectra; if dict contains only metadata
         # packet but no actual data, we assume it's fine and don't include it into self.tr_spectra
         self.tr_spectra = [trs for trs in tr_spectra if len(trs) > 1]

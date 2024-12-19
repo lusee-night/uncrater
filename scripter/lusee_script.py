@@ -90,6 +90,12 @@ class Scripter:
         # there are low-level commands outside coreloop
         self.command(bl.CMD_REBOOT, 0);
     
+    def reboot_hard(self):
+        # there are low-level commands outside coreloop
+        self.write_register(0x0,0x1)
+
+
+
 
     def bootloader_stay(self):
         self.command(bl.CMD_BOOTLOADER, bl.BL_STAY)
@@ -362,9 +368,47 @@ class Scripter:
         self.script.append(f"AWG TONE  {ch}  {freq} {amplitude}")
 
 
-    def cal_on(self, alpha):
-        self.script.append(f"CAL ON {alpha}")
+    def awg_cal_on(self, alpha):
+        self.script.append(f"AWG CAL ON {alpha}")
     
-    def cal_off(self):
-        self.script.append("CAL OFF")
+    def awg_cal_off(self):
+        self.script.append("AWG CAL OFF")
         
+    def cal_enable(self, on=True, readout_mode=0, special_mode=0):
+        assert(readout_mode < 4)
+        assert(special_mode < 32)
+        arg = (special_mode<<3)+(readout_mode<<1)+int(on)
+        
+        self.spectrometer_command(lc.RFS_SET_CAL_ENABLE,arg )
+
+    def cal_set_pfb_bin(self,ndx):
+        self.spectrometer_command(lc.RFS_SET_CAL_PFB_NDX_LO,ndx&0x00FF)
+        self.spectrometer_command(lc.RFS_SET_CAL_PFB_NDX_HI,(ndx&0xFF00)>>8)
+
+
+    def cal_set_avg(self, avg2, avg3):
+        assert(avg2 in [5,6,7,8])
+        avg2 = avg2-5
+        avg = (avg3<<2)+avg2
+        self.spectrometer_command(lc.RFS_SET_CAL_AVG, avg)
+
+
+    def cal_set_single_weight(self,bin,weight,zero_first=False):
+        if zero_first:
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
+        if (bin<256):
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,bin)
+        else:
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_HI,bin-256)
+        self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL,weight)
+
+    
+    def cal_set_weights(self,weights):
+        assert len(weights) == 512
+        self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
+        self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,90)
+        for w in enumerate(weights[90]):
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL,w)
+
+    def cal_antenna_enable(self,mask):
+        self.spectrometer_command(lc.RFS_SET_CAL_ANT_EN,mask)

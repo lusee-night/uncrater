@@ -16,11 +16,21 @@ class AWGBackendLab7(AWGBackendBase):
             raise ValueError("pyvisa not installed, can't use AWG")
         resource = "USB0::1689::834::C010077::0::INSTR"
         self.rm = pyvisa.ResourceManager('@py')
-        self.inst = self.rm.open_resource(resource)
-        self.inst.write('OUTP1:STAT OFF')
-        self.channel = channel
-        print ("Initialized AWG backend for lab7, will respond to request for channel", self.channel)
+        try:
+            self.inst = self.rm.open_resource(resource)
+        except:
+            print ("Error: could not open AWG resource", resource)
+            self.inst=None
+        if self.inst is not None:
+            self.inst.write('OUTP1:STAT OFF')
+            self.channel = channel
+            print ("Initialized AWG backend for lab7, will respond to request for channel", self.channel)
+        #try:
         self.calibrator = VWDriver()
+        print ("Initialized WV EM Calibrator")
+        #except:
+        #    self.calibrator=None
+
 
     
     def tone (self, ch, frequency, amplitude):
@@ -38,7 +48,7 @@ class AWGBackendLab7(AWGBackendBase):
                 self.inst.write('OUTP1:STAT OFF')
         
     def cal_on (self, alpha):
-        range_correction = alpha * 2.998e8 * 1e3 ## convert to mm/s 
+        range_correction = round((alpha * 1e-6) *  2.998e8 * 1e3) ## convert to mm/s 
         print ("Applying range correction", range_correction)
         self.calibrator.enable_PA(range_correction)
     
@@ -46,7 +56,8 @@ class AWGBackendLab7(AWGBackendBase):
         self.calibrator.disable_PA()
         
     def stop(self):
-        self.inst.write('OUTP1:STAT OFF')
+        if self.inst is not None:
+            self.inst.write('OUTP1:STAT OFF')
         del self.calibrator
 
 

@@ -24,7 +24,7 @@ class VWDriver:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect(self.server_address)
         self.seq = 0
-        pass
+        
 
     def send_cmd(self, cmd, payload):
         crc = crc16(payload)
@@ -32,7 +32,7 @@ class VWDriver:
         byte2 = (crc&0x00ff)
         packet = bytes([0x4e,0x53,0x52,0x02]+[cmd]+[0]+[len(payload)]+[self.seq])+payload+bytes([byte1,byte2])
         self.sock.sendall(packet)
-        self.seq += 1
+        self.seq = (self.seq+1)%256
         
 
         

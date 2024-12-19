@@ -34,7 +34,7 @@ class Test_Bootload(Test):
         "cmd": "reboot",
     } ## dictinary of options for the test
     options_help = {
-        "cmd" : r""" Test command to execute. Can be 'reboot', 'reboot_only', 'check', 'command {val} {arg}', 
+        "cmd" : r""" Test command to execute. Can be 'reboot', 'reboot_only', 'reboot_hard', 'check', 'command {val} {arg}', 
                     'register {addres} {arg}', 'wait {seconds}', 'launch {region}', 'delete {region}' or 'write {region} {hex file}'"""            
     } ## dictionary of help for the options
 
@@ -165,6 +165,10 @@ class Test_Bootload(Test):
 
             elif command == 'reboot_only':
                 S.reboot()
+                S.wait(1)
+
+            elif command == 'reboot_hard':
+                S.reboot_hard()
                 S.wait(1)
 
             elif command == 'check':

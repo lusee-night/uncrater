@@ -24,7 +24,10 @@ class DCBEmulator(BackendBase):
     def uart_thread (self):
         if self.uart is not None:
             while not self.uartStop:
-                uart_data = self.uart.read()
+                try:
+                    uart_data = self.uart.read()
+                except:
+                    uart_data = bytes()
                 if not self.uart_log.closed:
                     self.uart_log.write(uart_data) 
                     self.uart_log.flush()

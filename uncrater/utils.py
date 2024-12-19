@@ -66,3 +66,42 @@ def process_telemetry(TVS_sensors):
     toret['V2_5'] = bits2volts(TVS_sensors[2])    
     toret['T_FPGA'] = bits2kelvin(TVS_sensors[3])
     return toret
+
+
+def cordic2rad (val):
+    b30 = (1<<30)
+    b31 = (1<<31)
+    b32 = (1<<32)
+    sign = (val & b31) >> 30
+    val = val & (b31-1)
+    if type(val)==int:
+        if (val>b30):
+            val = val-b31
+        assert (val<=b31)    
+    else:
+        val[val>b30] = val[val>b30]-b31
+        assert (np.all(val<=b31))
+    
+    rad =  val/(b30)*np.pi  * (-1)**sign
+
+    return rad
+
+def rad2cordic(val):
+    b30 = (1<<30)
+    b32 = (1<<32)
+    if (val>np.pi):
+        val = val-2*np.pi
+    if (val<-np.pi):
+        val = val+2*np.pi
+    return round(abs(val/np.pi*b30))+(b32*(val<0))
+
+def cordic_add (val1,val2):
+    val = (val1+val2)
+    topbits = (val>>30)
+    val = val & 0x3FFFFFFF
+    if topbits == 0b01:
+        val = 0b11<<30 | val
+    elif topbits == 0b10:
+        val = 0b01<<30 | val
+
+    return val

@@ -47,18 +47,58 @@ class Test_Calibrator(Test):
         if self.slow:
             S.set_dispatch_delay(120)
     
-        S.set_Navg(14,2)
-        S.select_products('auto_only')
-        S.set_ana_gain('MMMM')
-        S.cal_off()
-        S.start()
-        S.wait(5)
-        S.cal_on(0.0)
-        S.wait(5)
-        S.cal_off()
-        S.wait(5)
-        S.stop()
+        S.enable_heartbeat(False)
+        S.set_Navg(14,4)
+        #for i in range(4):
+        S.set_route (0,None,None)
 
+        S.cal_set_avg(6,4)
+        S.select_products(0b0000)
+        S.set_ana_gain('MMMM')
+        S.set_bitslice(0,16)        
+        for i in range(1,4):
+            S.set_bitslice(i,20)    
+        
+        fstart = 17.55
+        fend = 17.55
+        S.awg_cal_on(fstart)
+        #S.wait(1)
+        #S.waveform(4)
+        #S.wait(3)
+
+        S.cal_set_pfb_bin(1402)
+        S.cal_antenna_enable(0b1111)
+        #S.cal_set_single_weight(350,128,zero_first=True)
+        #S.cal_set_single_weight(470,128,zero_first=False)
+        #S.cal_set_single_weight(390,128,zero_first=False)
+        #S.cal_set_single_weight(400,128,zero_first=False)
+
+        #S.wait(10)
+        S.set_notch(4)
+        S.start()
+        S.cal_enable(on = True, readout_mode=0b00, special_mode=0b00)
+        S.wait(20)
+        for d in np.linspace(fstart,fend,200):
+            S.awg_cal_on(d)
+            S.wait(0.1)
+        S.wait(10)
+        S.stop()
+        #S.wait(20)
+        #S.stop()
+        #S.wait(4)
+
+        
+        
+        
+        #S.set_notch(4)
+        #S.cal_on(-5.0)
+        #S.wait(1)
+        #S.start()
+        #for i in np.linspace(17.5,17.7,500):
+        #    S.cal_on(i)
+        #    S.wait(0.1)
+        #S.stop()
+        
         return S
 
 
