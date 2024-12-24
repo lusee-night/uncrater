@@ -104,7 +104,7 @@ class Test_BinResponse(Test):
             adc_max = C.spectra[0]['meta'].adc_max[self.channel]    
             self.results['adc_min'] = adc_min
             self.results['adc_max'] = adc_max
-            self.results['bitslicer'] = C.spectra[0]['meta'].seq.bitslice[self.channel]
+            self.results['bitslicer'] = C.spectra[0]['meta'].base.bitslice[self.channel]
             freqs = self.get_frequencies()
             values = np.array([S[self.channel].data[self.bin] for S in C.spectra])
             values = values.reshape((len(notch),self.Nf))

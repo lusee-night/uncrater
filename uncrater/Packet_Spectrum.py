@@ -33,7 +33,7 @@ class Packet_Metadata(PacketBase):
         super()._read()
         # TODO: check if this actually works
         self.copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob))
-        self.format = self.seq.format
+        self.format = self.base.format
         self.time = Time2Time(self.base.time_32, self.base.time_16)
         self.errormask = self.base.errors
         adc = process_ADC_stats(self.base.ADC_stat)
@@ -58,7 +58,7 @@ class Packet_Metadata(PacketBase):
 
     @property
     def frequency(self):
-        Navgf = self.seq.Navgf
+        Navgf = self.base.Navgf
         if Navgf == 1:
             return np.arange(2048) * 0.025
         elif Navgf == 2:

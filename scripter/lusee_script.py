@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, math
 
 import bootloader as bl
 
@@ -407,8 +407,12 @@ class Scripter:
         assert len(weights) == 512
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,90)
-        for w in enumerate(weights[90]):
-            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL,w)
+        for w in weights[90:]:
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 128)))
 
     def cal_antenna_enable(self,mask):
         self.spectrometer_command(lc.RFS_SET_CAL_ANT_EN,mask)
+
+    def cal_SNRonff(self,snron,snroff):
+        self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON,snron)
+        self.spectrometer_command(lc.RFS_SET_CAL_SNR_OFF,snroff)
