@@ -1,6 +1,6 @@
 from .PacketBase import PacketBase, pystruct
 from .PacketBase import PacketBase
-from .utils import Time2Time
+from .utils import Time2Time, process_telemetry
 
 import struct
 class Packet_Heartbeat(PacketBase):
@@ -17,6 +17,7 @@ class Packet_Heartbeat(PacketBase):
         self.copy_attrs(temp)
         self.ok = (self.magic == b'BRNMRL')
         self.time = Time2Time(self.time_32, self.time_16)
+        self.telemetry = process_telemetry(self.TVS_sensors)
         self._is_read = True
 
     def info (self):
@@ -25,4 +26,10 @@ class Packet_Heartbeat(PacketBase):
         desc = "Heartbeat Packet\n"
         desc += f"Magic : {ok}\n"
         desc += f"Count : {self.packet_count}\n"
+        for k in self.telemetry.keys():
+            desc += f"{k} : {self.telemetry[k]}\n"
+        if self.telemetry['T_FPGA']>60:
+            desc += "******************************************\n" 
+            desc += "*   FPGA temperature too high !!!!       * \n"
+            desc += "******************************************\n" 
         return desc

@@ -57,14 +57,14 @@ def process_telemetry(TVS_sensors):
         frac = (val & 0b0000000000000111)
         return (intg + frac/8.0)/1000 * (1 if sign==0 else -1)
         
-    def bits2kelvin (val):        
+    def bits2celsius (val):        
         intg = (val & 0b0111111111110000) >> 4
         frac = (val & 0b0000000000001111)
         return (intg + frac/16.0)-273.15
     toret['V1_0'] = bits2volts(TVS_sensors[0])    
     toret['V1_8'] = bits2volts(TVS_sensors[1])    
     toret['V2_5'] = bits2volts(TVS_sensors[2])    
-    toret['T_FPGA'] = bits2kelvin(TVS_sensors[3])
+    toret['T_FPGA'] = bits2celsius(TVS_sensors[3])
     return toret
 
 

@@ -10,6 +10,7 @@ from DCB import DCB
 from CoreloopBackend import CoreloopBackend
 from AWGBackendLab7 import AWGBackendLab7
 from AWGBackendSSL import AWGBackendSSL
+import uncrater as uc
 
 try:
     import pycoreloop as cl

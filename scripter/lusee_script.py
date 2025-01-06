@@ -416,3 +416,8 @@ class Scripter:
     def cal_SNRonff(self,snron,snroff):
         self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON,snron)
         self.spectrometer_command(lc.RFS_SET_CAL_SNR_OFF,snroff)
+
+    
+    def set_alarm_setpoint(self, val):
+        assert (val < 256)
+        self.spectrometer_command(lc.RFS_SET_TEMP_ALARM, val)

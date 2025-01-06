@@ -28,7 +28,8 @@ class Test_Science(Test):
         "disable_awg": False,
         "bitslicer" : 'auto',
         "time_mins" : 0,
-        "slow": False
+        "slow": False,
+        "alarm": 90
     } ## dictinary of options for the test
     options_help = {
         "preset" : "Type of science preset. Can be 'simple', 'agc-test', 'simplest', 'trula', 'debug', more to come.",
@@ -37,8 +38,8 @@ class Test_Science(Test):
         "disable_awg" : "Disable the AWG before doing anything",
         "bitslicer"   : "bitslicer setting, can be 'auto' or a number",
         "time_mins" : "Total time to run the test in minutes (up to 100), zero for forever.",
-        "slow": "Run the test in slow mode for SSL"
-
+        "slow": "Run the test in slow mode for SSL",
+        "alarm": "Setpoint (in Celsius) for the temperature alarm to trigger (and disable FFT engine)"
     } ## dictionary of help for the options
 
 
@@ -62,6 +63,7 @@ class Test_Science(Test):
         S.wait(1)
         S.reset()
         S.wait(3)
+        S.set_alarm_setpoint(self.alarm)
 
         if self.slow:
             S.set_dispatch_delay(120)
