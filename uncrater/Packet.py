@@ -85,11 +85,23 @@ def appid_is_cal_any(appid):
 def appid_is_cal_data(appid):
     return (appid >= id.AppID_Calibrator_Data) and (appid < id.AppID_Calibrator_Data + 3)
 
+def appid_is_cal_data_start(appid):
+    return (appid == id.AppID_Calibrator_Data) 
+
+
 def  appid_is_rawPFB(appid):
     return (appid >= id.AppID_Calibrator_RawPFB) and (appid < id.AppID_Calibrator_RawPFB + 8)
-                        
+
+def  appid_is_rawPFB_start(appid):
+    return (appid == id.AppID_Calibrator_RawPFB) 
+
 def appid_is_cal_debug(appid):
     return (appid >= id.AppID_Calibrator_Debug) and (appid < id.AppID_Calibrator_Debug + 8)
+
+def appid_is_cal_debug_start(appid):
+    return (appid == id.AppID_Calibrator_Debug)
+
+
 
 def appid_is_metadata(appid):
     return appid == id.AppID_MetaData

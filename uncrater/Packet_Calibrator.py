@@ -1,13 +1,40 @@
-from .PacketBase import PacketBase
+from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time, cordic2rad
 from pycoreloop import appId as id
 import struct
 import numpy as np
 
+
 class Packet_Cal_Metadata(PacketBase):
     @property
     def desc(self):
         return "Calibrator Metadata"
+
+    def _read(self):
+        if self._is_read:
+            return
+        super()._read()        
+        temp = pystruct.calibrator_metadata.from_buffer_copy(self._blob)               
+        self.copy_attrs(temp)
+        self.time = Time2Time(self.time_32, self.time_16)
+        self._is_read = True
+
+    def info(self):
+        self._read()
+        desc = " Calibrator Metadata\n"
+        desc += f"packet_id : {self.unique_packet_id}\n"
+        desc += f"Time: {self.time}\n"
+        return desc
+
+
+
+
+
+## Obsolete at this point, but might return
+class Packet_Cal_RegisterDump(PacketBase):
+    @property
+    def desc(self):
+        return "Calibrator RegisterDump"
 
     def _read(self):
         if self._is_read:
@@ -64,7 +91,6 @@ class Packet_Cal_Metadata(PacketBase):
         self.stage3_err_cnt = self.registers[0x1EB]
         self.prod_index = self.registers[0x1F0]
         self.prod_index2 = self.registers[0x1F1]
-        
         self._is_read = True
 
     def info(self):
@@ -80,20 +106,22 @@ class Packet_Cal_Data(PacketBase):
     def desc(self):
         return "Calibrator Data"
 
-    def set_meta(self, meta):
-        self.meta = meta
+    def set_meta_id(self, id):
+        self.expected_id = id
 
     def _read(self):
         if self._is_read:
             return
         super()._read()
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-
-        if self.meta.unique_packet_id != self.unique_packet_id:
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
+        self.data_page = self.appid - id.AppID_Calibrator_Data
+        if (self.data_page>0) and (self.expected_id != self.unique_packet_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
-        self.data_page = self.appid - id.AppID_Calibrator_Data
-        data = struct.unpack(f"<{len(self._blob[4:])//4}i", self._blob[4:])
+
+
+        data = struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])
         if self.data_page < 2:
             assert(len(data) == 2048)
             
@@ -120,8 +148,8 @@ class Packet_Cal_RawPFB(PacketBase):
     def desc(self):
         return "Calibrator Raw PFB"
 
-    def set_meta(self, meta):
-        self.meta = meta
+    def set_meta_id(self, id):
+        self.expected_id = id
 
     def _read(self):
         if self._is_read:
@@ -130,13 +158,13 @@ class Packet_Cal_RawPFB(PacketBase):
         self.channel = (self.appid-id.AppID_Calibrator_RawPFB)//2
         self.part = (self.appid-id.AppID_Calibrator_RawPFB)%2
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
 
-        if self.meta.unique_packet_id != self.unique_packet_id:
+        if (self.appid-id.AppID_Calibrator_RawPFB>0) and (self.meta.unique_packet_id != self.unique_packet_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
 
-
-        self.data = struct.unpack(f"<{len(self._blob[4:])//4}i", self._blob[4:])
+        self.data = struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])
         self.data = self.data[:2048]
         self._is_read = True
 
@@ -153,22 +181,24 @@ class Packet_Cal_Debug(PacketBase):
     def desc(self):
         return "Calibrator Debug"
 
-    def set_meta(self, meta):
-        self.meta = meta
+    def set_meta_id(self, id):
+        self.expected_id = id
 
     def _read(self):
         if self._is_read:
             return
         super()._read()
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
 
-        if self.meta.unique_packet_id != self.unique_packet_id:
+
+        self.debug_page = self.appid - id.AppID_Calibrator_Debug
+        if (self.debug_page>0) and (self.meta.unique_packet_id != self.unique_packet_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
 
-        self.debug_page = self.appid - id.AppID_Calibrator_Debug
-        datai = np.array(struct.unpack(f"<{len(self._blob[4:])//4}i", self._blob[4:])).reshape(3,1024)
-        datau = np.array(struct.unpack(f"<{len(self._blob[4:])//4}I", self._blob[4:])).reshape(3,1024)
+        datai = np.array(struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[4:])).reshape(3,1024)
+        datau = np.array(struct.unpack(f"<{len(self._blob[12:])//4}I", self._blob[4:])).reshape(3,1024)
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
         if self.debug_page == 0:

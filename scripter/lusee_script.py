@@ -374,11 +374,11 @@ class Scripter:
     def awg_cal_off(self):
         self.script.append("AWG CAL OFF")
         
-    def cal_enable(self, on=True, readout_mode=0, special_mode=0):
-        assert(readout_mode < 4)
-        assert(special_mode < 32)
-        arg = (special_mode<<3)+(readout_mode<<1)+int(on)
-        
+    def cal_enable(self, on=True, mode=0x10):
+        if on:
+            arg = mode
+        else:
+            arg = 0xFF
         self.spectrometer_command(lc.RFS_SET_CAL_ENABLE,arg )
 
     def cal_set_pfb_bin(self,ndx):

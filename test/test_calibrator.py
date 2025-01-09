@@ -49,13 +49,14 @@ class Test_Calibrator(Test):
     
         S.enable_heartbeat(False)
         S.set_Navg(14,4)
-        #for i in range(4):
-        S.set_route (2,2,2)
+        ## fully difference every channel
+        for i in range(4):
+            S.set_route (i,i,i)
         
 
-        S.cal_set_avg(6,8)
+        S.cal_set_avg(5,8)
         S.select_products(0b1111)
-        S.set_ana_gain('MHHM')
+        S.set_ana_gain('HHHH')
         
         for i in range(4):
             S.set_bitslice(i,20)    
@@ -69,8 +70,9 @@ class Test_Calibrator(Test):
         #S.wait(3)
 
         S.cal_set_pfb_bin(1402)
-        S.cal_antenna_enable(0b0100)
-        S.cal_SNRonff(5,3)
+        S.cal_antenna_enable(0b1111)
+        S.cal_enable(0x10)
+        #S.cal_SNRonff(5,3)
         weights=np.load('weights.npz')['w']
         print (weights)
         #weights=np.zeros(512)
@@ -84,12 +86,11 @@ class Test_Calibrator(Test):
         #S.wait(10)
         S.set_notch(4)
         S.start()
-        S.cal_enable(on = True, readout_mode=0b00, special_mode=0b00)
         S.wait(20)
-        for d in np.linspace(fstart,fend,200):
-            S.awg_cal_on(d)
-            S.wait(0.1)
-        S.wait(10)
+        #for d in np.linspace(fstart,fend,200):
+        #    S.awg_cal_on(d)
+        #    S.wait(0.1)
+        S.wait(3000)
         S.stop()
         #S.wait(20)
         #S.stop()
