@@ -32,7 +32,7 @@ class Test_Science(Test):
         "alarm": 90
     } ## dictinary of options for the test
     options_help = {
-        "preset" : "Type of science preset. Can be 'simple', 'agc-test', 'simplest', 'trula', 'debug', more to come.",
+        "preset" : "Type of science preset. Can be 'simple', 'simplex2','agc-test', 'simplest', 'trula', 'debug', more to come.",
         "route": "Routing scheme. Can be 'default', 'inverse', 'pairs', 'alt1'.",
         "notch" : "Enable notch filter",
         "disable_awg" : "Disable the AWG before doing anything",
@@ -45,7 +45,7 @@ class Test_Science(Test):
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple', 'debug', 'agc-test', 'simplest','trula']:
+        if self.preset not in ['simple', 'simplex2','debug', 'agc-test', 'simplest','trula']:
             raise ValueError ("Unknown preset.")
 
         if self.time_mins>100:
@@ -70,6 +70,9 @@ class Test_Science(Test):
         if self.preset in ['simple']:
             S.set_Navg(14,6)
             
+        if self.preset in ['simplex2']:
+            S.set_Navg(14,5)
+
         elif self.preset in ['simplest']:
             S.set_dispatch_delay(120)
             S.set_cdi_delay(0)
