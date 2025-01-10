@@ -16,7 +16,9 @@ class DCB(BackendBase):
         if luseeUart.get_connections():
             if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
                 self.uart = luseeUart
-        self.ether = LuSEE_ETHERNET(self.clog, self.save_ccsds)
+        self.tm_file = open(session+"/DCB_telemetry.json",'w')
+        self.ether = LuSEE_ETHERNET(self.clog, self.save_ccsds, self.tm_file)
+        
 
         
     def uart_thread (self):
@@ -40,6 +42,7 @@ class DCB(BackendBase):
         # give time for threads to stop
         time.sleep(1)
         self.uart_log.close()
+        self.tm_file.close()
         
 
 
@@ -54,4 +57,6 @@ class DCB(BackendBase):
         tu.start()    
         self.clog.log("\n\nStarting data collection threads.\n")   
         te1 = threading.Thread(target = self.ether.ListenForData, daemon=True)
+        te2 = threading.Thread(target = self.ether.ListenForData_TM, daemon=True)
         te1.start()
+        te2.start()

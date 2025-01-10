@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 class Test_CPTShort(Test):
 
     name = "cpt-short"
-    version = 0.2
+    version = 0.3
     description = """ Comprehensive Performance Test - Short Version."""
     instructions = """ Connect AWG."""
     default_options = {
@@ -425,8 +425,10 @@ class Test_CPTShort(Test):
                 #print (cfreq,sppow[bin-1],sppow[bin],sppow[bin+1])
 
                 power_out[key].append(sppow[bin])
-                ## we have *1000 to get from mV to V, *1e-4 to account for 40dB attenuation, *(1e9)**2 to get from V^2 to nV^2, /25e3 to get from 25kHz bandwidth to get to nV^2/Hz
-                power_in[key].append((ampl_set[ich]/1000)**2*(attenuation_fact**2) *(1e9)**2 /25e3)
+                ## we have /2 to get from Vpp to amplitude, *1000 to get from mV to V, *1e-4 to account for 40dB attenuation, 
+                ## *(1e9)**2 to get from V^2 to nV^2, /25e3 to get from 25kHz bandwidth to get to nV^2/Hz
+                ## here we also apply the correction factor since the power measure at the bin center will be in effect this number
+                power_in[key].append((ampl_set[ich]/2/1000)**2*(attenuation_fact**2) * self.corr_fact *(1e9)**2 /25e3)
                 #print ('here',ch, ampl_set, power_in[key][-1], power_out[key][-1])
                 if ampl_set[ich] == 0:
                     if (ich,g) not in power_zero:
@@ -501,7 +503,13 @@ class Test_CPTShort(Test):
         else:
             chlist = self.channels
 
+
+        noise_table = " \\begin{tabular}{|c|"+"c|c|"*len(self.gains)+"}\n"
+        noise_table += "\\hline\n"
+        noise_table += "Channel " + " ".join([" & \\multicolumn{2}{|c|}{"+str(g)+"}" for g in self.gains])+"\\\\\n"
+        noise_table += "\\hline\n"
         for ch in chlist:
+            noise_table += f"{ch} "
             for g in self.gains:
                 pzero_fit = np.array([power_zero_fit[(ch,g,f)] for f in self.freqs])
                 conv = np.array([conversion[(ch,g,f)] for f in self.freqs])
@@ -511,7 +519,9 @@ class Test_CPTShort(Test):
                 pzero = np.array(power_zero_terminated[(ch,g)])
                 pzero = pzero.mean(axis=0)
                 self.freqs=np.array(self.freqs)
-                ax[0].plot(ffreq,np.sqrt(pzero/conv_fit(ffreq)*self.corr_fact) , 'b-')
+                noise_power = pzero/conv_fit(ffreq)
+                #noise_power[::8]=0
+                ax[0].plot(ffreq,np.sqrt(noise_power) , 'b-')
                 ax[0].plot(self.freqs[self.freqs<51.2], np.sqrt(pzero_fit/conv)[self.freqs<51.2],'ro' )
                 ax[1].plot(ffreq,conv_fit(ffreq), 'b-')
                 ax[1].plot(self.freqs, conv, 'ro')
@@ -522,6 +532,13 @@ class Test_CPTShort(Test):
                 ax[1].set_xlabel('Frequency [MHz]')
                 ax[1].set_ylabel('Conversion [SDU/(nV^2/Hz)]')
                 
+                ## 10 to -8 is 250kHZ to 51MHz
+                avg_rms = np.sqrt(noise_power[10:-8].mean())
+                # sans PF
+                noise_power_sans_pf = np.copy(noise_power)
+                noise_power_sans_pf [::8] = np.nan
+                avg_rms_sans_pf = np.sqrt(np.nanmean(noise_power_sans_pf[10:-8]))
+                noise_table += f" & {avg_rms:.2f} & {avg_rms_sans_pf:.2f}"
                 #y axis, left plot
                 yl,yh = ax[0].get_ylim()
                 if yl<20:
@@ -540,7 +557,10 @@ class Test_CPTShort(Test):
                 fig.suptitle(f"Channel {ch} Gain {g}")
                 fig.savefig(os.path.join(figures_dir, f'results_pk_{ch}_{g}.png'))
                 figlist_res.append("\n\\includegraphics[width=1.0\\textwidth]{Figures/results_pk_"+f"{ch}_{g}"+".png}\n")
-
+            noise_table += "\\\\\n"
+        noise_table += "\\hline\n"
+        noise_table += "\\end{tabular}\n"
+        self.results['noise_table'] = noise_table    
 #                for f in self.freqs:
 #                    key = (ch,g,f)
 #                    if key not in power_zero_fit:
