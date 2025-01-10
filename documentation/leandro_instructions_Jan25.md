@@ -17,7 +17,7 @@
     ```
     You might see some errors regarding `cdefs.h` -- those are harmless
 
-* update the uncreater repository
+* update the uncrater repository and also checkout `calibrator_support_program` branch
     ```
     cd ../uncrater
     git pull
