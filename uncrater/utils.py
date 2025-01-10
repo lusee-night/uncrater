@@ -52,15 +52,11 @@ def process_telemetry(TVS_sensors):
     """
     toret = {}
     def bits2volts (val):
-        sign = (val & 0b1000000000000000)
-        intg = (val & 0b0111111111111000) >> 3
-        frac = (val & 0b0000000000000111)
-        return (intg + frac/8.0)/1000 * (1 if sign==0 else -1)
+        return (val/16000)
         
     def bits2celsius (val):        
-        intg = (val & 0b0111111111110000) >> 4
-        frac = (val & 0b0000000000001111)
-        return (intg + frac/16.0)-273.15
+        return val/128-273.15
+    
     toret['V1_0'] = bits2volts(TVS_sensors[0])    
     toret['V1_8'] = bits2volts(TVS_sensors[1])    
     toret['V2_5'] = bits2volts(TVS_sensors[2])    

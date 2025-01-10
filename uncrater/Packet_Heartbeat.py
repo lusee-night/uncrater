@@ -26,9 +26,9 @@ class Packet_Heartbeat(PacketBase):
         desc = "Heartbeat Packet\n"
         desc += f"Magic : {ok}\n"
         desc += f"Count : {self.packet_count}\n"
-        for k in self.telemetry.keys():
-            desc += f"{k} : {self.telemetry[k]}\n"
-        if self.telemetry['T_FPGA']>60:
+        for k,u in zip(self.telemetry.keys(),['V','V','V','C']):
+            desc += f"{k} : {self.telemetry[k]:6.4} {u}\n"
+        if self.telemetry['T_FPGA']>90:
             desc += "******************************************\n" 
             desc += "*   FPGA temperature too high !!!!       * \n"
             desc += "******************************************\n" 

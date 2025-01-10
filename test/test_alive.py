@@ -228,8 +228,12 @@ class Test_Alive(Test):
 
         pk_ok = True
         pk_weights_ok = True
-
-        mean, std = np.load ('test/data/ramp_power.npy')
+        if int(self.results["FW_ID"][2:],16)>=0x22a:
+            fname = "ramp_power_newwin.npy"
+        else:
+            fname = "ramp_power.npy"
+        mean, std = np.load ('test/data/'+fname)
+        #hack = []
         for i,S in enumerate(C.spectra):
             if S['meta'].base.weight_previous!=(64 if self.superslow else 8):
                 pk_weights_ok = False
@@ -244,10 +248,9 @@ class Test_Alive(Test):
 
                 if c<4:
                     data = S[c].data[1:]
+                    #hack.append(data)
                     w= np.where(std>100)
                     err = (np.abs(data-mean)[w]/std[w])
-                    #print (mean/data)
-                    #print (err)
                     maxerr = np.max(err)
                     if not (maxerr<5):
                         pk_ok = False
@@ -261,6 +264,7 @@ class Test_Alive(Test):
                     ax_sp[x][y].plot(freq[:400], data)
                     wfall[c].append(data)
                 #ax_sp[x][y].legend()
+        #np.save('test/data/ramp_power_newwin', (np.mean(hack,axis=0),np.std(hack,axis=0)))
         for i in range(4):
             ax_sp[3][i].set_xlabel('frequency [MHz]')
             ax_sp[i][0].set_ylabel('power [uncalibrated]')
@@ -303,7 +307,7 @@ class Test_Alive(Test):
         self.results['t_fpga_ok'] = int(t_fpga_ok)
 
         passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok and v_1_0_ok and v_1_8_ok and v_2_5_ok and t_fpga_ok and wf_ch_ok[0] and wf_ch_ok[1] and wf_ch_ok[2] and wf_ch_ok[3])
-        passed = passed and self.results["meta_error_free"]
+        passed = passed and self.results["meta_error_free"] and self.results['no_errors'] 
 
         fig_sp.tight_layout()
         if not (figures_dir is None):

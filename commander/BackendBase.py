@@ -37,8 +37,8 @@ class BackendBase:
                     self.full_packet = self.full_packet + order(data[istart:iend])
                     print (f"Storing appdid 0x{ccsds_appid:04x} ({len(self.full_packet)} bytes)")
                     ## now if the packet is housekeeping, show temperatures
-                    if ccsds_appid==0x20a:
-                        P = uc.Packet_Heartbeat(ccsds_appid, blob = self.full_packet)
+                    if ccsds_appid in [uc.id.AppID_uC_Start, uc.id.AppID_uC_Heartbeat]:
+                        P = uc.Packet(ccsds_appid, blob = self.full_packet)
                         print (P.info())
 
                     self.save_data(ccsds_appid, self.full_packet)        

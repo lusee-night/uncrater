@@ -153,7 +153,7 @@ class Test:
 
             self.results["SW_version"] = h2vs(H.SW_version)
             self.results["FW_version"] = h2v(H.FW_Version)
-            self.results["FW_ID"] = f"0x{H.FW_ID:#0{4}}"
+            self.results["FW_ID"] = f"{H.FW_ID:#0{4}x}"
             self.results["FW_Date"] = h2d(C.cont[0].FW_Date)
             self.results["FW_Time"] = h2t(C.cont[0].FW_Time)
             if H.SW_version != self.coreloop_version():
