@@ -132,7 +132,7 @@ class Test_Alive(Test):
         if self.superslow:
             for i in range(4):
                 S.waveform(i)
-                S.cdi_wait_seconds(7)
+                S.cdi_wait_seconds(14)
         else:
             S.waveform(4)
                 
@@ -143,7 +143,7 @@ class Test_Alive(Test):
         
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(200 if self.superslow else 65)
+        S.wait(230 if self.superslow else 65)
         return S
 
     def analyze(self, C, uart, commander, figures_dir):
@@ -192,7 +192,7 @@ class Test_Alive(Test):
 
         if (hk_start is not None) and (hk_end is not None):
             delta_t = hk_end.time - hk_start.time
-            delta_t_exp = 152 if self.superslow else 52
+            delta_t_exp = 300 if self.superslow else 52
             self.results['timer_ok'] = int (np.abs(delta_t-delta_t_exp)<10) 
             self.results['no_errors'] =  int(hk_start.core_state.base.errors == 0 and hk_end.core_state.base.errors == 0)
         else:
