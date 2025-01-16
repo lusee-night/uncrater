@@ -37,9 +37,9 @@ from test_binresponse import Test_BinResponse
 
 from commander import Commander
 import uncrater as uc
-
 import yaml
 
+from datetime import datetime
 try:
     import serverAPI
     from serverAPI import serverAPI
@@ -116,6 +116,10 @@ def opt2dict(optin, default_options=None):
     return options
 
 
+def save_time():
+    now = datetime.now()
+    return now.strftime("%d %B %Y at %H:%M")
+
 def main():
 
     parser = argparse.ArgumentParser(description="Driver for tests.")
@@ -191,6 +195,11 @@ def main():
         options_file = f"{workdir}/options.yaml"
         with open(options_file, "w") as file:
             yaml.dump(options, file)
+
+        run_data = {'operator': args.operator, 'comments': args.comments, 'test_time': save_time()} 
+        with open(f"{workdir}/run_data.yaml", "w") as file:
+            yaml.dump(run_data, file)
+
         try:
             C.run()
         except KeyboardInterrupt:
@@ -213,6 +222,9 @@ def main():
         options_file = f"{workdir}/options.yaml"
         with open(options_file, "r") as file:
             options = yaml.safe_load(file)
+        run_data_file = f"{workdir}/run_data.yaml"
+        with open(run_data_file, "r") as file:
+            run_data = yaml.safe_load(file)
         # Create an instance of the test with the loaded options
         analysis_options = opt2dict(args.analysis_options)
         t = T(options, analysis_options)
@@ -250,8 +262,10 @@ def main():
             print("Writing report...")
 
             add_keys = {
-                "operator": args.operator,
-                "comments": args.comments,
+                "operator": run_data['operator'],
+                "comments": run_data['comments'],
+                "test_time": run_data['test_time'],
+                "analysis_time" : save_time(),
                 "uart_log": uart_log,
                 "commander_log": commander_log,
                 "runtime": runtime,
