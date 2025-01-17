@@ -112,7 +112,7 @@ class Scripter:
     def bootloader_delete_region(self,region):
         self.write_register(0x630,0xDEAD0000+region)
         self.command(bl.CMD_BOOTLOADER, bl.BL_DELETE_REGION+(region<<8))
-        self.wait(1)
+        self.wait(5)
         self.write_register(0x630,0)
 
 
