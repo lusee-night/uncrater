@@ -62,7 +62,7 @@ class Test_Science(Test):
             
         S.wait(1)
         S.reset()
-        S.wait(3)
+        S.wait(5)
         S.set_alarm_setpoint(self.alarm)
 
         if self.slow:
@@ -116,7 +116,7 @@ class Test_Science(Test):
         else:
             raise ValueError ("Unknown routing scheme.")
         
-        if self.preset in ['simple', 'agc-test']:
+        if self.preset in ['simple', 'simplex2','agc-test']:
             if self.bitslicer == 'auto':
                 S.set_bitslice_auto(15)
             else:
@@ -158,17 +158,15 @@ class Test_Science(Test):
 
             for _ in range(50000):
                 S.waveform(4)
-                S.wait(30)
                 S.set_notch(0)
                 S.start()
-                S.wait(3)
+                S.cdi_wait_seconds(3)
                 S.stop()
-                S.wait(6)
                 S.set_notch(2)
                 S.start()
-                S.wait(3)
+                S.cdi_wait_seconds(3)
                 S.stop()
-                S.wait(6)
+                S.wait(42)
 
             
                 

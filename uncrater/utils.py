@@ -36,8 +36,11 @@ def process_ADC_stats(ADC_stat):
     invalid_count_min = np.array([x.invalid_count_min for x in ADC_stat])
     sumx = np.array([x.sumv for x in ADC_stat])
     sumxx = np.array([x.sumv2 for x in ADC_stat])
-    mean = sumx/valid_count-0x1fff
-    var = sumxx/valid_count-(sumx/valid_count)**2
+    w = np.where(valid_count>0)
+    mean = np.zeros(4)
+    var = np.zeros(4)
+    mean[w] = sumx[w]/valid_count[w]-0x1fff
+    var[w] = sumxx[w]/valid_count[w]-(sumx[w]/valid_count[w])**2
     mean[valid_count == 0] = 0 
     var[valid_count ==0 ] = 0
     total_count = valid_count+invalid_count_min+invalid_count_max

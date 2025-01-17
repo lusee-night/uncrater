@@ -16,7 +16,7 @@ class DCB(BackendBase):
         if luseeUart.get_connections():
             if luseeUart.connect_usb(timeout = luseeUart.timeout_reg):
                 self.uart = luseeUart
-        self.tm_file = open(session+"/DCB_telemetry.json",'w')
+        self.tm_file = open(session+"/DCB_telemetry.json",'wb')
         self.ether = LuSEE_ETHERNET(self.clog, self.save_ccsds, self.tm_file)
         
 

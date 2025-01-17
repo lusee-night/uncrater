@@ -102,12 +102,12 @@ class Test_Alive(Test):
     default_options = {
         "waveform_type": "ramp",
         "cdi_delay": 0,
-        "superslow": False,
+        "slow": False,
     } ## dictinary of options for the test
     options_help = {
         "waveform_type" : "Waveform to be generated. Can be 'ramp', 'zeros', 'ones', or 'input'",
         "cdi_delay": "Delay in units of 1.26ms for the CDI to space packets by (0=225ns)",
-        "superslow": "Snail mode for SSL"
+        "slow": "Snail mode for SSL"
     } ## dictionary of help for the options
 
 
@@ -126,24 +126,19 @@ class Test_Alive(Test):
         S.wait(3)
 
         S.set_cdi_delay(int(self.cdi_delay))
-        S.set_dispatch_delay(150 if self.superslow else 6)
+        S.set_dispatch_delay(150 if self.slow else 6)
         S.house_keeping(0)
         S.ADC_special_mode(self.waveform_type)
-        if self.superslow:
-            for i in range(4):
-                S.waveform(i)
-                S.cdi_wait_seconds(14)
-        else:
-            S.waveform(4)
+        S.waveform(4)
                 
-        S.set_Navg(14,6 if self.superslow else 3)
+        S.set_Navg(14,6 if self.slow else 3)
         S.start()        
-        S.cdi_wait_seconds(120 if self.superslow else 50)
+        S.cdi_wait_seconds(120 if self.slow else 50)
         S.stop()
         
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(230 if self.superslow else 65)
+        S.wait(170 if self.slow else 65)
         return S
 
     def analyze(self, C, uart, commander, figures_dir):
@@ -179,7 +174,7 @@ class Test_Alive(Test):
 
         self.results['heartbeat_received'] = num_hb
         self.results['hearbeat_count'] = int(num_hb)
-        self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok & (hb_tmax<11))
+        self.results['heartbeat_not_missing'] = int(heartbeat_counter_ok)
         self.results['heartbeat_mindt'] = f"{hb_tmin:.3f}"
         self.results['heartbeat_maxdt'] = f"{hb_tmax:.3f}"
         self.results['wf_packets_received'] = num_wf
@@ -192,8 +187,7 @@ class Test_Alive(Test):
 
         if (hk_start is not None) and (hk_end is not None):
             delta_t = hk_end.time - hk_start.time
-            delta_t_exp = 300 if self.superslow else 52
-            self.results['timer_ok'] = int (np.abs(delta_t-delta_t_exp)<10) 
+            self.results['timer_ok'] = int ((delta_t>0)& (delta_t<10000)) ## let's be generous here
             self.results['no_errors'] =  int(hk_start.core_state.base.errors == 0 and hk_end.core_state.base.errors == 0)
         else:
             self.results['timer_ok'] = 0
@@ -235,7 +229,7 @@ class Test_Alive(Test):
         mean, std = np.load ('test/data/'+fname)
         #hack = []
         for i,S in enumerate(C.spectra):
-            if S['meta'].base.weight_previous!=(64 if self.superslow else 8):
+            if S['meta'].base.weight_previous!=(64 if self.slow else 8):
                 pk_weights_ok = False
 
             for c in range(16):

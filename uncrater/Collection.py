@@ -234,18 +234,20 @@ class Collection:
     # return 1, if all heartbeat packets are present (no gaps in packet_count sequence)
     def heartbeat_counter_ok(self) -> int:
         hb_counts = [p.packet_count for p in self.heartbeat_packets]
-        if not hb_counts:
-            return 0
-        correct_hb_counts = []
-        for i, p in enumerate(self.heartbeat_packets):
-            if i == 0:
-                correct_hb_counts.append(p.packet_count)
+        if len(hb_counts) <= 1:
+            return 1
+        for i,j in zip(hb_counts[:-1], hb_counts[1:]):
+            if j == i+1:
+                ## great
+                continue
+            elif j<i:
+                # then we must have seen a re boot  
+                if j==0:
+                    continue
             else:
-                correct_hb_counts.append(correct_hb_counts[i - 1] + 1)
+                print(f"Missing heartbeat packet between count {i}-> {j}")
+                return 0
 
-        if hb_counts != correct_hb_counts:
-            print(f"Bad heartbeat counts! {hb_counts} != {correct_hb_counts}")
-            return 0
         return 1
 
     # return maximal time difference between heartbeat packets

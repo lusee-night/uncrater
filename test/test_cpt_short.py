@@ -33,7 +33,7 @@ class Test_CPTShort(Test):
         'amplitude_fact': '5',
         'routing': 'default',
         'notch': False, 
-        'superslow': False,
+        'slow': False,
         'terminated_set': "",
         'corr_fact': 0.88
     } ## dictinary of options for the test
@@ -46,7 +46,7 @@ class Test_CPTShort(Test):
         'amplitude_fact': 'Factor to multiply the amplitude by for L gain and divide by for H gain.',
         'routing': 'Routing: default, invert, alt1 ',
         'notch': 'Enable notch filter',
-        'superslow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need',
+        'slow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need',
         'terminated_set': "session directory with the terminated inputs (when AWG is noisy). If non-empty, the noise only sets will be taken from there. Must be run with the same options as the main test.",
         'corr_fact': "Correction factor to apply. Default is 0.88 which takes into account the suppression in the middle of the PFB response shape."
     } ## dictionary of help for the options
@@ -110,7 +110,7 @@ class Test_CPTShort(Test):
             all = "separate"
         self.channels = channels
 
-        print ("Superslow settings:", self.superslow)
+        print ("slow settings:", self.slow)
 
 
         todo = []
@@ -123,8 +123,8 @@ class Test_CPTShort(Test):
 
         for gain in self.gains:
             for ch in self.channels:
-                ## always start with zero if superslow and skip it later
-                if self.superslow:
+                ## always start with zero if slow and skip it later
+                if self.slow:
                     todo.append((gain,ch, (0,0,0,0), (0,0,0,0),(bitslice_zero,bitslice_zero, bitslice_zero, bitslice_zero)))
 
                 for i,f in enumerate(self.freqs):
@@ -133,7 +133,7 @@ class Test_CPTShort(Test):
                     else:
                         freq_set = (f,f,f,f)
                     for a,s in zip(self.amplitudes, self.bitslices):
-                        if self.superslow and (a==0):
+                        if self.slow and (a==0):
                             continue
                         if gain == "L":
                             a = a*self.amplitude_fact
@@ -149,7 +149,7 @@ class Test_CPTShort(Test):
                             bitslice_set[ch] = s
                         todo.append((gain, ch, freq_set,ampl_set,bitslice_set))
                 # also one at the end
-                if self.superslow:
+                if self.slow:
                     todo.append((gain,ch, (0,0,0,0), (0,0,0,0),(bitslice_zero,bitslice_zero, bitslice_zero, bitslice_zero)))
         self.todo_list = todo
 
@@ -170,13 +170,13 @@ class Test_CPTShort(Test):
 
         S.reset()
         S.wait(3)
-        if (self.superslow):
+        if (self.slow):
             S.set_cdi_delay(10)
         else:
             S.set_cdi_delay(2)
             S.set_dispatch_delay(6)
         S.set_Navg(14,2)
-        if not self.superslow:
+        if not self.slow:
             S.select_products('auto_only')
         old_gain = None
 
@@ -211,33 +211,33 @@ class Test_CPTShort(Test):
             if gain != old_gain:
                 gain_set = f'{gain}{gain}{gain}{gain}'
                 S.set_ana_gain(gain_set)
-                S.wait(0.2) # settle
+                S.cdi_wait_ticks(20) # settle
                 old_gain = gain
 
             for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
                 S.awg_tone(awg_map[i],f,a)
                 S.set_bitslice(i,s)
-            S.wait(0.1)
-            if self.superslow:
+            S.cdi_wait_ticks(10)
+            if self.slow:
                 S.waveform(ch)
-                S.wait(3.0)
             else:
                 S.waveform(4)
-                S.wait(3.0)
+                
 
-            if self.superslow:
+            if self.slow:
                 S.select_products(1<<(ch))
 
             #for i in [0,1,2,3]:
             #    S.waveform(i)
             #    S.wait(1.0)
             S.start(no_flash=True)
-            S.wait(4.5)
+            S.cdi_wait_seconds(3)
             S.stop(no_flash=True)
-            #S.wait()
-        S.wait(6.0)
-        if self.superslow:
-            S.wait(15.0)
+            S.wait(9 if self.slow else 7)
+        
+        # request housekeeping to force the buffer to empty
+        S.house_keeping(0)
+        S.wait(6.0)        
         S.awg_close()
         return S
 
@@ -271,7 +271,7 @@ class Test_CPTShort(Test):
         num_wf =0
 
         self.prepare_list()
-        if self.superslow:
+        if self.slow:
             num_sp_expected = len(self.todo_list)
             num_wf_expected = num_sp_expected
         else:
@@ -283,7 +283,7 @@ class Test_CPTShort(Test):
             if type(P) == uc.Packet_Waveform:
                 num_wf += 1
                 P._read()
-                if self.superslow:
+                if self.slow:
                     for ch in range(4):
                         if ch==P.ch:
                             waveforms[ch].append(P.waveform)
@@ -442,7 +442,7 @@ class Test_CPTShort(Test):
         pickle.dump(results_list, open(os.path.join(figures_dir, '../../data.pickle'), 'wb'))
         self.results['data_plots'] = "".join(figlist)
 
-        if self.superslow:
+        if self.slow:
             for key in power_in:
                 (ch,g,cfreq) = key
                 bin = freq_to_bin(cfreq)
