@@ -79,14 +79,20 @@ class Test_Route(Test):
         S.wait(1)
 
         route_list = self.get_route_list()
+        wait_secs = 0.65536*(2**self.Navg2)+0.1
+        wait_secs_int = int(wait_secs)
+        wait_secs_ticks = int((wait_secs - wait_secs_int)*100)
+
         for route in route_list:
             for i,(plus,minus) in enumerate(route):
                 S.set_route(i, plus, minus)
             
+
             S.start()
-            S.wait(0.65*2**self.Navg2+1)
+            S.cdi_wait_seconds (int(wait_secs))
+            S.cdi_wait_ticks (wait_secs_ticks)
             S.stop()
-            S.wait(3 if self.auto_only else 8)    
+            S.wait (wait_secs+5)
 
         # force empty buffer with a HK request
         S.wait(1)

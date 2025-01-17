@@ -1,3 +1,10 @@
+# Changelog
+
+* 1/17/25 -- option name change superslow -> slow
+* 1/10/25 -- first release
+
+
+
 # Instructions for uploading new firmware
 
 ## Preliminaries
@@ -286,7 +293,7 @@ Explanation:
 Next run the aliveness test 
 
 ```
-python test/cli_driver.py -b DCB -r alive -o "superslow=True"
+python test/cli_driver.py -b DCB -r alive -o "slow=True"
 ```
 
 This one runs particularly slowly so it shouldn't break any time limits. On UART you will see a series of stars and dots which represent varios stages in data accumulation/sending.
