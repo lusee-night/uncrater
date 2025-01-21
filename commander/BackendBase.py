@@ -12,7 +12,17 @@ class BackendBase:
         self.packet_count = 0
         self.full_packet = bytearray(0)
         self.last_cnt = None
+        self.eos_flag = False
 
+    def drop_eos_flag(self):
+        self.eos_flag = False
+
+    def inspect_packet(self,appid, blob):
+        if appid in [uc.id.AppID_uC_Start, uc.id.AppID_uC_Heartbeat, uc.id.AppID_End_Of_Sequence]:
+            P = uc.Packet(appid, blob = blob)
+            print (P.info())
+            if P.appid == uc.id.AppID_End_Of_Sequence:
+                self.eos_flag = True;
 
     def save_ccsds(self,data):
             def order (data):
@@ -37,10 +47,7 @@ class BackendBase:
                     self.full_packet = self.full_packet + order(data[istart:iend])
                     print (f"Storing appdid 0x{ccsds_appid:04x} ({len(self.full_packet)} bytes)")
                     ## now if the packet is housekeeping, show temperatures
-                    if ccsds_appid in [uc.id.AppID_uC_Start, uc.id.AppID_uC_Heartbeat]:
-                        P = uc.Packet(ccsds_appid, blob = self.full_packet)
-                        print (P.info())
-
+                    self.inspect_packet(ccsds_appid, self.full_packet)
                     self.save_data(ccsds_appid, self.full_packet)        
                     self.full_packet = bytearray(0)
                     data = data[iend:]

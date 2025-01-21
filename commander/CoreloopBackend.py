@@ -4,6 +4,8 @@ import threading
 import socket
 import subprocess
 import sys
+import time
+import glob 
 
 class CoreloopBackend(BackendBase):
 
@@ -17,6 +19,7 @@ class CoreloopBackend(BackendBase):
         # Open a UDP socket
         self.sockout = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.port = 32100
+        self.stop_threads = False
 
     def send_command(self, cmd, arg):
         b=bytearray(4)
@@ -26,10 +29,12 @@ class CoreloopBackend(BackendBase):
         b[3]=(arg&0x00FF)
         self.sockout.sendto(b, ('localhost', self.port))
 
+    def cdi_output_dir(self):
+        return os.path.join(self.session, 'cdi_output')
 
     def exec_thread(self):
         self.clog.logt("Executing Coreloop\n")
-        options = f"-m port -o {os.path.join(self.session, 'cdi_output')}"
+        options = f"-m port -o {self.cdi_output_dir()}"
         self.clog.logt(f"Executing {self.coreloop_exe} {options}\n")
         self.process = subprocess.Popen([self.coreloop_exe]+options.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = self.process.communicate()
@@ -42,12 +47,34 @@ class CoreloopBackend(BackendBase):
     def reset(self):
         pass
 
+    def exec_poll_thread(self):
+        npackets = 0
+        glb = self.cdi_output_dir()+"/*.bin"
+        while not self.stop_threads:
+            files = sorted(glob.glob(glb))
+            if len(files)>npackets:
+                for f in files[npackets:]:
+                    appid = int(f[f.rfind('_')+1:f.rfind('.bin')],16)
+                    print (f"New CDI packet with AppID =  {appid:x}")
+                    self.clog.logt(f"New packet received, appid={appid:x}")
+                    blob = open(f,'rb').read()
+                    self.inspect_packet(appid, blob)
+                npackets = len(files)
+            time.sleep(0.5)
+
+        
+
     def stop(self):
+        self.stop_threads = True
         self.process.terminate()
         self.sockout.close()
         self.thread.join()
+        self.poll_thread.join()
+
 
     def run(self):
         self.clog.logt("Starting Coreloop backend\n")
-        self.thread = threading.Thread (target = self.exec_thread, daemon = True)        
+        self.thread = threading.Thread (target = self.exec_thread, daemon = True)  
+        self.poll_thread  = threading.Thread(target = self.exec_poll_thread, daemon = True)      
         self.thread.start()    
+        self.poll_thread.start()

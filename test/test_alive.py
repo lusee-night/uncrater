@@ -133,12 +133,13 @@ class Test_Alive(Test):
                 
         S.set_Navg(14,6 if self.slow else 3)
         S.start()        
-        S.cdi_wait_seconds(120 if self.slow else 50)
+        S.cdi_wait_spectra(4 if self.slow else 9)
         S.stop()
         
         S.house_keeping(0)
         S.ADC_special_mode('normal')
-        S.wait(170 if self.slow else 65)
+        S.request_eos()
+        S.wait_eos()
         return S
 
     def analyze(self, C, uart, commander, figures_dir):

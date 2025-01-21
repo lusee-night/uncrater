@@ -121,6 +121,7 @@ class Commander:
         script_last = time.time()
         # wait for 1 second
         dt = 1.0
+        wait_eos = False
         try:
             while True:
                 ctime = time.time()
@@ -158,6 +159,9 @@ class Commander:
                             # wait command
                             dt = arg / 10 if arg < 65000 else 1e100  # 65000 is forever
                             self.clog.logt(f"Waiting for {dt}s.\n")
+                        elif cmd == 0xE1: 
+                            # wait EOS
+                            wait_eos = True
                         else:
                             if (cmd ==0x10) or (cmd == 0x11):
                                 pretty_cmd = command_from_value[cmd] if cmd in command_from_value else f"UNKNOWN! {hex(cmd)} refresh pycoreloop? "
@@ -176,8 +180,10 @@ class Commander:
                             self.clog.logt(log_str)
                             # now wait
                             dt = 0.01
-
-                if len(self.script) == 0 and ctime - script_last > dt:
+                if wait_eos and self.backend.eos_flag:
+                    self.backend.drop_eos_flag()
+                    wait_eos = False
+                if (len(self.script) == 0) and (ctime - script_last > dt) and (not wait_eos) :
                     break
 
         except KeyboardInterrupt:

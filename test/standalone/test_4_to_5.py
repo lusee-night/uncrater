@@ -7,7 +7,10 @@ import numpy as np
 import pytest
 import random
 
-from icecream import ic
+try:
+    from icecream import ic
+except:
+    print ("Sorry, no ice cream.")
 
 from bit_utils import *
 

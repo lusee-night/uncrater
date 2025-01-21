@@ -24,12 +24,15 @@ class Packet_Heartbeat(PacketBase):
         self._read()
         ok = "OK" if self.ok else "BAD"
         desc = "Heartbeat Packet\n"
-        desc += f"Magic : {ok}\n"
-        desc += f"Count : {self.packet_count}\n"
+        desc += f"Magic             : {ok}\n"
+        desc += f"Count             : {self.packet_count}\n"
+        desc += f"CDI command count : {self.cdi_total_command_count}\n"
+        desc += f"Error bitmask     : {self.errors:b}\n"
         for k,u in zip(self.telemetry.keys(),['V','V','V','C']):
             desc += f"{k} : {self.telemetry[k]:6.4} {u}\n"
         if self.telemetry['T_FPGA']>90:
             desc += "******************************************\n" 
             desc += "*   FPGA temperature too high !!!!       * \n"
             desc += "******************************************\n" 
+        
         return desc

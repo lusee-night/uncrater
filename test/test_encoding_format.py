@@ -2,8 +2,11 @@ import os
 import sys
 import matplotlib.pyplot as plt
 
-from icecream import ic
 import numpy as np
+try:
+    from icecream import ic
+except:
+    print ("Sorry, no ice cream.")
 
 sys.path.append(".")
 sys.path.append("./scripter/")

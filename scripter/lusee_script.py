@@ -59,6 +59,15 @@ class Scripter:
             self.total_time += dt / 10
         self.command(lc.CTRL_WAIT, dt)
 
+    def wait_eos(self,arg=0):
+        """ Wait until you get an EOS packet"""
+        self.command(lc.CTRL_WAIT_EOS,arg)
+
+    def request_eos(self, arg=0):
+        if (arg==0):
+            arg=1 ## zero won't do anything
+        self.spectrometer_command(lc.RFS_SET_SEQ_OVER,arg)
+
     def cdi_wait_ticks(self, dt):
         """Wait for dt in ticks (10ms) executed on the spectrometer board"""
         self.spectrometer_command(lc.RFS_SET_WAIT_TICKS, int(dt))
@@ -66,6 +75,11 @@ class Scripter:
     def cdi_wait_seconds(self, dt):
         """Wait for dt in seconds executed on the spectrometer board"""
         self.spectrometer_command(lc.RFS_SET_WAIT_SECS, int(dt))
+
+    def cdi_wait_spectra(self, nspectra):
+        """ Wait until n stage 2 spectra are acquired"""
+        assert((nspectra>0) and (nspectra<255))
+        self.spectrometer_command(lc.RFS_SET_WAIT_SPECTRA,int(nspectra))
 
     def set_cdi_delay(self,delay):
         self.spectrometer_command(lc.RFS_SET_CDI_FW_DLY, delay)

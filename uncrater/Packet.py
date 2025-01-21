@@ -23,11 +23,13 @@ from .Packet_Spectrum import Packet_Spectrum, Packet_TR_Spectrum, Packet_Metadat
 from .Packet_Waveform import Packet_Waveform
 from .Packet_Bootloader import Packet_Bootloader
 from .Packet_Calibrator import Packet_Cal_Metadata, Packet_Cal_Data, Packet_Cal_RawPFB, Packet_Cal_Debug
+from .Packet_EOS import Packet_EOS
 
 PacketDict = {
     id.AppID_uC_Housekeeping: Packet_Housekeep,
     id.AppID_uC_Start: Packet_Hello,
     id.AppID_uC_Heartbeat: Packet_Heartbeat,
+    id.AppID_End_Of_Sequence: Packet_EOS,
     id.AppID_MetaData: Packet_Metadata,
     id.AppID_Calibrator_MetaData: Packet_Cal_Metadata,
     id.AppID_Calibrator_Data: Packet_Cal_Data,

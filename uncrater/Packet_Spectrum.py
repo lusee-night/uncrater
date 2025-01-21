@@ -7,7 +7,6 @@ import numpy as np
 import binascii
 from typing import Tuple
 
-from icecream import ic
 
 if os.environ.get("CORELOOP_DIR") is not None:
     sys.path.append(os.environ.get("CORELOOP_DIR"))
