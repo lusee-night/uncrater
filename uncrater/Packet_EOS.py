@@ -18,7 +18,7 @@ class Packet_EOS(PacketBase):
         self._read()
         
         desc = "End of Sequence Packet\n"
-        desc += f"Unique packet ID : {self.unique_packet_id}\n"
-        desc += f"EOS arg          : {self.eos_arg }\n"         
+        desc += f"Unique packet ID : {hex(self.unique_packet_id)}\n"
+        desc += f"EOS arg          : {hex(self.eos_arg)}\n"         
         return desc
     

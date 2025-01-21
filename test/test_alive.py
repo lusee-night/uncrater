@@ -101,7 +101,7 @@ class Test_Alive(Test):
     instructions = """ Do not need to connect anything."""
     default_options = {
         "waveform_type": "ramp",
-        "cdi_delay": 0,
+        "cdi_delay": 1,
         "slow": False,
     } ## dictinary of options for the test
     options_help = {

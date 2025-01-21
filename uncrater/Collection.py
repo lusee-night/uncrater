@@ -240,7 +240,7 @@ class Collection:
             if j == i+1:
                 ## great
                 continue
-            elif j<i:
+            elif (j<i) or (i==0):
                 # then we must have seen a re boot  
                 if j==0:
                     continue
