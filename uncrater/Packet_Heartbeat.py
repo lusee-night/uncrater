@@ -26,7 +26,9 @@ class Packet_Heartbeat(PacketBase):
         desc = "Heartbeat Packet\n"
         desc += f"Magic             : {ok}\n"
         desc += f"Count             : {self.packet_count}\n"
-        desc += f"CDI command count : {self.cdi_total_command_count}\n"
+        desc += f"CDI command count : {self.cdi_stats.cdi_total_command_count}\n"
+        desc += f"CDI packets sent  : {self.cdi_stats.cdi_packets_sent}\n"
+        desc += f"CDI bytes sent    : {self.cdi_stats.cdi_bytes_sent}\n"
         desc += f"Error bitmask     : {self.errors:b}\n"
         for k,u in zip(self.telemetry.keys(),['V','V','V','C']):
             desc += f"{k} : {self.telemetry[k]:6.4} {u}\n"
