@@ -138,9 +138,13 @@ class Scripter:
             for num,chunk in enumerate(page):
                 running_sum += chunk & 0xFFFF
                 running_sum += (chunk & 0xFFFF0000) >> 16
-                self.write_register(0x640 + num, chunk)
+                # the pre 0x22a way is 
+                #self.write_register(0x640 + num, chunk)
+                if num == 0:
+                    self.write_register(0x640, chunk)
+                else:
+                    self.write_register_next(chunk)
                 
-
             print(f"Page {page_num} checksum is {hex(bl.convert_checksum(running_sum, 16))}")
             self.write_register(0x621, bl.convert_checksum(running_sum, 16))
             self.write_register(0x620, page_num)
@@ -188,7 +192,13 @@ class Scripter:
         self.command(bl.CMD_REG_MSB, val >> 16)
         self.command(bl.CMD_REG_ADDR, reg)
 
-  
+    def write_register_next (self,val):
+        self.command(bl.CMD_REG_LSB, val & 0xFFFF)
+        self.command(bl.CMD_REG_MSB_NEXT, val >> 16)
+
+        
+
+
     def write_adc_register(self,adc, reg, val):
         assert(reg < 256)
         assert(val < 256)

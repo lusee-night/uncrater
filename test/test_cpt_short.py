@@ -237,7 +237,8 @@ class Test_CPTShort(Test):
         
         # request housekeeping to force the buffer to empty
         S.house_keeping(0)
-        S.wait(6.0)        
+        S.request_eos()
+        S.wait_eos()
         S.awg_close()
         return S
 

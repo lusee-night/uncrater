@@ -98,8 +98,9 @@ class Test_Route(Test):
         S.wait(1)
         S.house_keeping(0)
         # wait for the buffer to empty up
+        S.request_eos()
+        S.wait_eos()
 
-        S.wait(15)
         return S
     
     def analyze(self, C, uart, commander, figures_dir):

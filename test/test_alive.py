@@ -151,6 +151,13 @@ class Test_Alive(Test):
 
         self.results['packets_received'] = len(C.cont)
 
+        if len(C.cont) == 0:
+            print ("No packets received, aborting")
+            self.results['result'] = 0
+            return 
+
+
+
         C.cut_to_hello()
         self.get_versions(C)
 
@@ -279,15 +286,26 @@ class Test_Alive(Test):
             self.results['sp_weights_ok'] = 0
             self.results["meta_error_free"] = 0
 
-        time, V1_0, V1_8, V2_5, T_FPGA = self.plot_telemetry(C.spectra, figures_dir)
-        self.results['v1_0_min'] = f"{V1_0.min():3.2f}"
-        self.results['v1_0_max'] = f"{V1_0.max():3.2f}"
-        self.results['v1_8_min'] = f"{V1_8.min():3.2f}"
-        self.results['v1_8_max'] = f"{V1_8.max():3.2f}"
-        self.results['v2_5_min'] = f"{V2_5.min():3.2f}"
-        self.results['v2_5_max'] = f"{V2_5.max():3.2f}"
-        self.results['t_fpga_min'] = f"{T_FPGA.min():3.2f}"
-        self.results['t_fpga_max'] = f"{T_FPGA.max():3.2f}"
+        
+        try:
+            time, V1_0, V1_8, V2_5, T_FPGA = self.plot_telemetry(C.spectra, figures_dir)
+            self.results['v1_0_min'] = f"{V1_0.min():3.2f}"
+            self.results['v1_0_max'] = f"{V1_0.max():3.2f}"
+            self.results['v1_8_min'] = f"{V1_8.min():3.2f}"
+            self.results['v1_8_max'] = f"{V1_8.max():3.2f}"
+            self.results['v2_5_min'] = f"{V2_5.min():3.2f}"
+            self.results['v2_5_max'] = f"{V2_5.max():3.2f}"
+            self.results['t_fpga_min'] = f"{T_FPGA.min():3.2f}"
+            self.results['t_fpga_max'] = f"{T_FPGA.max():3.2f}"
+        except:
+            self.results['v1_0_min'] = 0
+            self.results['v1_0_max'] = 0
+            self.results['v1_8_min'] = 0
+            self.results['v1_8_max'] = 0
+            self.results['v2_5_min'] = 0
+            self.results['v2_5_max'] = 0
+            self.results['t_fpga_min'] = 0
+            self.results['t_fpga_max'] = 0
 
 
         v_1_0_ok = (V1_0.min()>0.95) and (V1_0.max()<1.2)

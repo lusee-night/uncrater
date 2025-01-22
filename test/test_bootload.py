@@ -134,7 +134,7 @@ class Test_Bootload(Test):
 
             ## now rearrange data:
             #print (i)
-            print (f"{len(write_array)*4:x}")
+            #print (f"{len(write_array)*4:x}")
             for j in range(0,ll,4):  
                 try:
                     val = dd[j] + (dd[j+1]<<8) + (dd[j+2]<<16) + (dd[j+3]<<24)
