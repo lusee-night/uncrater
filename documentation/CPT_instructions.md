@@ -30,13 +30,13 @@ This CPT test is done in 3 steps:
 
 Connect AWG to the preamps as per table below:
 
-
-    | AWG Selection | AWG IP          | AWG CH | ATN SN | PREAMP SN | SPT Input |
-    |---------------|-----------------|--------|--------|-----------|-----------|
-    | AWG1          | 192.168.0.133   | 1      | 6      | 6         | J4        |
-    | AWG1          | 192.168.0.133   | 2      | 3      | 3         | J5        |
-    | AWG2          | 192.168.0.132   | 1      | 4      | 4         | J6        |
-    | AWG2          | 192.168.0.132   | 2      | 1      | 1         | J7        |
+  
+| AWG Selection | AWG IP          | AWG CH | ATN SN | PREAMP SN | SPT Input |
+|---------------|-----------------|--------|--------|-----------|-----------|
+| AWG1          | 192.168.0.133   | 1      | 6      | 6         | J4        |
+| AWG1          | 192.168.0.133   | 2      | 3      | 3         | J5        |
+| AWG2          | 192.168.0.132   | 1      | 4      | 4         | J6        |
+| AWG2          | 192.168.0.132   | 2      | 1      | 1         | J7        |
 
 
 Execute:
