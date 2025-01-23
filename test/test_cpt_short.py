@@ -540,6 +540,9 @@ class Test_CPTShort(Test):
                 noise_power_sans_pf [::8] = np.nan
                 avg_rms_sans_pf = np.sqrt(np.nanmean(noise_power_sans_pf[10:-8]))
                 noise_table += f" & {avg_rms:.2f} & {avg_rms_sans_pf:.2f}"
+                if len(self.terminated_set)>0 and (avg_rms_sans_pf>5):
+                    passed = False 
+
                 #y axis, left plot
                 yl,yh = ax[0].get_ylim()
                 if yl<20:
