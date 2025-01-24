@@ -12,7 +12,13 @@ python test/cpt.py -h
 
 There are two parameters to this filename
 
- * root directory for the test to save its data. This should be the same across all step described below -- i.e. the script will generate subdirectories for each steps described below
+ * root directory for the test to save its data. This should be the same for a test suite as explained below:
+    - say you have some root dir where you want to save data `/data/CPT/`
+    - for each CPT suite you want to decide on one root directory, e,g `/data/CPT/high_temperature_1`
+    - You specify `/data/CPT/high_temperature_1` for *all* tests below.
+    - the script will create this directory if it doesn't exist yet.
+    - individual runs below will be saved under these directory with `session*` subdiretories, e.g. `/data/CPT/high_temperature_1/session_route`
+
  * the test name. Valid test names are: alive, route, gain, noise, combine, science.
 
 The aliveness test is thus run as
@@ -21,12 +27,13 @@ The aliveness test is thus run as
 python test/cpt.py /path/to/some/tvac/storage alive
 ```
 
+
 ## CPT test: routing / gain / noise
 
 This CPT test is done in 3 steps:
 
 
-### Step 1: test multiplexer
+### Step 1: test multiplexer (5 minutes)
 
 Connect AWG to the preamps as per table below:
 
@@ -48,7 +55,9 @@ python test/cpt.py /path/to/some/tvac/storage route
 The result will be printed at the end. It should be PASSED. You can also inspect the pdf report in `/root_dir/session_route/report.pdf`
 
 
-### Step 2: measure gains
+
+
+### Step 2: measure gains (42 minutes)
 
 
 With AWG remain contected run
@@ -58,7 +67,7 @@ python test/cpt.py /path/to/some/tvac/storage gain
 
 This test will almost certainly PASS if the data has been taken correctly.
 
-### Step 3: measure noise properties
+### Step 3: measure noise properties (45 minutes)
 
 Connect 50Ohm terminators to the pre-amp inputs and run
 
@@ -74,7 +83,7 @@ Now combined the tests 2 and 3 above by runnung
 python test/cpt.py /path/to/some/tvac/storage combine
 ```
 
-This will not take any more data, but analyze it. It will produce PASS if the system satifies noise requirements. You can always peek at the 
+This will not take any more data, but analyze it. It should run in less than 2 minutes. It will produce PASSED if the system satifies noise requirements. You can always peek at the 
 `/root_dir/session_cpt-short_awg/report.pdf` for more information.
 
 If you got PASSED after Step 1 and Step 3 we are still not dead. If not contect BNL for more information.
