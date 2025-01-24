@@ -41,6 +41,8 @@ class DCB(BackendBase):
         self.ether.etherStop = True
         # give time for threads to stop
         time.sleep(1)
+        self.te1.join()
+        self.te2.join()
         self.uart_log.close()
         self.tm_file.close()
         
@@ -48,7 +50,7 @@ class DCB(BackendBase):
 
     def send_command(self, cmd, arg):
         self.ether.cdi_command(cmd, arg)
-        time.sleep(0.03)
+        time.sleep(0.2)
         
     def run(self):
         self.clog.log('Starting UART thread \n')
@@ -56,7 +58,7 @@ class DCB(BackendBase):
         self.uartStop = False
         tu.start()    
         self.clog.log("\n\nStarting data collection threads.\n")   
-        te1 = threading.Thread(target = self.ether.ListenForData, daemon=True)
-        te2 = threading.Thread(target = self.ether.ListenForData_TM, daemon=True)
-        te1.start()
-        te2.start()
+        self.te1 = threading.Thread(target = self.ether.ListenForData, daemon=True)
+        self.te2 = threading.Thread(target = self.ether.ListenForData_TM, daemon=True)
+        self.te1.start()
+        self.te2.start()

@@ -35,7 +35,7 @@ class Test_CPTShort(Test):
         'notch': False, 
         'slow': False,
         'terminated_set': "",
-        'corr_fact': 0.88
+        'corr_fact': 0.9
     } ## dictinary of options for the test
     options_help = {
         'channels': 'List of channels used in test. 1234 will loop over channels 1 by 1, all_same will do all the same time, all_robin will round-robin frequncies.',
@@ -231,7 +231,7 @@ class Test_CPTShort(Test):
             #    S.waveform(i)
             #    S.wait(1.0)
             S.start(no_flash=True)
-            S.cdi_wait_seconds(3)
+            S.cdi_wait_spectra(1)
             S.stop(no_flash=True)
             S.wait(9 if self.slow else 7)
         

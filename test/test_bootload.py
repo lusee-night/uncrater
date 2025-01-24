@@ -35,7 +35,7 @@ class Test_Bootload(Test):
     } ## dictinary of options for the test
     options_help = {
         "cmd" : r""" Test command to execute. Can be 'reboot', 'reboot_only', 'reboot_hard', 'check', 'command {val} {arg}', 
-                    'register {addres} {arg}', 'wait {seconds}', 'launch {region}', 'delete {region}' or 'write {region} {hex file}'"""            
+                    'register {addres} {arg}', 'wait {seconds}', 'launch {region}', 'delete {region}' or 'write {region} {hex file} [slow]'"""            
     } ## dictionary of help for the options
 
 
@@ -213,13 +213,18 @@ class Test_Bootload(Test):
                     self.filename = args[1]
                 except:
                     raise ValueError("Please provide a filename")
-                
+                if len(args)>2 and args[2]=='slow':
+                    slow_write = True
+                else:
+                    slow_write = False            
+
+
                 write_array = self.read_file(self.filename)
                 #write_array2 = self.read_file_old(self.filename)                
                 #print (len(write_array), len(write_array2))
                 ##for i in range(20):
                 #    print (f'{write_array[i]:08x} {write_array2[i]:08x}')                
-                S.bootloader_write_region(region, write_array)
+                S.bootloader_write_region(region, write_array, slow = slow_write)
             else:
                 raise ValueError(f"Command {command} not recognized")
 

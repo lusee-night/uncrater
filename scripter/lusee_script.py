@@ -126,13 +126,13 @@ class Scripter:
     def bootloader_delete_region(self,region):
         self.write_register(0x630,0xDEAD0000+region)
         self.command(bl.CMD_BOOTLOADER, bl.BL_DELETE_REGION+(region<<8))
-        self.wait(5)
+        self.wait(2)
         self.write_register(0x630,0)
 
 
-    def bootloader_write_region(self, region, write_array):
+    def bootloader_write_region(self, region, write_array, slow=False):
 
-        def write_hex_page(page, page_num, region):
+        def write_hex_page(page, page_num, region, slow):
             #Jack does 16 bit checksums for each page, so I need to split the 32 bit int to add it for the running checksum
             running_sum = 0
             for num,chunk in enumerate(page):
@@ -149,7 +149,7 @@ class Scripter:
             self.write_register(0x621, bl.convert_checksum(running_sum, 16))
             self.write_register(0x620, page_num)
             self.command(bl.CMD_BOOTLOADER, bl.BL_WRITE_FLASH + (region << 8))
-            self.wait(0.1)
+            self.wait(2 if slow else 0.1)
 
         print(f"Rearranged the input data.")
         array_length = len(write_array)  #Total number of 32 bit chunks
@@ -166,7 +166,7 @@ class Scripter:
         for i in range(pages):
             print(f"Writing page {i}/{pages}")
             page = write_array[i*64:(i+1)*64]
-            write_hex_page(page, i, region)
+            write_hex_page(page, i, region, slow)
         #And do the final partial page if necessary
         if (leftover):
             print(f"Writing page {pages}/{pages}")
@@ -174,7 +174,7 @@ class Scripter:
             final_page = write_array[pages*64:]
             filled_zeros = [0] * (64-leftover)
             final_page.extend(filled_zeros)
-            write_hex_page(final_page, pages, region)
+            write_hex_page(final_page, pages, region,slow)
 
         self.write_register(0x630, 0)
 

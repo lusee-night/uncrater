@@ -18,7 +18,7 @@ class BackendBase:
         self.eos_flag = False
 
     def inspect_packet(self,appid, blob):
-        if appid in [uc.id.AppID_uC_Start, uc.id.AppID_uC_Heartbeat, uc.id.AppID_End_Of_Sequence]:
+        if appid in [uc.id.AppID_uC_Start, uc.id.AppID_uC_Heartbeat, uc.id.AppID_uC_Bootloader, uc.id.AppID_End_Of_Sequence]:
             P = uc.Packet(appid, blob = blob)
             print (P.info())
             if P.appid == uc.id.AppID_End_Of_Sequence:

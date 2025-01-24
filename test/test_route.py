@@ -60,7 +60,6 @@ class Test_Route(Test):
         S.reset()
         S.wait(3)
         S.set_dispatch_delay(6)
-        S.enable_heartbeat(False)
         S.awg_init()
         for i,f in enumerate(self.get_tone_freqs()):
             S.awg_tone(i, f, self.Vpp)
@@ -89,8 +88,7 @@ class Test_Route(Test):
             
 
             S.start()
-            S.cdi_wait_seconds (int(wait_secs))
-            S.cdi_wait_ticks (wait_secs_ticks)
+            S.cdi_wait_spectra(1)
             S.stop()
             S.wait (wait_secs+5)
 

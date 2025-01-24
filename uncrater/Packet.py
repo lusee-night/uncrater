@@ -55,9 +55,7 @@ for i in range(8):
     PacketDict[id.AppID_Calibrator_RawPFB + i] = Packet_Cal_RawPFB
     PacketDict[id.AppID_Calibrator_Debug + i] = Packet_Cal_Debug
 
-## workaround for FW bug
-PacketDict[0x4F0] = Packet_Waveform
-PacketDict[0x208] = Packet_Bootloader
+PacketDict[id.AppID_uC_Bootloader] = Packet_Bootloader
 
 def Packet(appid, blob=None, blob_fn=None, **kwargs):
     if (blob is None) and (blob_fn is None):

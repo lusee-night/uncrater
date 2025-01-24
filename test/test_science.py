@@ -101,7 +101,7 @@ class Test_Science(Test):
             S.set_route (0,2,0)
             S.set_route (1,3,1)
             S.set_route (2,None,0)
-            S.set_route (2,None,1)
+            S.set_route (3,None,1)
         elif self.route == 'alt1':
             S.set_route(0,None,3)
             S.set_route(1,None,2)
