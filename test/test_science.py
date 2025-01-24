@@ -66,7 +66,7 @@ class Test_Science(Test):
         S.set_alarm_setpoint(self.alarm)
 
         if self.slow:
-            S.set_dispatch_delay(120)
+            S.set_dispatch_delay(100)
         if self.preset in ['simple']:
             S.set_Navg(14,6)
             
@@ -145,42 +145,47 @@ class Test_Science(Test):
             S.stop()
         elif self.preset=='trula':
             
-            S.write_adc_register(1, 0x42, 0x08)
-            S.write_adc_register(1, 0x25, 0x04)
-            S.write_adc_register(1, 0x2B, 0x04)
+            #S.write_adc_register(1, 0x42, 0x08)
+            #S.write_adc_register(1, 0x25, 0x04)
+            #S.write_adc_register(1, 0x2B, 0x04)
             
             S.set_ana_gain('HHHH')
             S.set_bitslice('all',16)
             S.set_dispatch_delay(120)
 
-            S.set_Navg(14,2)
-            S.select_products('auto_only')
+            S.set_Navg(14,4)
+            S.wait(10)
+            #S.select_products('auto_only')
 
-            for _ in range(50000):
-                S.waveform(4)
-                S.set_notch(0)
-                S.start()
-                S.cdi_wait_seconds(3)
+            Ngo = int(self.time_mins*2) if self.time_mins>0 else 50000
+
+            for _ in range(Ngo):
+                S.waveform(4)                
+                S.set_notch(0)                
+                S.start()                
+                S.cdi_wait_spectra(1)
                 S.stop()
+                S.cdi_wait_seconds(10)
                 S.set_notch(2)
                 S.start()
-                S.cdi_wait_seconds(3)
+                S.cdi_wait_spectra(1)
                 S.stop()
-                S.wait(42)
+                S.wait(90)
+            S.request_eos()
+            S.wait_eos()
 
-            
                 
 
         else:
             S.start()
             if self.time_mins>0:
-                #S.cdi_wait_seconds(self.time_mins*60)
+                S.cdi_wait_minutes(self.time_mins)
                 S.stop()
-                S.wait(self.time_mins*60+5)
+                S.request_eos()
             else:
                 S.wait(-1)
 
-
+            S.wait_eos()
         return S
 
     def analyze(self, C: uc.Collection, uart, commander, figures_dir):

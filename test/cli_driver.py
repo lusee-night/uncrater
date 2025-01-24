@@ -222,6 +222,9 @@ def main():
         options_file = f"{workdir}/options.yaml"
         with open(options_file, "r") as file:
             options = yaml.safe_load(file)
+        for k,v in opt2dict(args.analysis_options).items():
+            options[k] = v
+        
         run_data_file = f"{workdir}/run_data.yaml"
         with open(run_data_file, "r") as file:
             run_data = yaml.safe_load(file)

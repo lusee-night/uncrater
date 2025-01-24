@@ -1,9 +1,10 @@
 import argparse
 import os
+import time
 
 #!/usr/bin/env python
 
-def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True):
+def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True, analysis_options=None):
     if analyze:
         run = '-a'
     else:
@@ -13,6 +14,9 @@ def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True):
         options = ''
     else:
         options = f'-o "{options}"'
+
+    if analysis_options is not None:
+        options += f' -p "{analysis_options}"'
 
     awg_opt = '-g ssl' if awg else ''
     return  f'python test/cli_driver.py -b DCB  {awg_opt} -w {workdir} {run} {test} {options}'
@@ -51,7 +55,7 @@ def main():
     elif test == 'combine':
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
         out_dir_terminated = os.path.join(args.root_dir, 'session_cpt-short_terminated')
-        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options()+",terminated_set="+out_dir_terminated, awg = awg, analyze=True)
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(), analysis_options="terminated_set="+out_dir_terminated, awg = awg, analyze=True)
     elif test == 'science':
         # we do things a bit differently there
         pass
@@ -61,7 +65,7 @@ def main():
         return
             
     if test!='science':
-        if (os.path.exists(out_dir) and not args.force):
+        if (test!='combine') and (os.path.exists(out_dir) and not args.force):
             print ('Test data already exists:', out_dir)
             print ('Use -f to force test.')
             return
@@ -71,42 +75,30 @@ def main():
         else:
             print ('Will not run anything, pretend mode')
     else:
-        self.science_test(args.root_dir)
+        science_test(args.root_dir)
     
     return
 
-def science_test(self, root_dir):
+def science_test(root_dir):
     out_dir = lambda i : os.path.join(root_dir, f'session_science_{i:03d}')
     c = 0 
     while os.path.exists(out_dir(c)):
         c += 1
     print ('Starting with directory:', out_dir(c))
     while True:
-
-        cmd_line = get_cmd_line('science', out_dir(c), 'bitslicer=15,notch=False, preset=trula,route=inverse,slow=true,time_mins=5', awg = False)
+        cmd_line = gen_cmd_line('science', out_dir(c), 'bitslicer=15,notch=False, preset=trula,route=inverse,slow=true,time_mins=20', awg = False)
         print ('Running:', cmd_line)
         os.system(cmd_line)
         c += 1
+        time.sleep(1)
         
-        cmd_line = get_cmd_line('science', out_dir(c), 'bitslicer=15,notch=True, preset=trula,route=inverse,slow=true,time_mins=5', awg = False)
-        print ('Running:', cmd_line)
-        os.system(cmd_line)
-        c += 1
-        
-        cmd_line = get_cmd_line('science', out_dir(c), 'bitslicer=15,notch=True, preset=simplex2,route=inverse,slow=true,time_mins=5', awg = False)
-        print ('Running:', cmd_line)
-        os.system(cmd_line)
-        c+=1 
 
-        cmd_line = get_cmd_line('science', out_dir(c), 'bitslicer=15,notch=True, preset=simplex2,route=pairs,slow=true,time_mins=5', awg = False)
-        print ('Running:', cmd_line)
-        os.system(cmd_line)
-        c+=1 
-
-        cmd_line = get_cmd_line('science', out_dir(c), 'bitslicer=15,notch=True, preset=simplex2,route=default,slow=true,time_mins=5', awg = False)
-        print ('Running:', cmd_line)
-        os.system(cmd_line)
-        c+=1 
+        for route in ['inverse', 'pairs', 'default']:
+            cmd_line = gen_cmd_line('science', out_dir(c), f'bitslicer=15,notch=True, preset=simplex2,route={route},slow=true,time_mins=20', awg = False)
+            print ('Running:', cmd_line)
+            os.system(cmd_line)
+            time.sleep(1)
+            c+=1 
 
 
 if __name__ == '__main__':

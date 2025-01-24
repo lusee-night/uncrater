@@ -76,6 +76,11 @@ class Scripter:
         """Wait for dt in seconds executed on the spectrometer board"""
         self.spectrometer_command(lc.RFS_SET_WAIT_SECS, int(dt))
 
+    def cdi_wait_minutes(self, dt):
+        """Wait for dt in seconds executed on the spectrometer board"""
+        self.spectrometer_command(lc.RFS_SET_WAIT_MINS, int(dt))
+
+
     def cdi_wait_spectra(self, nspectra):
         """ Wait until n stage 2 spectra are acquired"""
         assert((nspectra>0) and (nspectra<255))
