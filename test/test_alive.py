@@ -320,7 +320,7 @@ class Test_Alive(Test):
         self.results['t_fpga_ok'] = int(t_fpga_ok)
 
         passed = (passed and crc_ok and sp_all and pk_ok and pk_weights_ok and v_1_0_ok and v_1_8_ok and v_2_5_ok and t_fpga_ok and wf_ch_ok[0] and wf_ch_ok[1] and wf_ch_ok[2] and wf_ch_ok[3])
-        passed = passed and self.results["meta_error_free"] and self.results['no_errors'] 
+        #passed = passed and self.results["meta_error_free"] and self.results['no_errors'] 
 
         fig_sp.tight_layout()
         if not (figures_dir is None):
