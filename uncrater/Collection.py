@@ -12,7 +12,8 @@ from .error_utils import *
 
 class Collection:
 
-    def __init__(self, dir):
+    def __init__(self, dir, verbose = False):
+        self.verbose = verbose
         self.dir = dir
         self.refresh()
 
@@ -39,7 +40,8 @@ class Collection:
         self.calib_debug = []
 
         for i, fn in enumerate(flist):
-            #print ("reading ",fn)
+            if self.verbose:
+                print ("Reading ",fn)
             appid = int(fn.replace(".bin", "").split("_")[-1], 16)
             ## sometimes there is initial garbage to throw out
             if appid_is_spectrum(appid) and meta_packet is None:
@@ -94,7 +96,7 @@ class Collection:
 
                 
             if appid_is_rawPFB(appid):
-                if appid_is_cal_pfb_start(appid):
+                if appid_is_rawPFB_start(appid):
                     packet.read()
                     cal_packet_id = packet.unique_packet_id
                     self.calib_pfb.append([np.array(packet.data,complex),None,None,None])
@@ -112,11 +114,11 @@ class Collection:
                 if appid_is_cal_debug_start(appid):
                     packet.read()
                     cal_packet_id = packet.unique_packet_id
-                    self.calib_debug.append(packet.data+[None]*7)
+                    self.calib_debug.append([packet]+7*[None])
                 else:
                     packet.set_meta_id(cal_packet_id)
                     packet.read()
-                    self.calib[-1]['debug'][packet.debug_page]= packet.data[i]
+                    self.calib_debug[-1][packet.debug_page]= packet
 
             if isinstance(packet, Packet_Heartbeat):
                 self.heartbeat_packets.append(packet)
@@ -144,45 +146,39 @@ class Collection:
         if len(pfb[0])>0:
             self.pfb = np.array([np.hstack(p) for p in self.pfb])
         
+        self.calib_data = np.array(self.calib_data)
+        self.calib_gphase = np.array(self.calib_gphase)
+        self.calib_gNacc = np.hstack(self.calib_gNacc)
 
-        if False:
-            ## will fix later when needed
-            dacalib = [c for c in self.calib if ((c['data'][0] is not None) and c['data'][1] is not None) and (c['data'][2] is not None)]  ## look at the last one.
-            if len(dacalib)>0:
-                pass
-                data_real = np.array([c['data'][0] for c in dacalib])
-                data_imag = np.array([c['data'][1] for c in dacalib])
-                self.calib_data = np.array(data_real + 1j * data_imag).transpose(1, 0, 2)
-                self.gNacc = np.array([c['data'][2][0] for c in dacalib])
-                self.gphase = np.array([c['data'][2][1] for c in dacalib])
-
-            dcalib = [c for c in self.calib if c['debug'][0] is not None]
-            if len(dcalib)>0:
-                self.cd_have_lock = np.hstack([c['debug'][0].have_lock for c in dcalib])
-                self.cd_lock_ant = np.hstack([c['debug'][0].lock_ant for c in dcalib])
-                self.cd_drift = np.hstack([c['debug'][0].drift for c in dcalib])
-                self.cd_powertop0 = np.hstack([c['debug'][0].powertop0 for c in dcalib])
-                self.cd_powertop1 = np.hstack([c['debug'][1].powertop1 for c in dcalib])
-                self.cd_powertop2 = np.hstack([c['debug'][1].powertop2 for c in dcalib])
-                self.cd_powertop3 = np.hstack([c['debug'][1].powertop3 for c in dcalib])
-                self.cd_powerbot0 = np.hstack([c['debug'][2].powerbot0 for c in dcalib])
-                self.cd_powerbot1 = np.hstack([c['debug'][2].powerbot1 for c in dcalib])
-                self.cd_powerbot2 = np.hstack([c['debug'][2].powerbot2 for c in dcalib])
-                self.cd_powerbot3 = np.hstack([c['debug'][3].powerbot3 for c in dcalib])
-                self.cd_fd0 = np.hstack([c['debug'][3].fd0 for c in dcalib])
-                self.cd_fd1 = np.hstack([c['debug'][3].fd1 for c in dcalib])
-                self.cd_fd2 = np.hstack([c['debug'][4].fd2 for c in dcalib])
-                self.cd_fd3 = np.hstack([c['debug'][4].fd3 for c in dcalib])
-                self.cd_sd0 = np.hstack([c['debug'][4].sd0 for c in dcalib])
-                self.cd_sd1 = np.hstack([c['debug'][5].sd1 for c in dcalib])
-                self.cd_sd2 = np.hstack([c['debug'][5].sd2 for c in dcalib])
-                self.cd_sd3 = np.hstack([c['debug'][5].sd3 for c in dcalib])
-                self.cd_fdx = np.hstack([c['debug'][6].fdx for c in dcalib])
-                self.cd_sdx = np.hstack([c['debug'][6].sdx for c in dcalib])
-                self.cd_snr0 = np.hstack([c['debug'][6].snr0 for c in dcalib])
-                self.cd_snr1 = np.hstack([c['debug'][7].snr1 for c in dcalib])
-                self.cd_snr2 = np.hstack([c['debug'][7].snr2 for c in dcalib])
-                self.cd_snr3 = np.hstack([c['debug'][7].snr3 for c in dcalib])
+        dcalib = [c for c in self.calib_debug if None not in c]
+        if self.verbose:
+            print ('# of calib debug entries', len(dcalib))
+        if len(dcalib)>0:
+            self.cd_have_lock = np.hstack([c[0].have_lock for c in dcalib])
+            self.cd_lock_ant = np.hstack([c[0].lock_ant for c in dcalib])
+            self.cd_drift = np.hstack([c[0].drift for c in dcalib])
+            self.cd_powertop0 = np.hstack([c[0].powertop0 for c in dcalib])
+            self.cd_powertop1 = np.hstack([c[1].powertop1 for c in dcalib])
+            self.cd_powertop2 = np.hstack([c[1].powertop2 for c in dcalib])
+            self.cd_powertop3 = np.hstack([c[1].powertop3 for c in dcalib])
+            self.cd_powerbot0 = np.hstack([c[2].powerbot0 for c in dcalib])
+            self.cd_powerbot1 = np.hstack([c[2].powerbot1 for c in dcalib])
+            self.cd_powerbot2 = np.hstack([c[2].powerbot2 for c in dcalib])
+            self.cd_powerbot3 = np.hstack([c[3].powerbot3 for c in dcalib])
+            self.cd_fd0 = np.hstack([c[3].fd0 for c in dcalib])
+            self.cd_fd1 = np.hstack([c[3].fd1 for c in dcalib])
+            self.cd_fd2 = np.hstack([c[4].fd2 for c in dcalib])
+            self.cd_fd3 = np.hstack([c[4].fd3 for c in dcalib])
+            self.cd_sd0 = np.hstack([c[4].sd0 for c in dcalib])
+            self.cd_sd1 = np.hstack([c[5].sd1 for c in dcalib])
+            self.cd_sd2 = np.hstack([c[5].sd2 for c in dcalib])
+            self.cd_sd3 = np.hstack([c[5].sd3 for c in dcalib])
+            self.cd_fdx = np.hstack([c[6].fdx for c in dcalib])
+            self.cd_sdx = np.hstack([c[6].sdx for c in dcalib])
+            self.cd_snr0 = np.hstack([c[6].snr0 for c in dcalib])
+            self.cd_snr1 = np.hstack([c[7].snr1 for c in dcalib])
+            self.cd_snr2 = np.hstack([c[7].snr2 for c in dcalib])
+            self.cd_snr3 = np.hstack([c[7].snr3 for c in dcalib])
 
 
 

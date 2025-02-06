@@ -193,12 +193,17 @@ class Packet_Cal_Debug(PacketBase):
 
 
         self.debug_page = self.appid - id.AppID_Calibrator_Debug
-        if (self.debug_page>0) and (self.meta.unique_packet_id != self.unique_packet_id):
+        if (self.debug_page>0) and (self.unique_packet_id != self.expected_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
+        
+        if len(self._blob)!=3*1024*4+12:
+            print (f"Bad packet size. size = {len(self.blob)} appid = {self.appid:x} page = {self.debug_page}")
+            return
 
-        datai = np.array(struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[4:])).reshape(3,1024)
-        datau = np.array(struct.unpack(f"<{len(self._blob[12:])//4}I", self._blob[4:])).reshape(3,1024)
+        datai = np.array(struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])).reshape(3,1024)
+        datau = np.array(struct.unpack(f"<{len(self._blob[12:])//4}I", self._blob[12:])).reshape(3,1024)
+
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
         if self.debug_page == 0:
