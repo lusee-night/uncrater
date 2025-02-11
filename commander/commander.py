@@ -89,10 +89,10 @@ class Commander:
         if awg_backend is not None:
             if awg_backend[:4] == "lab7":
                 if "_ch" in awg_backend:
-                    ch = int(awg_backend.split("_ch")[1])
+                    ch = [int (i) for i in iawg_backend.split("_ch")[1]]
                 else:
-                    ch = 3
-                self.awg = AWGBackendLab7(channel=ch)
+                    ch = [1,3]
+                self.awg = AWGBackendLab7(channels=ch)
             elif awg_backend == "ssl":
                 self.awg = AWGBackendSSL()
             else:
