@@ -71,7 +71,9 @@ class Test_Calibrator(Test):
 
         S.cal_set_pfb_bin(1402)
         S.cal_antenna_enable(0b1111)
-        S.cal_enable(0x10)
+        S.cal_set_slicer(auto=False, powertop=24, sum1=17, sum2=17, prod1=18, prod2=18, delta_powerbot=2, sd2_slice=0)
+        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RAW3)
+    
         #S.cal_SNRonff(5,3)
         weights=np.load('weights.npz')['w']
         print (weights)

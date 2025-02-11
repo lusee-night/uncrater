@@ -403,8 +403,8 @@ class Scripter:
     def awg_cal_off(self):
         self.script.append("AWG CAL OFF")
         
-    def cal_enable(self, on=True, mode=0x10):
-        if on:
+    def cal_enable(self, enable=True, mode=0x10):
+        if enable:
             arg = mode
         else:
             arg = 0xFF
@@ -450,3 +450,24 @@ class Scripter:
     def set_alarm_setpoint(self, val):
         assert (val < 256)
         self.spectrometer_command(lc.RFS_SET_TEMP_ALARM, val)
+
+    def cal_set_slicer (self, auto=None, powertop=None, sum1=None, sum2=None, prod1=None, prod2=None, delta_powerbot=None, sd2_slice=None):
+        def cal_slicer_command (reg, val):
+            self.spectrometer_command (lc.RFS_SET_CAL_BITSLICE, (reg<<5)+val)
+        
+        if auto is not None:
+            cal_slicer_command(0, int(auto))
+        if powertop is not None:
+            cal_slicer_command(1, powertop)
+        if sum1 is not None:
+            cal_slicer_command(2, sum1)
+        if sum2 is not None:
+            cal_slicer_command(3, sum2)
+        if prod1 is not None:
+            cal_slicer_command(4, prod1)
+        if prod2 is not None:
+            cal_slicer_command(5, prod2)
+        if delta_powerbot is not None:
+            cal_slicer_command(6, delta_powerbot)
+        if sd2_slice is not None:
+            cal_slicer_command(7, sd2_slice)

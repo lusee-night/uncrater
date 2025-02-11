@@ -146,10 +146,12 @@ class Collection:
         if len(pfb[0])>0:
             self.pfb = np.array([np.hstack(p) for p in self.pfb])
         
-        self.calib_data = np.array(self.calib_data)
+    
         self.calib_gphase = np.array(self.calib_gphase)
-        self.calib_gNacc = np.hstack(self.calib_gNacc)
-
+        self.calib_data = np.array(self.calib_data)
+        
+        if len(self.calib_gNacc)>0:
+            self.calib_gNacc = np.hstack(self.calib_gNacc)
         dcalib = [c for c in self.calib_debug if None not in c]
         if self.verbose:
             print ('# of calib debug entries', len(dcalib))
