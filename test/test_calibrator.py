@@ -48,22 +48,23 @@ class Test_Calibrator(Test):
             S.set_dispatch_delay(120)
     
         S.enable_heartbeat(False)
-        S.set_Navg(14,4)
-        ## fully difference every channel
+        S.set_Navg(14,2)
+        ### fully difference every channel
         for i in range(4):
-            S.set_route (i,i,i)
+            S.set_route (i,None,i)
         
 
         S.cal_set_avg(5,8)
         S.select_products(0b1111)
-        S.set_ana_gain('HHHH')
+        S.set_ana_gain('MMMM')
         
-        for i in range(4):
+        S.set_bitslice(0,10)
+        for i in range(1,4):
             S.set_bitslice(i,20)    
-        S.set_bitslice(2,10)        
+
         
-        fstart = 17.55
-        fend = 17.55
+        fstart = 17.0
+        fend = +17.0
         S.awg_cal_on(fstart)
         #S.wait(1)
         #S.waveform(4)
@@ -71,29 +72,33 @@ class Test_Calibrator(Test):
 
         S.cal_set_pfb_bin(1402)
         S.cal_antenna_enable(0b1111)
-        S.cal_set_slicer(auto=False, powertop=24, sum1=17, sum2=17, prod1=18, prod2=18, delta_powerbot=2, sd2_slice=0)
-        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RAW3)
-    
-        #S.cal_SNRonff(5,3)
-        weights=np.load('weights.npz')['w']
-        print (weights)
-        #weights=np.zeros(512)
-        #weights[300:500]=1.0
+        S.cal_set_slicer(auto=False, powertop=20, sum1=22, sum2=20, prod1=21, prod2=21, delta_powerbot=0, sd2_slice=0)
+        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  # ...RAW3
+        #S.cal_enable(enable=False)
+
+        S.cal_SNRonff(400,10)
+        #weights=np.load('weights.npz')['w']
+        #print (weights)
+        weights=np.zeros(512)
+        weights[300:500]=1.0
         S.cal_set_weights(weights)
+        
         #S.cal_set_single_weight(350,128,zero_first=True)
         #S.cal_set_single_weight(470,128,zero_first=False)
         #S.cal_set_single_weight(390,128,zero_first=False)
         #S.cal_set_single_weight(400,128,zero_first=False)
 
         #S.wait(10)
-        S.set_notch(4)
+        S.set_notch(4+16) # plus 16 to disable subtraction
         S.start()
-        S.wait(20)
-        #for d in np.linspace(fstart,fend,200):
+        #S.wait(20)
+        #for d in np.linspace(fstart,fend,500):
         #    S.awg_cal_on(d)
-        #    S.wait(0.1)
-        S.wait(3000)
+        #    S.wait(0.3)
+        
+        S.wait(300)
         S.stop()
+        S.wait(3)
         #S.wait(20)
         #S.stop()
         #S.wait(4)

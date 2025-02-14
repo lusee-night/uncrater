@@ -83,13 +83,13 @@ class Collection:
                 if appid_is_cal_data_start(appid):
                     packet.read()
                     cal_packet_id = packet.unique_packet_id
-                    self.calib_data.append([to_cplx(packet.data[0],packet.data[1]), to_cplx(packet.data[2], packet.data[3]),None,None])
+                    self.calib_data.append([np.array(data,complex) for data in packet.data])
                 else:
                     packet.set_meta_id(cal_packet_id)
                     packet.read()
                     if packet.data_page == 1:
-                        self.calib_data[-1][2] = to_cplx(packet.data[0], packet.data[1])
-                        self.calib_data[-1][3] = to_cplx(packet.data[2], packet.data[3])
+                        for a, img_part  in zip(self.calib_data[-1], packet.data):
+                            a+= 1j*np.array(img_part)
                     else:
                         self.calib_gNacc.append(packet.gNacc)
                         self.calib_gphase.append(packet.gphase)

@@ -437,13 +437,20 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,90)
         for w in weights[90:]:
-            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 128)))
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 255)))
 
     def cal_antenna_enable(self,mask):
         self.spectrometer_command(lc.RFS_SET_CAL_ANT_EN,mask)
 
     def cal_SNRonff(self,snron,snroff):
-        self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON,snron)
+        # after fix, those numbers are in Q16.4 format, so let's bump them up by 4 bits
+        snron = int (snron * 16)
+        snroff = int (snroff * 16)
+        snron_low = snron &  0xFF
+        snron_high = (snron & 0xFF00) >> 8
+        self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON,snron_low)
+        if snron_high>0:
+            self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON_HIGH,snron_high)
         self.spectrometer_command(lc.RFS_SET_CAL_SNR_OFF,snroff)
 
     

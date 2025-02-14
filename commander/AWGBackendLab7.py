@@ -29,11 +29,11 @@ class AWGBackendLab7(AWGBackendBase):
             self.channel = channels
             
             print ("Initialized AWG backend for lab7, will respond to request for channel", self.channel)
-        #try:
-        #self.calibrator = VWDriver()
-        #print ("Initialized WV EM Calibrator")
-        #except:
-        #    self.calibrator=None
+        try:
+            self.calibrator = VWDriver()
+            print ("Initialized WV EM Calibrator")
+        except:
+            self.calibrator=None
 
 
     
@@ -65,7 +65,7 @@ class AWGBackendLab7(AWGBackendBase):
         if self.inst is not None:
             self.inst.write('OUTP1:STAT OFF')
             self.inst.write('OUTP2:STAT OFF')
-        #del self.calibrator
+        del self.calibrator
 
 
 

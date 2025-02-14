@@ -234,11 +234,12 @@ class Packet_Cal_Debug(PacketBase):
         elif self.debug_page == 6:
             self.fdx = datai[0]
             self.sdx = datai[1]
-            self.snr0 = datau[2]
+            # snr fields are in Q16.4 format
+            self.snr0 = (datau[2] / 16.0)
         elif self.debug_page == 7:
-            self.snr1 = datau[0]
-            self.snr2 = datau[1]
-            self.snr3 = datau[2]
+            self.snr1 = (datau[0] / 16.0)
+            self.snr2 = (datau[1] / 16.0)
+            self.snr3 = (datau[2] / 16.0)
     def info(self):
         self._read()
         desc = " Calibrator Debug\n"
