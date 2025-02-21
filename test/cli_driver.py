@@ -26,6 +26,7 @@ from test_wave import Test_Wave
 from test_cpt_short import Test_CPTShort
 from test_route import Test_Route
 from test_calibrator import Test_Calibrator
+from test_calibweights import Test_Calib_Weights
 
 # from test_spec      import Test_Spec
 # from test_crosstalk import Test_CrossTalk
@@ -60,6 +61,7 @@ Tests = [
     Test_BinResponse,
     Test_EncodingFormat,
     Test_Calibrator,
+    Test_Calib_Weights
 ]
 
 

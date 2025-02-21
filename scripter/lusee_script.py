@@ -255,12 +255,14 @@ class Scripter:
             arg = (arg << 2) + "LMHA".index(c)
         self.spectrometer_command(cmd, arg)
 
-    def set_notch(self, Nshift=4):
-        if (Nshift%2==1):
+    def set_notch(self, Nshift=4, disable_subtract=False):
+        if (Nshift%2==1) and not disable_subtract:
             print("Warning: Nshift in notch should be even!")
-            raise ValueError
+            Cd.cd_snr1[200:]
         cmd = lc.RFS_SET_AVG_NOTCH
         arg = Nshift
+        if disable_subtract:
+            arg+=16
         self.spectrometer_command(cmd, arg)
 
     def waveform(self, ch):
@@ -453,7 +455,9 @@ class Scripter:
             self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON_HIGH,snron_high)
         self.spectrometer_command(lc.RFS_SET_CAL_SNR_OFF,snroff)
 
-    
+    def cal_set_drift_step(self, step):
+        self.spectrometer_command(lc.RFS_SET_CAL_DRIFT_STEP,step)
+
     def set_alarm_setpoint(self, val):
         assert (val < 256)
         self.spectrometer_command(lc.RFS_SET_TEMP_ALARM, val)

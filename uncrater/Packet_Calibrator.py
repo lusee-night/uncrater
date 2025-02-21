@@ -126,10 +126,6 @@ class Packet_Cal_Data(PacketBase):
             assert(len(data) == 2048)
             
             self.data = np.array(data).reshape(4,512)
-            #for ch in range(2):
-            #    cdata = np.array(data[ch*1024:ch*1024+512])+1j*np.array(data[ch*1024+512:ch*1024+1024])
-            #    self.data.append(cdata)
-            #self.data = np.array(self.data)
         else:
             self.gNacc = data[0]
             self.gphase = np.array(data[1:1025])
@@ -141,6 +137,8 @@ class Packet_Cal_Data(PacketBase):
         self._read()
         desc = " Calibrator Data\n"
         desc += f"packet_id : {self.unique_packet_id}\n"
+        desc += f"gNacc: {self.gNacc}\n"
+        desc += f"gphase: {self.gphase}\n"
         return desc
 
 class Packet_Cal_RawPFB(PacketBase):
