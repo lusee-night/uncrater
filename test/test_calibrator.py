@@ -54,7 +54,7 @@ class Test_Calibrator(Test):
             S.set_route (i,None,i)
         
 
-        S.cal_set_avg(8,7)
+        S.cal_set_avg(6,8)
         S.cal_set_drift_step(10)
         S.select_products(0b1111)
         S.set_ana_gain('MMMM')
@@ -75,19 +75,19 @@ class Test_Calibrator(Test):
         S.cal_set_pfb_bin(1402)
         S.cal_antenna_enable(0b1111)
         
-        #S.cal_set_slicer(auto=False, powertop=11, sum1=17, sum2=17, prod1=19, prod2=22, delta_powerbot=0, sd2_slice=0)
-        S.cal_set_slicer(auto=False, powertop=12, sum1=19, sum2=26, prod1=19, prod2=22, delta_powerbot=0, sd2_slice=0)
+        S.cal_set_slicer(auto=False, powertop=11, sum1=17, sum2=17, prod1=19, prod2=22, delta_powerbot=2, sd2_slice=0)
+        #S.cal_set_slicer(auto=False, powertop=12, sum1=19, sum2=26, prod1=19, prod2=22, delta_powerbot=0, sd2_slice=0)
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  # ...RAW3
         
         #S.cal_enable(True)
         #S.cal_enable(enable=False)
 
-        S.cal_SNRonff(8,2)
+        S.cal_SNRonff(70,2)
         sig, noise = np.loadtxt("session_calib_weights/calib_weights.dat").T
 
-        weights = (sig/(noise))
+        weights = (sig/(noise)**1.5)
         weights /= weights.max()
-        weights[weights<0.6]=0
+        weights[weights<0.5]=0
         
         np.savetxt("d.txt",weights)
         S.cal_set_weights(weights)
