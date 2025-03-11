@@ -12,10 +12,11 @@ from .error_utils import *
 
 class Collection:
 
-    def __init__(self, dir, verbose = False):
+    def __init__(self, dir, verbose = False, cut_to_hello = False):
         self.verbose = verbose
         self.dir = dir
         self.refresh()
+        self.cut_to_hello = cut_to_hello
 
     def refresh(self):
         self.cont = []
@@ -38,11 +39,22 @@ class Collection:
         self.calib_gphase = []
         self.calib_pfb = []
         self.calib_debug = []
+        def fn2appid(fn):
+            return int(fn.replace(".bin", "").split("_")[-1], 16)
+        if self.cut_to_hello:
+            appids = [fn2appid(fn) for fn in flist]
+            for i in range(len(appids)-1,0,-1):
+                if appid_is_hello(appids[i]):
+                    flist = flist[i:]
+                    break
 
         for i, fn in enumerate(flist):
             if self.verbose:
                 print ("Reading ",fn)
-            appid = int(fn.replace(".bin", "").split("_")[-1], 16)
+            appid = fn2appid(fn)
+            
+
+
             ## sometimes there is initial garbage to throw out
             if appid_is_spectrum(appid) and meta_packet is None:
                 continue
@@ -106,9 +118,9 @@ class Collection:
                     ch = packet.channel
                     part = packet.part
                     if (part==0): # real part, comes first
-                        self.calib_pbf[-1]['pfb'][packet.channel] = np.array(packet.data, complex)
+                        self.calib_pfb[-1][packet.channel] = np.array(packet.data, complex)
                     else:
-                        self.calib_pfb[-1]['pfb'][packet.channel] += 1j*np.array(packet.data, complex)                    
+                        self.calib_pfb[-1][packet.channel] += 1j*np.array(packet.data, complex)                    
                     
             if appid_is_cal_debug(appid):
                 if appid_is_cal_debug_start(appid):

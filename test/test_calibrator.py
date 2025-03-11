@@ -54,7 +54,7 @@ class Test_Calibrator(Test):
             S.set_route (i,None,i)
         
 
-        S.cal_set_avg(6,8)
+        S.cal_set_avg(5,8)
         S.cal_set_drift_step(10)
         S.select_products(0b1111)
         S.set_ana_gain('MMMM')
@@ -64,25 +64,26 @@ class Test_Calibrator(Test):
             S.set_bitslice(i,20)    
 
         
-        fstart = 17.0
-        fend = +17.0
+        fstart = 19#7.0
+        #fend = +17.0
         S.awg_cal_on(fstart)
         #S.awg_cal_off()
         #S.wait(1)
         #S.waveform(4)
         #S.wait(3)
 
-        S.cal_set_pfb_bin(1402)
+        S.cal_set_pfb_bin(1522)
         S.cal_antenna_enable(0b1111)
         
-        S.cal_set_slicer(auto=False, powertop=11, sum1=17, sum2=17, prod1=19, prod2=22, delta_powerbot=2, sd2_slice=0)
+        S.cal_set_slicer(auto=False, powertop=11, sum1=17, sum2=17, prod1=16, prod2=19, delta_powerbot=2, sd2_slice=0)
         #S.cal_set_slicer(auto=False, powertop=12, sum1=19, sum2=26, prod1=19, prod2=22, delta_powerbot=0, sd2_slice=0)
-        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  # ...RAW3
+        #S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  
+        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RAW2)  
         
         #S.cal_enable(True)
         #S.cal_enable(enable=False)
 
-        S.cal_SNRonff(70,2)
+        S.cal_SNRonff(5000,2)
         sig, noise = np.loadtxt("session_calib_weights/calib_weights.dat").T
 
         weights = (sig/(noise)**1.5)

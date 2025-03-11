@@ -63,6 +63,8 @@ def Packet(appid, blob=None, blob_fn=None, **kwargs):
     PacketType = PacketDict.get(appid, PacketBase)
     return PacketType(appid, blob=blob, blob_fn=blob_fn, **kwargs)
 
+def appid_is_hello(appid):
+    return appid == id.AppID_uC_Start
 
 def appid_is_spectrum(appid):
     return (

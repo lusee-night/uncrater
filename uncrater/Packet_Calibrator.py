@@ -158,7 +158,7 @@ class Packet_Cal_RawPFB(PacketBase):
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
         self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
 
-        if (self.appid-id.AppID_Calibrator_RawPFB>0) and (self.meta.unique_packet_id != self.unique_packet_id):
+        if (self.appid-id.AppID_Calibrator_RawPFB>0) and (self.expected_id != self.unique_packet_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
 
