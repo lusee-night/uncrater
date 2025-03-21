@@ -74,8 +74,6 @@ class Test_Control(Test):
             print ("No packets received, aborting")
             self.results['result'] = 0
             return 
-
-    
-
+        print ('Actual analysis not implemented, but you can have a look at cdi_output')
 
         self.results['result'] = int(passed)
