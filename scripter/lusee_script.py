@@ -458,6 +458,16 @@ class Scripter:
     def cal_set_drift_step(self, step):
         self.spectrometer_command(lc.RFS_SET_CAL_DRIFT_STEP,step)
 
+    def cal_set_corrAB(self, corrA, corrB):
+        corrA = int (corrA*16)
+        corrB = int (corrB*16)
+        self.spectrometer_command(lc.RFS_SET_CAL_CORRA_LSB, corrA & 0xFF)
+        if corrA > 255:
+            self.spectrometer_command(lc.RFS_SET_CAL_CORRA_MSB, (corrA >> 8) & 0xFF)
+        self.spectrometer_command(lc.RFS_SET_CAL_CORRB_LSB, corrB & 0xFF)
+        if corrB > 255:
+            self.spectrometer_command(lc.RFS_SET_CAL_CORRB_MSB, (corrB >> 8) & 0xFF)
+
     def set_alarm_setpoint(self, val):
         assert (val < 256)
         self.spectrometer_command(lc.RFS_SET_TEMP_ALARM, val)
@@ -482,3 +492,19 @@ class Scripter:
             cal_slicer_command(6, delta_powerbot)
         if sd2_slice is not None:
             cal_slicer_command(7, sd2_slice)
+
+    def cal_set_ddrift_guard(self, guard):
+        guard = int(guard/25)
+        if (guard>255):
+            guard = 255
+            print ("Warning: guard too large, setting to 255*25")
+
+        self.spectrometer_command(lc.RFS_SET_CAL_DDRIFT_GUARD, guard)
+
+    def cal_set_gphase_guard(self, guard):
+        guard = int(guard/2000)
+        if (guard>255):
+            guard = 255
+            print ("Warning: guard too large, setting to 255*2000")
+
+        self.spectrometer_command(lc.RFS_SET_CAL_GPHASE_GUARD, guard)
