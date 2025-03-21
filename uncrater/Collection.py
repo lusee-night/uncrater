@@ -15,9 +15,9 @@ class Collection:
     def __init__(self, dir, verbose = False, cut_to_hello = False):
         self.verbose = verbose
         self.dir = dir
-        self.refresh()
         self.cut_to_hello = cut_to_hello
-
+        self.refresh()
+        
     def refresh(self):
         self.cont = []
         self.time = []
@@ -202,21 +202,6 @@ class Collection:
         # packet but no actual data, we assume it's fine and don't include it into self.tr_spectra
         self.tr_spectra = [trs for trs in tr_spectra if len(trs) > 1]
         assert all(["meta" in trs for trs in tr_spectra])
-
-    def cut_to_hello(self):
-        i = len(self.cont) - 1
-        num_spectra = 0
-        while i >= 0 and not isinstance(self.cont[i], Packet_Hello):
-            if isinstance(self.cont[i], Packet_Metadata):
-                num_spectra += 1
-            i -= 1
-
-        if i < 0:
-            i = 0
-        self.cont = self.cont[i:]
-        self.time = self.time[i:]
-        self.desc = self.desc[i:]
-        self.spectra = self.spectra[-num_spectra:]
 
     def __len__(self):
         return len(self.cont)

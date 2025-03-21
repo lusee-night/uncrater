@@ -48,9 +48,6 @@ class Test_Control(Test):
         passed = True
 
 
-
-
-        C.cut_to_hello()
         self.get_versions(C)
 
         self.results['packets_received'] = len(C.cont)

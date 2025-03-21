@@ -156,9 +156,6 @@ class Test_Alive(Test):
             self.results['result'] = 0
             return 
 
-
-
-        C.cut_to_hello()
         self.get_versions(C)
 
         fig_wf, ax_wf= plt.subplots(1,1,figsize=(12,8))

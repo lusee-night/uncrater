@@ -88,7 +88,6 @@ class Test_BinResponse(Test):
         self.results = {}
         passed = True
 
-        C.cut_to_hello()
         self.results['packets_received'] = len(C.cont)
         self.get_versions(C)
 

@@ -252,12 +252,11 @@ class Test_CPTShort(Test):
 
         self.results['packets_received'] = len(C.cont)
 
-        C.cut_to_hello()
         self.get_versions(C)
 
         if len(self.terminated_set)>0:
-            Cterminated = uc.Collection(self.terminated_set+"/cdi_output/")
-            Cterminated.cut_to_hello()
+            Cterminated = uc.Collection(self.terminated_set+"/cdi_output/", cut_to_hello=True)
+            
             if len (Cterminated.spectra)!=len(C.spectra):
                 print ("ERROR: Terminated set has different number of spectra. Breaking.")
                 sys.exit(1)

@@ -33,6 +33,7 @@ class Test:
         self.options = self.default_options
         self.analysis_options = analysis_options if analysis_options is not None else {}
         self.options.update(options)
+        self.need_cut_to_hello = True # most test do need this
 
         # first check options sanity internally
         if not (set(self.default_options.keys()) == set(self.options_help.keys())):

@@ -92,7 +92,6 @@ class Test_DataInterface(Test):
         self.results = {}
         passed = True
 
-        coll.cut_to_hello()
         self.get_versions(coll)
 
         hb_num = coll.num_heartbeats()

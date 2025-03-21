@@ -332,7 +332,8 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_GAIN_ANA_CFG_MULT, arg2)
 
     def set_Navg(self, Navg1, Navg2):
-        val = Navg1 + (Navg2 << 4)
+        assert (Navg1 < 24) and (Navg1>=8) and (Navg2 < 16) and (Navg2>=0)
+        val = (Navg1-8) + (Navg2 << 4)
         self.spectrometer_command(lc.RFS_SET_AVG_SET, val)
 
     def set_avg_set_hi(self, frac: int):

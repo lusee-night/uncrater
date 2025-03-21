@@ -68,7 +68,6 @@ class Test_Wave(Test):
 
         self.results['packets_received'] = len(C.cont)
 
-        C.cut_to_hello()
         self.get_versions(C)
 
         # extract data
