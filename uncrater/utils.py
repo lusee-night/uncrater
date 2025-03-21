@@ -6,10 +6,10 @@ import numpy as np
 
 
 def Time2Time(time1, time2):
-    """Converts the 2 16-bit time values to a single time expressed in seconds.
+    """Converts the the two time values to a single time expressed in seconds.
     Magic 244us is the tick time according to grande Jack.   
     """
-    time = (((time2 & 0xFFFF) << 32)+time1)*244e-6/16
+    time = ((((time2 & 0xFFFF) << 32)+time1)>>4)*1/4096
     return time
 
 def appid_is_spectrum(appid):
