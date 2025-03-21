@@ -31,13 +31,31 @@ class Test_Control(Test):
 
 
         S = Scripter()
-        S.reset()
+        #S.reset()
         ## this is the real wait
-        S.wait(3)
+        #S.wait(3)
 
-        S.cdi_wait_seconds(1)
+        S.seq_begin()
+
+        S.loop_start(0)
+        S.loop_start(3)
+        S.loop_start(5)
+        S.house_keeping(0)
+        S.cdi_wait_ticks(30)
+        S.loop_next()    
+        S.waveform(1)
+        S.cdi_wait_ticks(30)
+        S.loop_next()
+        S.waveform(2)
+        S.cdi_wait_ticks(30)
+        S.loop_next()
+        S.seq_end()
+        
+        S.wait(20)
+        S.seq_break()
         S.request_eos()
         S.wait_eos()
+
         return S
 
     def analyze(self, C, uart, commander, figures_dir):

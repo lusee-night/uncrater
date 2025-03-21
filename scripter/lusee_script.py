@@ -509,3 +509,23 @@ class Scripter:
             print ("Warning: guard too large, setting to 255*2000")
 
         self.spectrometer_command(lc.RFS_SET_CAL_GPHASE_GUARD, guard)
+
+
+
+    ## flow control part
+
+    def seq_begin(self):
+        self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
+
+    def seq_end(self, store_flash=False):  
+        self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SEQ_END<<8) + (1 if store_flash else 0))
+
+    def seq_break(self):
+        self.command(lc.RFS_SPECIAL, lc.RFS_SET_BREAK<<8)   
+
+    def loop_start(self, repetitions):
+        self.spectrometer_command(lc.RFS_SET_LOOP_START, repetitions)
+
+    def loop_next(self):
+        self.spectrometer_command(lc.RFS_SET_LOOP_NEXT,0)
+
