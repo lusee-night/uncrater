@@ -93,13 +93,15 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CDI_SW_DLY, delay)
 
 
-    def reset(self, stored_state = 'ignore', special = True):
+    def reset(self, stored_state = 'ignore', cdi_clear = False, special = True):
         if stored_state == 'load':
             arg_low = 0
         elif stored_state == "ignore":
             arg_low = 1
         elif stored_state == "delete_all":
             arg_low = 2
+        if not cdi_clear:
+            arg_low += 4
         else:
             raise ValueError("Unknown stored_state")
         master = lc.RFS_SPECIAL if special else lc.RFS_SETTINGS
@@ -522,6 +524,9 @@ class Scripter:
 
     def seq_break(self):
         self.command(lc.RFS_SPECIAL, lc.RFS_SET_BREAK<<8)   
+
+    def flash_clear(self):
+        self.spectrometer_command(lc.RFS_SET_FLASH_CLR,0)
 
     def loop_start(self, repetitions):
         self.spectrometer_command(lc.RFS_SET_LOOP_START, repetitions)
