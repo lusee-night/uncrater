@@ -376,7 +376,7 @@ class Scripter:
     def time_to_die(self):
         cmd = lc.RFS_SET_TIME_TO_DIE
         arg = 0
-        self.spectrometer_command(cmd, arg)
+        self.command(lc.RFS_SPECIAL, cmd<<8+arg)
 
     def start(self, no_flash=True):
         cmd = lc.RFS_SET_START

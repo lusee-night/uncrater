@@ -103,11 +103,16 @@ class Test_Alive(Test):
         "waveform_type": "ramp",
         "cdi_delay": 1,
         "slow": False,
+        "test_death": False,
+        "test_reboot": False
     } ## dictinary of options for the test
     options_help = {
         "waveform_type" : "Waveform to be generated. Can be 'ramp', 'zeros', 'ones', or 'input'",
         "cdi_delay": "Delay in units of 1.26ms for the CDI to space packets by (0=225ns)",
-        "slow": "Snail mode for SSL"
+        "slow": "Snail mode for SSL",
+        "test_death": "Send the kill switch command half-way there",
+        "test_reboot": "Reboot the system midway to test recovery."
+
     } ## dictionary of help for the options
 
 
@@ -139,6 +144,16 @@ class Test_Alive(Test):
         S.request_eos()        
         S.flash_clear()
         S.seq_end(store_flash=True)
+        if self.test_death:
+            S.wait(19)
+            S.time_to_die()
+            S.wait(5)
+            return S
+        
+        if self.test_reboot:
+            S.wait(15)
+            S.reboot_hard()
+        
         S.wait_eos()
         return S
 
