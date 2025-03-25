@@ -12,8 +12,16 @@ class Packet_Heartbeat(PacketBase):
         if self._is_read:
             return
         super()._read()
-        temp = pystruct.heartbeat.from_buffer_copy(self._blob)       
-        
+                
+        try:
+            temp = pystruct.heartbeat.from_buffer_copy(self._blob)       
+        except:
+            print (f"Failed to read heartbeat packet {self._blob}")
+            self.ok = False
+            self.time = 0
+            self.telemetry = {}
+            self._is_read = True
+            return
         self.copy_attrs(temp)
         self.ok = (self.magic == b'BRNMRL')
         self.time = Time2Time(self.time_32, self.time_16)

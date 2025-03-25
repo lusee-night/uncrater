@@ -20,7 +20,7 @@ class AWGBackendBase:
             freq = float(command[2])
             amplitude = float(command[3])
             self.tone(ch, freq, amplitude)
-        if command[0] == 'CAL':
+        elif command[0] == 'CAL':
             if command[1] == 'ON':
                 alpha = float(command[2])
                 self.cal_on(alpha)

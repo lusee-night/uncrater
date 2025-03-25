@@ -108,6 +108,7 @@ class Test_Route(Test):
         self.results = {}
         passed = True
         
+        C.cut_to_hello()
         self.get_versions(C)
         
         ndx = self.get_tone_freqs()*40
