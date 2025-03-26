@@ -35,7 +35,7 @@ class Test_CPTShort(Test):
         'notch': False, 
         'slow': False,
         'terminated_set': "",
-        'corr_fact': 0.9
+        'corr_fact': 1.18
     } ## dictinary of options for the test
     options_help = {
         'channels': 'List of channels used in test. 1234 will loop over channels 1 by 1, all_same will do all the same time, all_robin will round-robin frequncies.',
@@ -48,8 +48,11 @@ class Test_CPTShort(Test):
         'notch': 'Enable notch filter',
         'slow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need',
         'terminated_set': "session directory with the terminated inputs (when AWG is noisy). If non-empty, the noise only sets will be taken from there. Must be run with the same options as the main test.",
-        'corr_fact': "Correction factor to apply. Default is 0.88 which takes into account the suppression in the middle of the PFB response shape."
+        'corr_fact': "Correction factor to apply. Default is 1.18 which takes into account the suppression in the middle of the PFB response shape."
     } ## dictionary of help for the options
+    
+    ### NOTE TO SELF:
+    ### for corrfact see cell 20 of notch_response.ipynb. We use kaiser-03 now.
 
 
     def prepare_list(self):
