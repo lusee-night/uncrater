@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 class Test_CPTShort(Test):
 
     name = "cpt-short"
-    version = 0.3
+    version = 0.4
     description = """ Comprehensive Performance Test - Short Version."""
     instructions = """ Connect AWG."""
     default_options = {
