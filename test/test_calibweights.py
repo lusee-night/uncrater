@@ -18,7 +18,7 @@ from collections import defaultdict
 class Test_Calib_Weights(Test):
 
     name = "calib_weights"
-    version = 0.1
+    version = 0.2
     description = """ Runs the WV calibrator EM with power on and off to determin the optimal weights """
     instructions = """ Connect the VW calibrator.  """
     default_options = {         
@@ -51,11 +51,12 @@ class Test_Calib_Weights(Test):
             S.set_route (i,None,i)
         
         S.select_products(0b1111)
-        S.set_ana_gain('MMMM')
+        
         
         S.set_bitslice(0,10)
         for i in range(1,4):
             S.set_bitslice(i,15)    
+        S.set_ana_gain('HHHH')
         
         fstart = 17.0
         fend = +17.0

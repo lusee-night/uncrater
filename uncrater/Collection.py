@@ -326,6 +326,10 @@ class Collection:
                 result = 0
         return result
 
+    def get_meta(self,name):
+        return np.array([S['meta'][name] for S in self.spectra])
+
+
     def xxd(self, i, intro=False):
         if intro:
             return self._intro(i) + self.cont[i].xxd()

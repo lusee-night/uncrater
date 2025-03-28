@@ -534,3 +534,9 @@ class Scripter:
     def loop_next(self):
         self.spectrometer_command(lc.RFS_SET_LOOP_NEXT,0)
 
+    def reject_enable(self, enable=True, reject_frac = 16, max_bad = 20):
+        if enable == False:
+            self.spectrometer_command(lc.RFS_SET_REJ_SET,0)
+        else:
+            self.spectrometer_command(lc.RFS_SET_REJ_SET,reject_frac)
+            self.spectrometer_command(lc.RFS_SET_REJ_NBAD, max_bad)
