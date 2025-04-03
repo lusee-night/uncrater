@@ -22,11 +22,15 @@ class Test_Reject(Test):
     description = """ Test the rejection algorithm  """
     instructions = """ Connect either the VW calibrator or the awg"""
     default_options = { 
-        "mode": "cal",
+        "mode": "none",
+        "reject_frac": 10,
+        "max_bad": 30,
         "slow": False
     } ## dictinary of options for the test
     options_help = {
         "mode" : "What GSE to use: cal or awg",
+        "reject_frac": "Number to divide the power with to get maximum deviation per bin",
+        "max_bad": "Maximum number of bad bins to still accept a sample",
         "slow" : "Enable for running at SSL"
     } ## dictionary of help for the options
 
@@ -35,6 +39,9 @@ class Test_Reject(Test):
         """ Generates a script for the test """
 
         S = Scripter()
+
+        if (self.mode not in ["cal", "awg","none"]):
+            raise ValueError("mode must be cal or awg or none")
 
         use_cal = self.mode=="cal"
             
@@ -56,7 +63,7 @@ class Test_Reject(Test):
         S.select_products(0b1111)
         for i in range(1,4):
             S.set_bitslice(i,19)   
-        S.reject_enable() 
+        S.reject_enable(reject_frac=self.reject_frac, max_bad = self.max_bad) 
         
 
         S.start()
@@ -67,12 +74,12 @@ class Test_Reject(Test):
         ## We are taking 10 spectra of 10.24 seconds each. 
         S.wait(24)
         ## reject one
-        #if use_cal: S.awg_cal_off()
+        if use_cal: S.awg_cal_off()
         S.wait(1)
-        #if use_cal: S.awg_cal_on(17)
+        if use_cal: S.awg_cal_on(17)
         # wait and then change baseline
         S.wait(30)        
-        #if use_cal: S.awg_cal_off()
+        if use_cal: S.awg_cal_off()
                 
         S.wait_eos()
         return S

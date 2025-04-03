@@ -513,6 +513,13 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CAL_GPHASE_GUARD, guard)
 
 
+    def cal_weights_save (self, slot):
+        assert (slot >= 0) and (slot < 16)
+        self.spectrometer_command(lc.RFS_SET_CAL_WSAVE, slot)
+
+    def cal_weights_load (self, slot):
+        assert (slot >= 0) and (slot < 16)
+        self.spectrometer_command(lc.RFS_SET_CAL_WLOAD, slot)
 
     ## flow control part
 

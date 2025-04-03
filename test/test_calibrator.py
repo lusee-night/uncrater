@@ -107,12 +107,16 @@ class Test_Calibrator(Test):
         S.cal_set_gphase_guard(0)
 
 
-        sig, noise = np.loadtxt("session_calib_weights_Mar25/calib_weights.dat").T
+        if False:
+            sig, noise = np.loadtxt("session_calib_weights_Mar25/calib_weights.dat").T
 
-        weights = (sig/(noise)**1.5)
-        weights /= weights.max()
-        weights[weights<0.2]=0
-        S.cal_set_weights(weights)
+            weights = (sig/(noise)**1.5)
+            weights /= weights.max()
+            weights[weights<0.2]=0
+            S.cal_set_weights(weights)
+            S.cal_weights_save(5)
+        else:
+            S.cal_weights_load(5)
         
         
         S.start()
