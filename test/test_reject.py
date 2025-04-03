@@ -72,7 +72,7 @@ class Test_Reject(Test):
         S.request_eos()
 
         ## We are taking 10 spectra of 10.24 seconds each. 
-        S.wait(24)
+        S.wait(27)
         ## reject one
         if use_cal: S.awg_cal_off()
         S.wait(1)
@@ -99,8 +99,13 @@ class Test_Reject(Test):
 
         self.results['result'] = int(passed)
 
-        weights = C.get_meta("base.weight_previous")
-        print (weights)
+        weights = C.get_meta("base.weight")
+        bad_min = C.get_meta("base.num_bad_min")
+        bad_max = C.get_meta("base.num_bad_max")
+        w=np.where(bad_min>bad_max)
+        bad_min[w]=-1
+        bad_max[w]=-1
+
         
         time = C.get_meta("time")
         time = (time - time[0])/60
@@ -111,13 +116,22 @@ class Test_Reject(Test):
         ax.set_ylabel('weights')
         fig.savefig(os.path.join(figures_dir,'weights.pdf'))
 
+
+        fig,ax = plt.subplots()
+        ax.plot(time, bad_min)
+        ax.plot(time, bad_max)
+        
+        ax.set_xlabel('time [mins]')
+        ax.set_ylabel('number of bad bins')
+        fig.savefig(os.path.join(figures_dir,'bads.pdf'))
+
+
         fig, ax = plt.subplots(2,2, figsize=(12,12))
         ax = ax.flatten()
         freq = C.spectra[0]['meta'].frequency
         freq = freq.reshape((-1,8)).mean(axis=1)
         for ch in range(4):
             for j, S in enumerate(C.spectra):
-                print (S['meta'].base.weight_previous)
                 data = S[ch].data
                 data = data.reshape((-1,8)).mean(axis=1)
                 ax[ch].plot(freq, data, label=str(j))

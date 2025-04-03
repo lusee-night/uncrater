@@ -52,7 +52,7 @@ class Packet_Metadata(PacketBase):
         desc += f"Errormask: {self.errormask}\n"
         desc += f"Time: {self.time}\n"
         desc += f"Current weight: {self.base.weight_current}\n"
-        desc += f"Previous weight: {self.base.weight_previous}\n"
+        desc += f"Previous weight: {self.base.weight}\n"
         return desc
 
     @property
@@ -201,7 +201,7 @@ class Packet_Spectrum(Packet_SpectrumBase):
         else:
             raise NotImplementedError(f"Format {self.meta.format} is not supported")
 
-        self.data = np.array(data, dtype=ptype).astype(np.float64)/self.meta.base.weight_previous*(1<<self.meta.base.Navg2_shift)
+        self.data = np.array(data, dtype=ptype).astype(np.float64)/self.meta.base.weight*(1<<self.meta.base.Navg2_shift)
         
 
 

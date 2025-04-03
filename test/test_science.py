@@ -237,7 +237,7 @@ class Test_Science(Test):
             def get_meta(name, C):
                 return np.array([S['meta'][name] for S in C.spectra])
 
-            weights = get_meta("base.weight_previous",C)
+            weights = get_meta("base.weight",C)
             time = get_meta("time",C)
             time = (time - time[0])/60
             errors = get_meta("base.errors",C)

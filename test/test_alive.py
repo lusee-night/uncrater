@@ -249,7 +249,7 @@ class Test_Alive(Test):
         mean, std = np.load ('test/data/'+fname)
         #hack = []
         for i,S in enumerate(C.spectra):
-            if S['meta'].base.weight_previous!=(64 if self.slow else 8):
+            if S['meta'].base.weight!=(64 if self.slow else 8):
                 pk_weights_ok = False
 
             for c in range(16):
