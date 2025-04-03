@@ -1,8 +1,8 @@
 import argparse
 import os
+import sys
 import time
 
-#!/usr/bin/env python
 
 def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True, analysis_options=None):
     if analyze:
@@ -19,7 +19,7 @@ def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True, analy
         options += f' -p "{analysis_options}"'
 
     awg_opt = '-g ssl' if awg else ''
-    return  f'python test/cli_driver.py -b DCB  {awg_opt} -w {workdir} {run} {test} {options}'
+    return  f'{sys.executable} test/cli_driver.py -b DCB  {awg_opt} -w {workdir} {run} {test} {options}'
 
 def cpt_options():
     return "channels=0123, gains=LMH, freqs=0.1 0.7 1.1 3.1 5.1 10.1 15.1 20.1 25.1 30.1 35.1 40.1 45.1 50.1 60.1 70.1, amplitudes=280 0, bitslices=25 16, slow=True"
