@@ -89,6 +89,23 @@ This will not take any more data, but analyze it. It should run in less than 2 m
 If you got PASSED after Step 1 and Step 3 we are still not dead. If not contect BNL for more information.
 
 
+## Power runs
+
+Power runs are run with AWG connected and specifying power as the test name
+```
+python test/cpt.py /path/to/some/tvac/storage power
+```
+During this test, the system will feed full range signal to all 4 ADC and adjust bitslices so that all bins are seeing significant power.  This is meant to stress the system and the power will not be representative of what the real-life power consumption will be, but it does exercise a viable off-nominal power consumption if things go awry and spectrometer ends up misconfigured.  By default it runs for 30 mins.
+
+At the first test, I suggest that you stop if after one minut (6 HB) packets and check the value of ADC ranges spit out during analysis steps. The should be around -4000 to +4000.
+
+```
+Starting analysis...
+ADC MIN: [  -25 -3842 -2811 -1357]
+ADC MAX: [ -14 3420 2981 1466]
+Writing report...
+```
+
 ## Science runs
 
 Every time when possible, please run science-style data acquisition so that we can get as much data as possible.
