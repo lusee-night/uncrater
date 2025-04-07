@@ -56,6 +56,9 @@ def main():
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
         out_dir_terminated = os.path.join(args.root_dir, 'session_cpt-short_terminated')
         cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(), analysis_options="terminated_set="+out_dir_terminated, awg = awg, analyze=True)
+    elif test == 'power':
+        out_dir = os.path.join(args.root_dir, 'session_power')
+        cmd_line = gen_cmd_line('power',out_dir, 'gains=HHHH, bitslice=16, amplitude=75, slow=True, time_mins=30', awg = awg)
     elif test == 'science':
         # we do things a bit differently there
         pass

@@ -34,6 +34,7 @@ from test_tr_spectra import Test_TRSpectra
 from test_bootload import Test_Bootload
 from test_encoding_format import Test_EncodingFormat
 from test_binresponse import Test_BinResponse
+from test_power import Test_Power
 
 from commander import Commander
 import uncrater as uc
@@ -60,6 +61,7 @@ Tests = [
     Test_BinResponse,
     Test_EncodingFormat,
     Test_Calibrator,
+    Test_Power,
 ]
 
 
