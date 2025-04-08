@@ -35,9 +35,11 @@ class Test_Watchdog(Test):
         found_watchdog = False
         found_reboot = False
         for pkt in C.cont:
+        
+            print(f"Packet seen: {type(pkt)} (AppID: {hex(pkt.appid)})")
             if isinstance(pkt, uc.Packet_Watchdog):
                 found_watchdog = True
-            if found_watchdog and isinstance(pkt, uc.Packet_uC_Start):
+            if found_watchdog and isinstance(pkt, uc.Packet_Hello):
                 found_reboot = True
                 break
 

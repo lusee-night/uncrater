@@ -26,6 +26,7 @@ class Collection:
         tr_spectra = []
         self.calib = []
         self.heartbeat_packets = []
+        self.watchdog_packets = []
         self.housekeeping_packets = []
         self.waveform_packets = []
         flist = glob.glob(os.path.join(self.dir, "*.bin"))
@@ -52,8 +53,6 @@ class Collection:
             if self.verbose:
                 print ("Reading ",fn)
             appid = fn2appid(fn)
-            
-
 
             ## sometimes there is initial garbage to throw out
             if appid_is_spectrum(appid) and meta_packet is None:
@@ -61,12 +60,15 @@ class Collection:
             if appid_is_tr_spectrum(appid) and meta_packet is None:
                 continue
             
-
             packet = Packet(appid, blob_fn=fn)
+
             # spectral/TR spectral packets must be read only after we set their metadata packet
             # all other packets: read immediately
             if not (appid_is_spectrum(appid) or appid_is_tr_spectrum(appid) or appid_is_cal_any(appid)):
                 packet.read()
+            if appid_is_watchdog(appid):
+                packet.read()
+
 
             if isinstance(packet, Packet_Metadata):
                 meta_packet = packet
@@ -134,6 +136,9 @@ class Collection:
 
             if isinstance(packet, Packet_Heartbeat):
                 self.heartbeat_packets.append(packet)
+
+            if isinstance(packet, Packet_Watchdog):
+                self.watchdog_packets.append(packet)
 
             if isinstance(packet, Packet_Housekeep):
                 self.housekeeping_packets.append(packet)
