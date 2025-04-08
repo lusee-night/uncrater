@@ -279,6 +279,10 @@ class Scripter:
     def enable_heartbeat (self, enable=True):
         self.spectrometer_command(lc.RFS_SET_HEARTBEAT, int(enable))
 
+    def enable_watchdogs(self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_ENABLE_WATCHDOGS, int(enable))
+
+
     def set_bitslice(self, ch, value):
         assert value < 32
         if ch=='all':
@@ -524,13 +528,13 @@ class Scripter:
     ## flow control part
 
     def seq_begin(self):
-        self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
+        self.command(lc.RFS_SPECIAL, lc.RFS_SEQ_START<<8)
 
     def seq_end(self, store_flash=False):  
-        self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SEQ_END<<8) + (1 if store_flash else 0))
+        self.command(lc.RFS_SPECIAL, (lc.RFS_SEQ_END<<8) + (1 if store_flash else 0))
 
     def seq_break(self):
-        self.command(lc.RFS_SPECIAL, lc.RFS_SET_BREAK<<8)   
+        self.command(lc.RFS_SPECIAL, lc.RFS_SEQ_BREAK<<8)   
 
     def flash_clear(self):
         self.spectrometer_command(lc.RFS_SET_FLASH_CLR,0)

@@ -142,7 +142,7 @@ class Test_Alive(Test):
         S.house_keeping(0)
         S.ADC_special_mode('normal')
         S.request_eos()        
-        S.flash_clear()
+        #S.flash_clear()
         S.seq_end(store_flash=True)
         if self.test_death:
             S.wait(19)

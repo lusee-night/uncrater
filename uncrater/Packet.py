@@ -24,11 +24,13 @@ from .Packet_Waveform import Packet_Waveform
 from .Packet_Bootloader import Packet_Bootloader
 from .Packet_Calibrator import Packet_Cal_Metadata, Packet_Cal_Data, Packet_Cal_RawPFB, Packet_Cal_Debug
 from .Packet_EOS import Packet_EOS
+from .Packet_Watchdog import Packet_Watchdog
 
 PacketDict = {
     id.AppID_uC_Housekeeping: Packet_Housekeep,
     id.AppID_uC_Start: Packet_Hello,
     id.AppID_uC_Heartbeat: Packet_Heartbeat,
+    id.AppID_Watchdog: Packet_Watchdog,
     id.AppID_End_Of_Sequence: Packet_EOS,
     id.AppID_MetaData: Packet_Metadata,
     id.AppID_Calibrator_MetaData: Packet_Cal_Metadata,
@@ -108,6 +110,8 @@ def appid_is_cal_debug_start(appid):
 def appid_is_metadata(appid):
     return appid == id.AppID_MetaData
 
+def appid_is_watchdog(appid):
+    return appid == id.AppID_Watchdog
 
 def appid_is_heartbeat(appid):
     return appid == id.AppID_uC_Heartbeat
