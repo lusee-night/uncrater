@@ -16,6 +16,10 @@ class Test_Watchdog(Test):
     description = "Test that watchdog triggers and causes reboot."
     instructions = "Ensure watchdog logic is implemented in firmware."
 
+    def __init__(self, options, analysis_options=None):
+    super().__init__(options, analysis_options)
+    self.need_cut_to_hello = False
+
     def generate_script(self):
         S = Scripter()
         S.reset()

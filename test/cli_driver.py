@@ -239,11 +239,7 @@ def main():
         # Create an instance of the test with the loaded options
         analysis_options = opt2dict(args.analysis_options)
         t = T(options, analysis_options)
-        # Automatically disable cut_to_hello for the watchdog test
-        cut = t.name.lower() != "watchdog"
-        C = uc.Collection(os.path.join(workdir, "cdi_output"), cut_to_hello=cut)
-
-        # C = uc.Collection(os.path.join(workdir, "cdi_output"),cut_to_hello=t.need_cut_to_hello)
+        C = uc.Collection(os.path.join(workdir, "cdi_output"),cut_to_hello=t.need_cut_to_hello)
 
         def read_and_fix(fn, max_lines=200, max_line_length=2000):
             try:
