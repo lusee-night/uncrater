@@ -93,7 +93,7 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CDI_SW_DLY, delay)
 
 
-    def reset(self, stored_state = 'ignore', cdi_clear = False, special = True):
+    def reset(self, stored_state = 'delete_all', cdi_clear = False, special = True):
         if stored_state == 'load':
             arg_low = 0
         elif stored_state == "ignore":
@@ -279,8 +279,8 @@ class Scripter:
     def enable_heartbeat (self, enable=True):
         self.spectrometer_command(lc.RFS_SET_HEARTBEAT, int(enable))
 
-    def enable_watchdogs(self, enable=True):
-        self.spectrometer_command(lc.RFS_SET_ENABLE_WATCHDOGS, int(enable))
+    def enable_watchdogs(self, enable=0xFF):
+        self.spectrometer_command(lc.RFS_SET_ENABLE_WATCHDOGS, enable)
 
 
     def set_bitslice(self, ch, value):

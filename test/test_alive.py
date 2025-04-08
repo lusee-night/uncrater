@@ -96,7 +96,7 @@ class HKAnalyzer:
 class Test_Alive(Test):
 
     name = "alive"
-    version = 0.4
+    version = 0.5
     description = """ Basic aliveness test of communication and spectral engine."""
     instructions = """ Do not need to connect anything."""
     default_options = {
@@ -130,6 +130,7 @@ class Test_Alive(Test):
         
         ## Sequence
         S.seq_begin()
+        #S.enable_watchdogs()
         S.set_cdi_delay(int(self.cdi_delay))
         S.set_dispatch_delay(100 if self.slow else 6)
         S.house_keeping(0)
@@ -142,7 +143,7 @@ class Test_Alive(Test):
         S.house_keeping(0)
         S.ADC_special_mode('normal')
         S.request_eos()        
-        #S.flash_clear()
+        S.flash_clear()
         S.seq_end(store_flash=True)
         if self.test_death:
             S.wait(19)

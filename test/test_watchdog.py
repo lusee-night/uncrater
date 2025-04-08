@@ -17,15 +17,15 @@ class Test_Watchdog(Test):
     instructions = "Ensure watchdog logic is implemented in firmware."
 
     def __init__(self, options, analysis_options=None):
-    super().__init__(options, analysis_options)
-    self.need_cut_to_hello = False
+        super().__init__(options, analysis_options)
+        self.need_cut_to_hello = False
 
     def generate_script(self):
         S = Scripter()
         S.reset()
         S.seq_begin()
         S.wait(20)                    # wait before enabling
-        S.enable_watchdogs(True)
+        S.enable_watchdogs()
         S.wait(20)                    # give watchdog time to trip
         S.request_eos()
         S.seq_end(store_flash=True)
