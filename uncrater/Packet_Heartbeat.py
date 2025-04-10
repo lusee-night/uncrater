@@ -30,7 +30,6 @@ class Packet_Heartbeat(PacketBase):
         desc += f"CDI packets sent  : {self.cdi_stats.cdi_packets_sent}\n"
         desc += f"CDI bytes sent    : {self.cdi_stats.cdi_bytes_sent}\n"
         desc += f"Error bitmask     : {self.errors:b}\n"
-        # desc += f"Loopcount min/max : {self.loop_count_min} / {self.loop_count_max}\n"
         for k,u in zip(self.telemetry.keys(),['V','V','V','C']):
             desc += f"{k} : {self.telemetry[k]:6.4} {u}\n"
         if self.telemetry['T_FPGA']>90:
