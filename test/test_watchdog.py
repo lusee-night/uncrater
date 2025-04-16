@@ -50,3 +50,47 @@ class Test_Watchdog(Test):
         self.results['result'] = int(passed)
         return passed
 
+class Test_Watchdog_Command(Test):
+
+    name = "watchdog_command"
+    version = 0.1
+    description = "Test that watchdog test command trips ADC + uC watchdogs."
+    instructions = "Ensure watchdog test command (0x1A) is implemented."
+
+    def generate_script(self):
+        S = Scripter()
+        S.reset()
+        S.seq_begin()
+        S.wait(5)
+        S.enable_watchdogs(True)
+        S.wait(1)
+        S.spectrometer_command(lc.RFS_SET_TEST_WATCHDOG, 0x13)  # Stop feeding uC watchdog
+        S.wait(4)                              # Let it trip
+        S.spectrometer_command(lc.RFS_SET_TEST_WATCHDOG, 0x49)  # Simulate ADC trip
+        S.wait(4)
+        S.request_eos()
+        S.seq_end(store_flash=True)
+        return S
+
+    def analyze(self, C, uart, commander, figures_dir):
+        self.results = {}
+        found_watchdog = False
+        correct_mask = False
+
+        for pkt in C.cont:
+            print(f"Seen packet: {pkt.__class__.__name__}, AppID: {hex(pkt.appid)}")
+            if hasattr(pkt, 'tripped'):
+                print(f"  --> tripped_mask = 0x{pkt.tripped:02X}")
+            
+            if isinstance(pkt, uc.Packet_Watchdog):
+                found_watchdog = True
+                print(f"Found watchdog packet with mask 0x{pkt.tripped:02X}")
+                if pkt.tripped & 0x80 and pkt.tripped & 0x01:
+                    correct_mask = True
+                    break
+
+        self.results['found_watchdog'] = int(found_watchdog)
+        self.results['correct_mask'] = int(correct_mask)
+        passed = found_watchdog and correct_mask
+        self.results['result'] = int(passed)
+        return passed
