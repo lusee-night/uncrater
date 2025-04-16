@@ -305,6 +305,20 @@ class Scripter:
         arg = keep_bits
         self.spectrometer_command(cmd, arg)
 
+
+    def set_avg_mode(self, mode='float'):
+        if mode=='int':
+            arg = 0
+        elif mode=='20bit':
+            arg = 1
+        elif mode=='float':
+            arg = 2
+        else:
+            print("Unknown mode for set_avg_mode:", mode)
+            print ("Must be one of, int, 20bit, float")
+            raise ValueError
+        self.spectrometer_command(lc.RFS_SET_AVG_MODE, arg)
+
     def range_ADC(self):
         cmd = lc.RFS_SET_RANGE_ADC
         arg = 0
@@ -553,3 +567,6 @@ class Scripter:
         else:
             self.spectrometer_command(lc.RFS_SET_REJ_SET,reject_frac)
             self.spectrometer_command(lc.RFS_SET_REJ_NBAD, max_bad)
+
+    def enable_grimm_tales(self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_GRIMMS_TALES, int(enable))

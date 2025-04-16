@@ -38,6 +38,7 @@ from test_encoding_format import Test_EncodingFormat
 from test_binresponse import Test_BinResponse
 from test_reject import Test_Reject
 from test_control import Test_Control
+from test_grimm import Test_Grimm
 
 from commander import Commander
 import uncrater as uc
@@ -67,7 +68,8 @@ Tests = [
     Test_Calib_Weights,
     Test_Reject,
     Test_Control,
-    Test_Watchdog
+    Test_Watchdog, 
+    Test_Grimm
 ]
 
 

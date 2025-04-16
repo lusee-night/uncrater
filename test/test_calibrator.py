@@ -104,7 +104,7 @@ class Test_Calibrator(Test):
 
         S.cal_set_corrAB(self.corA,self.corB)
         S.cal_set_ddrift_guard(1500)
-        S.cal_set_gphase_guard(0)
+        S.cal_set_gphase_guard(250000)
 
 
         if False:
