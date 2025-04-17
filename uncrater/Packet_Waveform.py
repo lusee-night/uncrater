@@ -13,7 +13,11 @@ class Packet_Waveform(PacketBase):
             return
         super()._read()
         fmt = "16384H"
-        self.waveform = np.array(struct.unpack(fmt, self._blob))
+        try:
+            self.waveform = np.array(struct.unpack(fmt, self._blob))
+        except struct.error as e:
+            print (f"Wrong packet size in waveform!! Ignoring: {e}")
+            self.waveform = np.zeros(16384, dtype=np.uint16)
         self.waveform[self.waveform>8192] -= 16384 
         self.ch = self.appid - 0x2f0
         if self.ch>=512:

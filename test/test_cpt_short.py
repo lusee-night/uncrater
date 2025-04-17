@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 class Test_CPTShort(Test):
 
     name = "cpt-short"
-    version = 0.4
+    version = 0.41
     description = """ Comprehensive Performance Test - Short Version."""
     instructions = """ Connect AWG."""
     default_options = {
@@ -456,9 +456,9 @@ class Test_CPTShort(Test):
 
         print ('... plotting telemetry ...')
 
-        self.plot_telemetry(C.spectra, figures_dir)
-
-
+        self.plot_telemetry(C.spectra, figures_dir, figures_dir+"/../../telemetry.txt")
+        if Cterminated is not None:
+            self.plot_telemetry(Cterminated.spectra, None, figures_dir+"/../../telemetry_terminated.txt")
 
 
         print ("... fitting straight lines ...")
@@ -512,15 +512,20 @@ class Test_CPTShort(Test):
         noise_table += "\\hline\n"
         noise_table += "Channel " + " ".join([" & \\multicolumn{2}{|c|}{"+str(g)+"}" for g in self.gains])+"\\\\\n"
         noise_table += "\\hline\n"
+        gain_out = [self.freqs]
+        noise_out = []
+        noise_out_sans_pf = []
         for ch in chlist:
             noise_table += f"{ch} "
             for g in self.gains:
                 pzero_fit = np.array([power_zero_fit[(ch,g,f)] for f in self.freqs])
                 conv = np.array([conversion[(ch,g,f)] for f in self.freqs])
+                gain_out.append(conv)
                 conv_fit = interp1d(self.freqs, conv, kind='linear', fill_value='extrapolate')
                 fig, ax = plt.subplots(1,2, figsize=(12,6))
                 ffreq=np.arange(2048)*0.025
                 pzero = np.array(power_zero_terminated[(ch,g)])
+                np.savetxt(figures_dir+f'/../../power_zero_{g}_{ch}.dat', pzero)
                 pzero = pzero.mean(axis=0)
                 self.freqs=np.array(self.freqs)
                 noise_power = pzero/conv_fit(ffreq)
@@ -543,7 +548,9 @@ class Test_CPTShort(Test):
                 noise_power_sans_pf [::8] = np.nan
                 avg_rms_sans_pf = np.sqrt(np.nanmean(noise_power_sans_pf[10:-8]))
                 noise_table += f" & {avg_rms:.2f} & {avg_rms_sans_pf:.2f}"
-                
+                noise_out.append(avg_rms)
+                noise_out_sans_pf.append(avg_rms_sans_pf)
+
                 if len(self.terminated_set)>0 and ((avg_rms_sans_pf>5) or np.isnan(avg_rms_sans_pf)):
                     passed = False 
                 #y axis, left plot
@@ -573,7 +580,16 @@ class Test_CPTShort(Test):
 #                    if key not in power_zero_fit:
 #                        power_zero_fit[key] = 0
 #                        conversion[key] = 0
-        # doign real space  analysis:
+        
+        gain_out = np.array(gain_out)
+        np.savetxt(figures_dir+'/../../gain.dat', gain_out.T, fmt='%.6e', delimiter='\t', header='freq\tL0\tL1\tL2\tL3\tM0\tM1\tM2\tM3\tH0\tH1\tH2\tH3', comments='')
+
+        noise_out = np.array(noise_out).reshape(len(chlist), len(self.gains))
+        noise_out_sans_pf = np.array(noise_out_sans_pf).reshape(len(chlist), len(self.gains))
+        np.savetxt(figures_dir+'/../../noise.dat', noise_out.T, fmt='%.6e', delimiter='\t', header='ch0 ch1 ch2 ch3', comments='')
+        np.savetxt(figures_dir+'/../../noise_sans_pf.dat', noise_out_sans_pf.T, fmt='%.6e', delimiter='\t', header='ch0 ch1 ch2 ch3', comments='')
+
+        # time domain simple analysis
         figlist_res_real = []
         v2adu_emi = {'L':5.37E-02,	'M':8.07E-03,	'H':1.22E-03}
         print (len(waveforms[0]),len(waveforms[1]))

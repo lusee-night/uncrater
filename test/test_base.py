@@ -36,7 +36,15 @@ class Test:
 
         # first check options sanity internally
         if not (set(self.default_options.keys()) == set(self.options_help.keys())):
-            raise ValueError("Internal error: options and options_help do not match.")
+            for k in self.default_options.keys():
+                if k not in self.options_help:
+                    print("Missing help for option: ", k)
+                    sys.exit(1)
+            for k in self.options_help.keys():
+                if k not in self.default_options:
+                    print("Missing option: ", k)
+                    sys.exit(1)
+            raise ValueError("Internal error: options and options_help do not match OR mismatching test specification")
 
         for k, v in self.options.items():
             if k not in self.default_options:
@@ -168,7 +176,7 @@ class Test:
             self.results["FW_Date"] = "N/A"
             self.results["FW_Time"] = "N/A"
 
-    def plot_telemetry(self, spectra, figures_dir):
+    def plot_telemetry(self, spectra, figures_dir, save_data=None):
         time, V1_0, V1_8, V2_5, T_FPGA = [], [], [], [], []
         for sp in spectra:
             time.append(sp["meta"].time)
@@ -211,5 +219,11 @@ class Test:
         ax[3].legend()
         if not figures_dir is None:
             fig.savefig(os.path.join(figures_dir, "telemetry.pdf"))
+        if save_data is not None:
+            np.savetxt(
+                save_data,
+                np.array([time, V1_0, V1_8, V2_5, T_FPGA]).T,
+                fmt="%s",
+            )
 
         return time, V1_0, V1_8, V2_5, T_FPGA
