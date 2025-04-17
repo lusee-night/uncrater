@@ -93,7 +93,7 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CDI_SW_DLY, delay)
 
 
-    def reset(self, stored_state = 'ignore', cdi_clear = False, special = True):
+    def reset(self, stored_state = 'delete_all', cdi_clear = False, special = True):
         if stored_state == 'load':
             arg_low = 0
         elif stored_state == "ignore":
@@ -279,8 +279,8 @@ class Scripter:
     def enable_heartbeat (self, enable=True):
         self.spectrometer_command(lc.RFS_SET_HEARTBEAT, int(enable))
 
-    def enable_watchdogs(self, enable=True):
-        self.spectrometer_command(lc.RFS_SET_ENABLE_WATCHDOGS, int(enable))
+    def enable_watchdogs(self, enable=0xFF):
+        self.spectrometer_command(lc.RFS_SET_ENABLE_WATCHDOGS, enable)
 
 
     def set_bitslice(self, ch, value):
@@ -304,6 +304,20 @@ class Scripter:
             keep_bits = 0
         arg = keep_bits
         self.spectrometer_command(cmd, arg)
+
+
+    def set_avg_mode(self, mode='float'):
+        if mode=='int':
+            arg = 0
+        elif mode=='20bit':
+            arg = 1
+        elif mode=='float':
+            arg = 2
+        else:
+            print("Unknown mode for set_avg_mode:", mode)
+            print ("Must be one of, int, 20bit, float")
+            raise ValueError
+        self.spectrometer_command(lc.RFS_SET_AVG_MODE, arg)
 
     def range_ADC(self):
         cmd = lc.RFS_SET_RANGE_ADC
@@ -380,7 +394,7 @@ class Scripter:
     def time_to_die(self):
         cmd = lc.RFS_SET_TIME_TO_DIE
         arg = 0
-        self.spectrometer_command(cmd, arg)
+        self.command(lc.RFS_SPECIAL, cmd<<8+arg)
 
     def start(self, no_flash=True):
         cmd = lc.RFS_SET_START
@@ -517,17 +531,27 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CAL_GPHASE_GUARD, guard)
 
 
+    def cal_weights_save (self, slot):
+        assert (slot >= 0) and (slot < 16)
+        self.spectrometer_command(lc.RFS_SET_CAL_WSAVE, slot)
+
+    def cal_weights_load (self, slot):
+        assert (slot >= 0) and (slot < 16)
+        self.spectrometer_command(lc.RFS_SET_CAL_WLOAD, slot)
 
     ## flow control part
 
+
+
     def seq_begin(self):
+        self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
         self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
 
     def seq_end(self, store_flash=False):  
-        self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SEQ_END<<8) + (1 if store_flash else 0))
+        self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SET_SEQ_END<<8) + (1 if store_flash else 0))
 
     def seq_break(self):
-        self.command(lc.RFS_SPECIAL, lc.RFS_SET_BREAK<<8)   
+        self.command(lc.RFS_SPECIAL, lc.RFS_SET_BREAK<<8)
 
     def flash_clear(self):
         self.spectrometer_command(lc.RFS_SET_FLASH_CLR,0)
@@ -538,3 +562,12 @@ class Scripter:
     def loop_next(self):
         self.spectrometer_command(lc.RFS_SET_LOOP_NEXT,0)
 
+    def reject_enable(self, enable=True, reject_frac = 16, max_bad = 20):
+        if enable == False:
+            self.spectrometer_command(lc.RFS_SET_REJ_SET,0)
+        else:
+            self.spectrometer_command(lc.RFS_SET_REJ_SET,reject_frac)
+            self.spectrometer_command(lc.RFS_SET_REJ_NBAD, max_bad)
+
+    def enable_grimm_tales(self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_GRIMMS_TALES, int(enable))

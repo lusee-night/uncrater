@@ -36,7 +36,9 @@ from test_tr_spectra import Test_TRSpectra
 from test_bootload import Test_Bootload
 from test_encoding_format import Test_EncodingFormat
 from test_binresponse import Test_BinResponse
+from test_reject import Test_Reject
 from test_control import Test_Control
+from test_grimm import Test_Grimm
 
 from commander import Commander
 import uncrater as uc
@@ -64,9 +66,11 @@ Tests = [
     Test_EncodingFormat,
     Test_Calibrator,
     Test_Calib_Weights,
+    Test_Reject,
     Test_Control,
     Test_Watchdog,
-    Test_Watchdog_Command
+    Test_Watchdog_Command, 
+    Test_Grimm
 ]
 
 
@@ -238,11 +242,7 @@ def main():
         # Create an instance of the test with the loaded options
         analysis_options = opt2dict(args.analysis_options)
         t = T(options, analysis_options)
-        # Automatically disable cut_to_hello for the watchdog test
-        cut = t.name.lower() != "watchdog"
-        C = uc.Collection(os.path.join(workdir, "cdi_output"), cut_to_hello=cut)
-
-        # C = uc.Collection(os.path.join(workdir, "cdi_output"),cut_to_hello=t.need_cut_to_hello)
+        C = uc.Collection(os.path.join(workdir, "cdi_output"),cut_to_hello=t.need_cut_to_hello)
 
         def read_and_fix(fn, max_lines=200, max_line_length=2000):
             try:

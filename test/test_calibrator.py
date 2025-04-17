@@ -63,13 +63,16 @@ class Test_Calibrator(Test):
         S.set_Navg(14,4)
 
         ### Main spectral engine
-        S.set_ana_gain('HMMM')
+        
+        S.set_ana_gain('HHHH')
         for i in range(4):        
             S.set_route(i, None, i)
+        
+        
         S.set_bitslice(0,10)
         for i in range(1,4):
             S.set_bitslice(i,19)    
-
+        
 
         S.cal_set_avg(self.Nac1,self.Nac2)
         S.set_notch(self.Nnotch,disable_subtract=True)
@@ -101,17 +104,21 @@ class Test_Calibrator(Test):
 
         S.cal_set_corrAB(self.corA,self.corB)
         S.cal_set_ddrift_guard(1500)
-        S.cal_set_gphase_guard(0)
+        S.cal_set_gphase_guard(250000)
 
 
-        sig, noise = np.loadtxt("session_calib_weights/calib_weights.dat").T
+        if False:
+            sig, noise = np.loadtxt("session_calib_weights_Mar25/calib_weights.dat").T
 
-        weights = (sig/(noise)**1.5)
-        weights /= weights.max()
-        weights[weights<0.5]=0
-        S.cal_set_weights(weights)
+            weights = (sig/(noise)**1.5)
+            weights /= weights.max()
+            weights[weights<0.2]=0
+            S.cal_set_weights(weights)
+            S.cal_weights_save(5)
+        else:
+            S.cal_weights_load(5)
         
-
+        
         S.start()
         S.cdi_wait_minutes(10)
         S.stop()
