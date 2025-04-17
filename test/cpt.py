@@ -59,6 +59,9 @@ def main():
     elif test == 'power':
         out_dir = os.path.join(args.root_dir, 'session_power')
         cmd_line = gen_cmd_line('power',out_dir, 'gains=HHHH, bitslice=16, amplitude=75, slow=True, time_mins=30', awg = awg)
+    elif test == "terminated":
+        out_dir = os.path.join(args.root_dir, 'session_terminated')
+        cmd_line = gen_cmd_line('science',out_dir, 'preset=cpt-terminated,slow=True', awg = awg)
     elif test == 'science':
         # we do things a bit differently there
         pass
