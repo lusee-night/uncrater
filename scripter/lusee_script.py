@@ -548,7 +548,7 @@ class Scripter:
         self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
 
     def seq_end(self, store_flash=False):  
-        self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SET_SEQ_END<<8) + (1 if store_flash else 0))
+        self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SEQ_END<<8) + (1 if store_flash else 0))
 
     def seq_break(self):
         self.command(lc.RFS_SPECIAL, lc.RFS_SET_BREAK<<8)
