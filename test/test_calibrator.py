@@ -24,14 +24,14 @@ class Test_Calibrator(Test):
     default_options = { 
         "mode": "manual",
         "slow": False,
-        "Nac1": 5,
-        "Nac2": 8,
-        "slicer": "15.19.22.19.16.1.0",
-        "snr_on": 50,
-        "snr_off": 2,
+        "Nac1": 6,
+        "Nac2": 7,
+        "slicer": "15.17.21.15.18.1.0",
+        "snr_on": 5,
+        "snr_off": 1,
         "Nnotch": 4,
-        "corA": 5,
-        "corB": 45
+        "corA": 1,
+        "corB": 10
     } ## dictinary of options for the test
     options_help = {
         "mode" : "manual",
@@ -81,7 +81,7 @@ class Test_Calibrator(Test):
 
         S.cal_set_pfb_bin(1522)
         #S.cal_antenna_enable(0b1110) # disable antenna 0
-        S.cal_antenna_enable(0b1111)
+        S.cal_antenna_enable(0b1110)
         slicer = [int(x) for x in self.slicer.split('.')]
         S.cal_set_slicer(auto=False, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], sd2_slice=slicer[6])
 
@@ -91,14 +91,13 @@ class Test_Calibrator(Test):
 
 
         
-        fstart = 17
-        fend = +16.5
-        cal_on=True
-        if cal_on:
-            S.awg_cal_on(fstart)
-        else:
-            S.awg_cal_off()
-
+        fstart = 17.4
+        fend = +17.0
+        
+        
+        
+        
+        
     
         S.cal_SNRonff(self.snr_on,self.snr_off)
 
@@ -109,28 +108,38 @@ class Test_Calibrator(Test):
 
         if False:
             sig, noise = np.loadtxt("session_calib_weights_Mar25/calib_weights.dat").T
-
-            weights = (sig/(noise)**1.5)
-            weights /= weights.max()
-            weights[weights<0.2]=0
+            #weights = (sig/(noise)**1.5)
+            #weights /= weights.max()
+            #weights[weights<0.2]=0
+            weights = np.zeros(512)
+            weights[90:400] = 1.0
             S.cal_set_weights(weights)
-            S.cal_weights_save(5)
+            S.cal_weights_save(1)
         else:
-            S.cal_weights_load(5)
+            S.cal_weights_load(1)
         
+
         
         S.start()
-        S.cdi_wait_minutes(10)
+        S.cdi_wait_seconds(126)
         S.stop()
         S.request_eos()
-        S.wait(100)
-        for d in np.linspace(fstart,fend,1300):
-            if cal_on:
-                S.awg_cal_on(d)
-            S.wait(0.3)
-        S.wait(100)
-                
+        
+        S.awg_cal_off()
+        S.wait(41)
+        S.awg_cal_on(fstart)
+        #S.wait(41)
+        
+        
+        
+        #S.wait(100)
+        #for d in np.linspace(fstart,fend,1300):
+        #    if cal_on:
+        #        S.awg_cal_on(d)
+        #    S.wait(0.3)
+        #S.wait(100)                
         S.wait_eos()
+        S.awg_cal_off()
         return S
 
 
@@ -150,7 +159,7 @@ class Test_Calibrator(Test):
         NNotch = (1<<self.Nnotch)
         Nac1 = (1<<self.Nac1)
         Nac2 = (1<<self.Nac2)
-        print (Nac1,Nac2)
+        
         alpha_to_pdrift = 50e3*4096*NNotch/102.4e6*2*np.pi*1e-6
         
         time = np.arange(len(C.cd_drift))*NNotch*Nac1*4096/102.4e6
@@ -278,12 +287,41 @@ class Test_Calibrator(Test):
 
         calib_data, calib_data_wf = coherent_addition(C)
 
-        plt.figure(figsize=(15,5))
+        fig, ax = plt.subplots(2,2,figsize=(13,10))
+        for ch in range(4):
+            axi = ax[ch//2,ch%2]
+            im = axi.imshow(C.cd_error_averager[:,:,ch], aspect='auto', interpolation='nearest')
+            plt.colorbar(im, ax=axi)
+            axi.set_title(f'averager error ch {ch}')
+            axi.set_xlabel('averager error bit')
+            axi.set_ylabel('time')
+        fig.suptitle('Averager Error', fontsize=16)
+        fig.savefig(os.path.join(figures_dir,'errors_averager.pdf'))
+        
+        fig, ax = plt.subplots(1,3,figsize=(13,10))
+        im = ax[0].imshow(C.cd_error_phaser, aspect='auto', interpolation='nearest')
+        plt.colorbar(im, ax=ax[0])
+        ax[0].set_title(f'phaser error')
+        ax[0].set_xlabel('phaser error bit')
+        ax[0].set_ylabel('time')
+        im = ax[1].imshow(C.cd_error_process, aspect='auto', interpolation='nearest')
+        plt.colorbar(im, ax=ax[1])
+        ax[1].set_title(f'process error')
+        ax[1].set_xlabel('process error bit')
+        ax[1].set_ylabel('time')
+        im = ax[2].imshow(C.cd_error_stage3, aspect='auto', interpolation='nearest')
+        plt.colorbar(im, ax=ax[2])
+        ax[2].set_title(f'stage3 error')
+        ax[2].set_xlabel('stage3 error bit')
+        ax[2].set_ylabel('time')
+        fig.suptitle('Error', fontsize=16)
+        fig.savefig(os.path.join(figures_dir,'errors_other.pdf'))
+        
+        plt.figure(figsize=(15,10))
         tfreq=0.5+0.1*np.arange(512)
         for ch in range(0,4):
             da = np.abs(calib_data_wf[ch,2:]**2)
             plt.plot(tfreq[2:],da,ls='-',label='CH'+str(ch)+" total")
-    
 
         plt.legend()
         plt.xlabel('tone freq [MHz]')

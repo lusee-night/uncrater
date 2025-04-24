@@ -40,6 +40,7 @@ class Collection:
         self.calib_gphase = []
         self.calib_pfb = []
         self.calib_debug = []
+        waveforms = [None,None,None,None]
         def fn2appid(fn):
             return int(fn.replace(".bin", "").split("_")[-1], 16)
         if self.cut_to_hello:
@@ -145,6 +146,12 @@ class Collection:
 
             if isinstance(packet, Packet_Waveform):
                 self.waveform_packets.append(packet)
+                waveforms[packet.ch] = packet
+                
+            if isinstance(packet, Packet_Waveform_Meta):
+                packet.set_packets(waveforms)
+                packet.read()
+                waveforms=[None,None,None,None]
 
             self.cont.append(packet)
             self.time.append(os.path.getmtime(fn))
@@ -175,6 +182,17 @@ class Collection:
         if len(dcalib)>0:
             self.cd_have_lock = np.hstack([c[0].have_lock for c in dcalib])
             self.cd_lock_ant = np.hstack([c[0].lock_ant for c in dcalib])
+            self.cd_errors = [c[0].errors for c in dcalib]
+            # phase errors are 8 bits over two counter
+            def get_counters(num):
+                return [num&0xFF, (num>>8)&0xFF , (num>>16)&0xFF, (num>>24)&0xFF] 
+
+            self.cd_error_phaser = np.array([(get_counters(x.cal_phaser_err[0])+get_counters(x.cal_phaser_err[1])) for x in self.cd_errors])
+            self.cd_error_averager = np.array([[get_counters(x.averager_err[r]) for r in range(16)] for x in self.cd_errors])
+            self.cd_error_process = np.array([np.hstack([get_counters(x.averager_err[r]) for r in range(8)]) for x in self.cd_errors])
+            self.cd_error_stage3 = np.array([np.hstack([get_counters(x.stage3_err[r]) for r in range(4)]) for x in self.cd_errors])
+            
+
             self.cd_drift = np.hstack([c[0].drift for c in dcalib])
             self.cd_powertop0 = np.hstack([c[0].powertop0 for c in dcalib])
             self.cd_powertop1 = np.hstack([c[1].powertop1 for c in dcalib])

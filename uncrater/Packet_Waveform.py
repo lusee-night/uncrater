@@ -1,6 +1,7 @@
-from .PacketBase import PacketBase
+from .PacketBase import PacketBase, pystruct
 import struct
 import numpy as np
+
 
 
 class Packet_Waveform(PacketBase):
@@ -19,12 +20,37 @@ class Packet_Waveform(PacketBase):
         if self.ch>=512:
             self.ch -= 512
         self._is_read = True
-                
+        self.adc_time = 0xFFFFFFFFFFFFFFFF
+        self.meta = None                
+
     def info (self):
         self._read()
         desc = f"Raw waveform for channel {self.ch}\n"        
         desc += f"Min value: {self.waveform.min()}\n"
         desc += f"Max value: {self.waveform.max()}\n"
         desc += f"Mean value: {self.waveform.mean()}\n"
+        desc += f"ADC Time: {self.adc_time}\n"
         return desc
     
+
+class Packet_Waveform_Meta(PacketBase):
+    @property
+    def desc(self):
+        return  "Raw Waveform Meta"
+
+    def set_packets(self, packets):
+        self.packets = packets
+        self._read()
+        for i,p in enumerate(self.packets):
+            if p is not None:
+                p.adc_time = self.timestamps[i]
+                p.meta = self
+
+    def _read(self):
+        if self._is_read:
+            return
+        super()._read()
+        self.copy_attrs(pystruct.waveform_metadata.from_buffer_copy(self._blob))
+        self.is_read=True
+
+

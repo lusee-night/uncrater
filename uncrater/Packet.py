@@ -20,7 +20,7 @@ from .Packet_Hello import Packet_Hello
 from .Packet_Heartbeat import Packet_Heartbeat
 from .Packet_Housekeep import Packet_Housekeep
 from .Packet_Spectrum import Packet_Spectrum, Packet_TR_Spectrum, Packet_Metadata
-from .Packet_Waveform import Packet_Waveform
+from .Packet_Waveform import Packet_Waveform, Packet_Waveform_Meta  
 from .Packet_Bootloader import Packet_Bootloader
 from .Packet_Calibrator import Packet_Cal_Metadata, Packet_Cal_Data, Packet_Cal_RawPFB, Packet_Cal_Debug
 from .Packet_EOS import Packet_EOS
@@ -38,6 +38,7 @@ PacketDict = {
     id.AppID_Calibrator_Data+1: Packet_Cal_Data,
     id.AppID_Calibrator_Data+2: Packet_Cal_Data,
     id.AppID_Calibrator_Debug: Packet_Cal_Debug,
+    id.AppID_RawADC_Meta: Packet_Waveform_Meta,
 }
 
 for i in range(16):

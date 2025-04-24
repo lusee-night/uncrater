@@ -1,7 +1,7 @@
 from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time, cordic2rad
 from pycoreloop import appId as id
-import struct
+import struct, ctypes
 import numpy as np
 
 
@@ -201,12 +201,14 @@ class Packet_Cal_Debug(PacketBase):
 
         datai = np.array(struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])).reshape(3,1024)
         datau = np.array(struct.unpack(f"<{len(self._blob[12:])//4}I", self._blob[12:])).reshape(3,1024)
+        dataw = np.array(struct.unpack(f"<{len(self._blob[12:12+2*1024])//2}H", self._blob[12:12+2*1024]))
 
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
         if self.debug_page == 0:
-            self.have_lock = datau[0]&0xFF
-            self.lock_ant = (datau[0] &0x00FF0000) >> 16
+            self.have_lock = dataw & 0xFF;
+            self.lock_ant = (dataw >> 8) & 0xFF
+            self.errors = pystruct.calibrator_errors.from_buffer_copy(self._blob[12+2*1024:12+2*1024+ctypes.sizeof(pystruct.calibrator_errors)])
             self.drift = cordic2rad(datau[1])
             self.powertop0 = datau[2]
         elif self.debug_page == 1:
