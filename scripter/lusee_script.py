@@ -11,6 +11,7 @@ if os.environ.get("CORELOOP_DIR") is not None:
 # now try to import pycoreloop
 try:
     from pycoreloop import command as lc
+    from pycoreloop import pystruct as pst
 except ImportError:
     print("Can't import pycoreloop\n")
     print(
@@ -110,7 +111,7 @@ class Scripter:
     def reboot(self):
         # there are low-level commands outside coreloop
         self.command(bl.CMD_REBOOT, 0);
-    
+
     def reboot_hard(self):
         # there are low-level commands outside coreloop
         self.write_register(0x0,0x1)
@@ -145,13 +146,13 @@ class Scripter:
             for num,chunk in enumerate(page):
                 running_sum += chunk & 0xFFFF
                 running_sum += (chunk & 0xFFFF0000) >> 16
-                # the pre 0x22a way is 
+                # the pre 0x22a way is
                 #self.write_register(0x640 + num, chunk)
                 if num == 0:
                     self.write_register(0x640, chunk)
                 else:
                     self.write_register_next(chunk)
-                
+
             print(f"Page {page_num} checksum is {hex(bl.convert_checksum(running_sum, 16))}")
             self.write_register(0x621, bl.convert_checksum(running_sum, 16))
             self.write_register(0x620, page_num)
@@ -203,7 +204,7 @@ class Scripter:
         self.command(bl.CMD_REG_LSB, val & 0xFFFF)
         self.command(bl.CMD_REG_MSB_NEXT, val >> 16)
 
-        
+
 
 
     def write_adc_register(self,adc, reg, val):
@@ -217,7 +218,7 @@ class Scripter:
         self.wait(0.1)
         self.write_register(ADC_FUNCTION, 0)
 
-    
+
 
     def ADC_special_mode (self, mode='normal'):
         print (mode)
@@ -308,14 +309,14 @@ class Scripter:
 
     def set_avg_mode(self, mode='float'):
         if mode=='int':
-            arg = 0
-        elif mode=='20bit':
-            arg = 1
+            arg = pst.AVG_INT32
+        elif mode=='40bit':
+            arg = pst.AVG_INT_40_BITS
         elif mode=='float':
-            arg = 2
+            arg = pst.AVG_FLOAT
         else:
             print("Unknown mode for set_avg_mode:", mode)
-            print ("Must be one of, int, 20bit, float")
+            print ("Must be one of, int, 40bit, float")
             raise ValueError
         self.spectrometer_command(lc.RFS_SET_AVG_MODE, arg)
 
@@ -422,10 +423,10 @@ class Scripter:
 
     def awg_cal_on(self, alpha):
         self.script.append(f"AWG CAL ON {alpha}")
-    
+
     def awg_cal_off(self):
         self.script.append("AWG CAL OFF")
-        
+
     def cal_enable(self, enable=True, mode=0x10):
         if enable:
             arg = mode
@@ -454,7 +455,7 @@ class Scripter:
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_HI,bin-256)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL,weight)
 
-    
+
     def cal_set_weights(self,weights):
         assert len(weights) == 512
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
@@ -496,7 +497,7 @@ class Scripter:
     def cal_set_slicer (self, auto=None, powertop=None, sum1=None, sum2=None, prod1=None, prod2=None, delta_powerbot=None, sd2_slice=None):
         def cal_slicer_command (reg, val):
             self.spectrometer_command (lc.RFS_SET_CAL_BITSLICE, (reg<<5)+val)
-        
+
         if auto is not None:
             cal_slicer_command(0, int(auto))
         if powertop is not None:
@@ -545,9 +546,8 @@ class Scripter:
 
     def seq_begin(self):
         self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
-        self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
 
-    def seq_end(self, store_flash=False):  
+    def seq_end(self, store_flash=False):
         self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SEQ_END<<8) + (1 if store_flash else 0))
 
     def seq_break(self):
