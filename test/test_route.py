@@ -50,7 +50,7 @@ class Test_Route(Test):
 
 
     def get_tone_freqs(self):
-        return np.array([2, 19, 29, 43])
+        return np.array([5, 7, 11, 13])
     def generate_script(self):
         """ Generates a script for the test """
 
