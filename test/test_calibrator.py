@@ -26,17 +26,17 @@ class Test_Calibrator(Test):
         "slow": False,
         "Nac1": 6,
         "Nac2": 7,
-        "slicer": "15.17.21.15.18.1.0",
-        "snr_on": 5,
-        "snr_off": 1,
+        "slicer": "15.19.21.15.18.1.6.0",
+        "snr_on": 5.0,
+        "snr_off": 1.0,
         "Nnotch": 4,
         "corA": 1,
-        "corB": 10
+        "corB": 3
     } ## dictinary of options for the test
     options_help = {
         "mode" : "manual",
         "slow": "Run the test in slow mode for SSL",
-        "slicer": "Slicer configuration in the format powertop.sum1.sum2.prod1.prod2.delta_powerbot.sd2_slice",
+        "slicer": "Slicer configuration in the format powertop.sum1.sum2.prod1.prod2.delta_powerbot.fd_slice,sd2_slice",
         "snr_on": "SNR on value for calibration",
         "snr_off": "SNR off value for calibration",
         "Nac1": "First Nac value for calibration (5=32)",
@@ -81,9 +81,10 @@ class Test_Calibrator(Test):
 
         S.cal_set_pfb_bin(1522)
         #S.cal_antenna_enable(0b1110) # disable antenna 0
-        S.cal_antenna_enable(0b1110)
+        S.cal_antenna_enable(0b0010)
         slicer = [int(x) for x in self.slicer.split('.')]
-        S.cal_set_slicer(auto=False, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], sd2_slice=slicer[6])
+        assert(len(slicer)==8)
+        S.cal_set_slicer(auto=False, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
 
         #S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_SNR_SETTLE)  
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  
@@ -91,7 +92,7 @@ class Test_Calibrator(Test):
 
 
         
-        fstart = 17.4
+        fstart = 17.0
         fend = +17.0
         
         
@@ -112,23 +113,25 @@ class Test_Calibrator(Test):
             #weights /= weights.max()
             #weights[weights<0.2]=0
             weights = np.zeros(512)
-            weights[90:400] = 1.0
+            weights[90:400] = 0.1
+            weights[400:500] = 1.0
             S.cal_set_weights(weights)
-            S.cal_weights_save(1)
+            S.cal_weights_save(2)
         else:
-            S.cal_weights_load(1)
+            S.cal_weights_load(2)
         
 
         
         S.start()
-        S.cdi_wait_seconds(126)
+        #S.cdi_wait_seconds(126)
+        S.cdi_wait_minutes(10)
         S.stop()
         S.request_eos()
         
-        S.awg_cal_off()
+        S.awg_cal_off()#(fstart)
         S.wait(41)
-        S.awg_cal_on(fstart)
-        #S.wait(41)
+        #S.awg_cal_on(fstart)
+        S.wait(41)
         
         
         

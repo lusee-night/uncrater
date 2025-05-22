@@ -494,12 +494,12 @@ class Scripter:
         assert (val < 256)
         self.spectrometer_command(lc.RFS_SET_TEMP_ALARM, val)
 
-    def cal_set_slicer (self, auto=None, powertop=None, sum1=None, sum2=None, prod1=None, prod2=None, delta_powerbot=None, sd2_slice=None):
+    def cal_set_slicer (self, auto=None, powertop=None, sum1=None, sum2=None, prod1=None, prod2=None, delta_powerbot=None, fd_slice=None, sd2_slice=None):
         def cal_slicer_command (reg, val):
             self.spectrometer_command (lc.RFS_SET_CAL_BITSLICE, (reg<<5)+val)
 
-        if auto is not None:
-            cal_slicer_command(0, int(auto))
+        if fd_slice is not None:
+            cal_slicer_command(0, fd_slice)
         if powertop is not None:
             cal_slicer_command(1, powertop)
         if sum1 is not None:
@@ -514,6 +514,9 @@ class Scripter:
             cal_slicer_command(6, delta_powerbot)
         if sd2_slice is not None:
             cal_slicer_command(7, sd2_slice)
+
+        if auto is not None:
+            self.spectrometer_command(lc.RFS_SET_CAL_BITSLICE_AUTO, int(auto))
 
     def cal_set_ddrift_guard(self, guard):
         guard = int(guard/25)

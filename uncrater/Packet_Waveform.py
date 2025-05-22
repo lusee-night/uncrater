@@ -20,7 +20,7 @@ class Packet_Waveform(PacketBase):
         if self.ch>=512:
             self.ch -= 512
         self._is_read = True
-        self.adc_time = 0xFFFFFFFFFFFFFFFF
+        self.timestamp = 0xFFFFFFFFFFFFFFFF
         self.meta = None                
 
     def info (self):
@@ -29,7 +29,7 @@ class Packet_Waveform(PacketBase):
         desc += f"Min value: {self.waveform.min()}\n"
         desc += f"Max value: {self.waveform.max()}\n"
         desc += f"Mean value: {self.waveform.mean()}\n"
-        desc += f"ADC Time: {self.adc_time}\n"
+        desc += f"ADC Time: {self.timestamp}\n"
         return desc
     
 
@@ -43,7 +43,7 @@ class Packet_Waveform_Meta(PacketBase):
         self._read()
         for i,p in enumerate(self.packets):
             if p is not None:
-                p.adc_time = self.timestamps[i]
+                p.timestamp = self.timestamp
                 p.meta = self
 
     def _read(self):

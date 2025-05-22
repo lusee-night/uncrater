@@ -357,3 +357,25 @@ class Collection:
         if intro:
             return self._intro(i) + self.cont[i].xxd()
         return self.cont[i].xxd()
+
+    def np_spectra(self, ndx=None, channel=None):
+        """ Returns a numpy array of the spectra data.
+            If ndx is not None, returns only the spectra at that time.
+            If channel is not None, returns only the spectra for that channel.
+        """
+
+        if (ndx is None) and (channel is None):        
+            return np.array([[S[ch].data for ch in range(16)] for S in self.spectra])
+        
+        if (ndx is not None) and (channel is None):
+            S = self.spectra[ndx]
+            return np.array([S[ch].data for ch in range(16)])   
+        
+        if (ndx is None) and (channel is not None):
+            return np.array([S[channel].data for S in self.spectra])
+
+        if (ndx is not None) and (channel is not None):
+            S = self.spectra[ndx]
+            return S[channel].data
+        
+        assert(False), "Should not reach here"

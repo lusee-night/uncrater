@@ -39,6 +39,7 @@ from test_binresponse import Test_BinResponse
 from test_reject import Test_Reject
 from test_control import Test_Control
 from test_grimm import Test_Grimm
+from test_notch import Test_Notch
 
 from commander import Commander
 import uncrater as uc
@@ -70,7 +71,8 @@ Tests = [
     Test_Control,
     Test_Watchdog,
     Test_Watchdog_Command, 
-    Test_Grimm
+    Test_Grimm,
+    Test_Notch
 ]
 
 

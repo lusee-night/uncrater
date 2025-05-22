@@ -21,10 +21,12 @@ class Test_Wave(Test):
     description = """ Collects waveform data and checks the waveform statistics."""
     instructions = """ Connect anything you want."""
     default_options = {
-        'gain': 'MMMM'
+        'gain': 'MMMM',
+        "waveform_type": "normal"
     } ## dictinary of options for the test
     options_help = {
-        'gain': 'Gain setting for the test. Default is MMMM.'
+        'gain': 'Gain setting for the test. Default is MMMM.',
+        'waveform_type': 'Type of waveform to collect. Default is normal, use ramp for ramp.'
     } ## dictionary of help for the options
 
 
@@ -43,20 +45,25 @@ class Test_Wave(Test):
             self.gain = 'MMMM'
 
         S = Scripter()
+        
+        S.seq_begin()
         S.reset()
-
-        S.wait(1)
-
+        S.ADC_special_mode(self.waveform_type)
         S.set_ana_gain(self.gain)
-        S.wait(0.1)
+        S.cdi_wait_ticks(10)
         S.adc_range()
-        S.wait(1)
-        #S.waveform(4)
-        for i in [0,1,2,3]:
-            S.waveform(i)
-            S.wait(5)
+        S.cdi_wait_seconds(1)
+        S.waveform(4)
+        S.cdi_wait_seconds(4)
         S.house_keeping(0)
-        S.wait(5)        
+        S.cdi_wait_seconds(1)
+        S.waveform(4)
+        S.cdi_wait_seconds(4)
+        S.house_keeping(0)
+        S.ADC_special_mode('normal')
+        S.request_eos()
+        S.seq_end()
+        S.wait_eos()    
         return S
 
     def analyze(self, C: uc.Collection, uart, commander, figures_dir):
@@ -83,14 +90,14 @@ class Test_Wave(Test):
             if hk_packet.hk_type == 1:
                 hk = hk_packet
 
-        if (num_wf !=4 ) or num_hk < 1:
+        if (num_wf !=8 ) or num_hk < 2:
             print ("ERROR: Missing waveforms or housekeeping packets.")
             passed = False
 
         self.results['num_wf'] = num_wf
         self.results['num_hk'] = num_hk
-        self.results['num_wf_ok'] = int(num_wf == 4)
-        self.results['num_hk_ok'] = int(num_hk == 1)
+        self.results['num_wf_ok'] = int(num_wf == 8)
+        self.results['num_hk_ok'] = int(num_hk == 2)
 
         for ch in range(4):
             fig = plt.figure(figsize=(12, 6))
