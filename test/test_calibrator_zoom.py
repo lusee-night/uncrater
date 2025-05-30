@@ -58,8 +58,6 @@ class Test_CalibratorZoom(Test):
         for i in range(1, 4):
             S.set_bitslice(i, 19)
 
-        S.select_products(0b1111)
-
         S.cal_set_pfb_bin(1522)
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
 
