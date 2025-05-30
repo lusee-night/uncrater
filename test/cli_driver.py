@@ -26,6 +26,7 @@ from test_wave import Test_Wave
 from test_cpt_short import Test_CPTShort
 from test_route import Test_Route
 from test_calibrator import Test_Calibrator
+from test_calibrator_zoom import Test_CalibratorZoom
 from test_calibweights import Test_Calib_Weights
 from test_watchdog import Test_Watchdog, Test_Watchdog_Command
 
@@ -66,6 +67,7 @@ Tests = [
     Test_BinResponse,
     Test_EncodingFormat,
     Test_Calibrator,
+    Test_CalibratorZoom,
     Test_Calib_Weights,
     Test_Reject,
     Test_Control,

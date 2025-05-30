@@ -29,6 +29,7 @@ class Collection:
         self.watchdog_packets = []
         self.housekeeping_packets = []
         self.waveform_packets = []
+        self.zoom_spectra_packets = []
         flist = glob.glob(os.path.join(self.dir, "*.bin"))
         print(f"Analyzing {len(flist)} files from {self.dir}.")
         flist = sorted(flist, key=lambda x: int(x[x.rfind("/") + 1 :].split("_")[0]))
@@ -123,8 +124,12 @@ class Collection:
                     if (part==0): # real part, comes first
                         self.calib_pfb[-1][packet.channel] = np.array(packet.data, complex)
                     else:
-                        self.calib_pfb[-1][packet.channel] += 1j*np.array(packet.data, complex)                    
-                    
+                        self.calib_pfb[-1][packet.channel] += 1j*np.array(packet.data, complex)
+
+            if appid_is_cal_zoom(appid):
+                packet.read()
+                self.zoom_spectra_packets.append(packet)
+
             if appid_is_cal_debug(appid):
                 if appid_is_cal_debug_start(appid):
                     packet.read()

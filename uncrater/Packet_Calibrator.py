@@ -245,3 +245,47 @@ class Packet_Cal_Debug(PacketBase):
         desc = " Calibrator Debug\n"
         desc += f"packet_id : {self.unique_packet_id}\n"
         return desc
+
+
+class Packet_Cal_ZoomSpectra(PacketBase):
+    @property
+    def desc(self):
+        return "Calibrator Zoom Data"
+
+    def _read(self):
+        if self._is_read:
+            return
+        super()._read()
+
+        fft_size = 64
+        # ch1 autocorr + ch2 autocorr + ch12 corr real/imaginary parts = 4 arrays in total
+        total_entries = fft_size * 4
+        use_float = True
+
+        if len(self._blob) == total_entries * 4:
+            if use_float:
+                data = struct.unpack(f"<{total_entries}f", self._blob)
+                dtype = np.float32
+            else:
+                data = struct.unpack(f"<{total_entries}i", self._blob)
+                dtype = np.int32
+
+            # we always use float32 in NumPy, dtype is just for conversion from raw byte array
+            self.ch1_autocorr = np.array(data[0:fft_size], dtype=dtype).astype(np.float32)
+            self.ch2_autocorr = np.array(data[fft_size:2*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.ch1_2_corr_real = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.ch1_2_corr_imag = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
+        else:
+            print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(self._blob)} bytes.")
+            self.ch1_autocorr = np.zeros(fft_size, dtype=np.float32)
+            self.ch2_autocorr = np.zeros(fft_size, dtype=np.float32)
+            self.ch1_2_corr_real = np.zeros(fft_size, dtype=np.float32)
+            self.ch1_2_corr_imag = np.zeros(fft_size, dtype=np.float32)
+
+        self._is_read = True
+
+    def info(self):
+        self._read()
+        desc = " Calibrator Zoom Spectra\n"
+        desc += f"packet_id : {self.unique_packet_id}\n"
+        return desc
