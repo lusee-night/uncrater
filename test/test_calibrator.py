@@ -26,15 +26,16 @@ class Test_Calibrator(Test):
         "slow": False,
         "Nac1": 6,
         "Nac2": 7,
-        "slicer": "15.19.21.15.18.1.6.0",
+        #"slicer": "15.19.21.15.18.1.6.0",
+        "slicer": "24.24.27.15.18.1.12.0",
         "snr_on": 5.0,
         "snr_off": 1.0,
         "Nnotch": 4,
-        "corA": 1,
-        "corB": 3
+        "corA": 0.0,
+        "corB": 0.0
     } ## dictinary of options for the test
     options_help = {
-        "mode" : "manual",
+        "mode" : "full = everything with autoslicer and autosnr, run= just run",
         "slow": "Run the test in slow mode for SSL",
         "slicer": "Slicer configuration in the format powertop.sum1.sum2.prod1.prod2.delta_powerbot.fd_slice,sd2_slice",
         "snr_on": "SNR on value for calibration",
@@ -59,7 +60,7 @@ class Test_Calibrator(Test):
         if self.slow:
             S.set_dispatch_delay(120)
     
-        S.enable_heartbeat(False)
+        #S.enable_heartbeat(False)
         S.set_Navg(14,4)
 
         ### Main spectral engine
@@ -84,57 +85,58 @@ class Test_Calibrator(Test):
         S.cal_antenna_enable(0b0010)
         slicer = [int(x) for x in self.slicer.split('.')]
         assert(len(slicer)==8)
-        S.cal_set_slicer(auto=False, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
+        S.cal_set_slicer(auto=True, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
 
-        #S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_SNR_SETTLE)  
-        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  
-        #S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RAW2)  
-
-
-        
-        fstart = 17.0
-        fend = +17.0
-        
-        
-        
-        
-        
-    
-        S.cal_SNRonff(self.snr_on,self.snr_off)
-
-        S.cal_set_corrAB(self.corA,self.corB)
-        S.cal_set_ddrift_guard(1500)
-        S.cal_set_gphase_guard(250000)
-
-
-        if False:
+        if True:
             sig, noise = np.loadtxt("session_calib_weights_Mar25/calib_weights.dat").T
             #weights = (sig/(noise)**1.5)
             #weights /= weights.max()
             #weights[weights<0.2]=0
             weights = np.zeros(512)
-            weights[90:400] = 0.1
-            weights[400:500] = 1.0
+            weights[90:350] = 1.0            
+            weights[350:500] = 0
             S.cal_set_weights(weights)
-            S.cal_weights_save(2)
+            S.cal_weights_save(0)
         else:
-            S.cal_weights_load(2)
+            S.cal_weights_load(0)
+
+        S.cal_set_corrAB(self.corA,self.corB)
+        S.cal_set_ddrift_guard(1500)
+        S.cal_set_gphase_guard(250000)
+        S.cal_SNRonff(self.snr_on,self.snr_off)
+
+        fstart = 17.0
+        fend = +17.0        
+
+        if self.mode == "full":
+            S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_BIT_SLICER_SETTLE)  
         
 
-        
-        S.start()
-        #S.cdi_wait_seconds(126)
-        S.cdi_wait_minutes(10)
-        S.stop()
-        S.request_eos()
-        
-        S.awg_cal_off()#(fstart)
-        S.wait(41)
-        #S.awg_cal_on(fstart)
-        S.wait(41)
-        
-        
-        
+            S.start()
+            #S.cdi_wait_seconds(126)
+            S.cdi_wait_minutes(30)
+            S.stop()
+            S.request_eos()
+            
+            S.awg_cal_off()#(fstart)
+            S.wait(120)
+            S.awg_cal_on(fstart)
+            S.wait(500)
+            S.stop()
+
+        elif self.mode == "run":
+            S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  
+            
+            S.awg_cal_off()
+            S.start()
+            S.wait(10)
+            S.awg_cal_on(fstart)
+            S.wait(500)
+
+            S.stop()
+
+
+            
         #S.wait(100)
         #for d in np.linspace(fstart,fend,1300):
         #    if cal_on:
