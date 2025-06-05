@@ -207,10 +207,9 @@ def write_flash(D, data, program_checksum, region):
         D.send_command(CMD_BOOTLOADER, BL_WRITE_FLASH + (region << 8))
         time.sleep(0.1)  # Wait for the command to be processed
 
-    write_register(D,REG_SFL_SP_1, 0)
-    write_register(D,REG_SFL_SP_3, 0xFEED0000 + region)
     write_register(D,REG_SFL_SP_1, len(data)*64)
     write_register(D,REG_SFL_SP_2, program_checksum)
+    write_register(D,REG_SFL_SP_3, 0xFEED0000 + region)
     D.send_command(CMD_BOOTLOADER, BL_WRITE_METADATA + (region << 8))
     time.sleep(0.1)  # Wait for the command to be processed
     write_register(D,REG_SFL_SP_3, 0)
