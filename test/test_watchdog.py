@@ -23,12 +23,10 @@ class Test_Watchdog(Test):
     def generate_script(self):
         S = Scripter()
         S.reset()
-        S.seq_begin()
-        S.wait(20)                    # wait before enabling
+        S.wait(5)                    # wait before enabling
         S.enable_watchdogs()
         S.wait(20)                    # give watchdog time to trip
-        S.request_eos()
-        S.seq_end(store_flash=True)
+
 
         return S
 
@@ -67,7 +65,7 @@ class Test_Watchdog_Command(Test):
         S.seq_begin()
         S.wait(5)
         S.enable_watchdogs(True)
-        S.wait(1)
+        S.wait(5)
         S.spectrometer_command(lc.RFS_SET_TEST_WATCHDOG, 0x13)  # Stop feeding uC watchdog
         S.wait(4)                              # Let it trip
         S.spectrometer_command(lc.RFS_SET_TEST_WATCHDOG, 0x49)  # Simulate ADC trip
