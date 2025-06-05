@@ -28,9 +28,13 @@ BL_DELETE_REGION = 0x0D
 
 
 # registers we need
+
+REG_SFL_uC_Page = 0x620
+REG_SFL_uC_Checksum = 0x621
 REG_SFL_SP_1 = 0x630
 REG_SFL_SP_2 = 0x631
 REG_SFL_SP_3 = 0x632
+REG_SFL_STORAGE = 0x640
 
 
 # AppID of bootloader packets
@@ -58,6 +62,7 @@ def main():
     parser = argparse.ArgumentParser(description="Uploads an .lsn file to the device via DCBEmu")
     parser.add_argument("filename", nargs="?", default=None,       help="Name of the input .lsn file")
     parser.add_argument("-r", "--region",  default=1, type=int, help="Region to upload the lsn file to (default: 1, range: 1-6)")
+    parser.add_argument("-c", "--checksum-only", action="store_true", default=False, help="Only check the checksum without uploading")
 
     # ---
     args = parser.parse_args()
@@ -69,6 +74,7 @@ def main():
 
 
     region = args.region
+    checksum_only = args.checksum_only
     if ((region<1) or (region>6)):
         print("Region must be between 0 and 6.")
         sys.exit(1)
@@ -76,7 +82,7 @@ def main():
     # Here you would add the logic to upload the .lsn file
     print(f"Uploading {input_file} to region {region}")
 
-    upload (input_file, region)
+    upload (input_file, region, checksum_only)
 
 def parse_lsn_file(filename):
     """
@@ -193,11 +199,11 @@ def write_flash(D, data, program_checksum, region):
     write_register(D,REG_SFL_SP_1, 0xFEED0000 + region)
     for page_num, (page_data, checksum) in enumerate(data):
         print(f"Writing page {page_num+1}/{len(data)} to region {region}...")                       
-        write_register(D,0x640, page_data[0])
+        write_register(D,REG_SFL_STORAGE, page_data[0])
         for val in page_data[1:]:
             write_register_next(D,val)
-        write_register(D,0x621, checksum)
-        write_register(D,0x620, page_num)
+        write_register(D,REG_SFL_uC_Checksum, checksum)
+        write_register(D,REG_SFL_uC_Page, page_num)
         D.send_command(CMD_BOOTLOADER, BL_WRITE_FLASH + (region << 8))
         time.sleep(0.1)  # Wait for the command to be processed
 
@@ -221,7 +227,7 @@ def check_checksums(D, program_checksum, region):
     The bootload will refuse to launch the application if metadata and calculated checksums do not match.
     """    
     D.send_command(CMD_BOOTLOADER, BL_GET_INFO)
-    time.sleep(2)
+    time.sleep(5) # wait for the packet to arrive (note, the bigger the payload, the longer it takes to calculate the checksums)
     fname = wait_for_packet(AppID_BL)
     with open(fname, "rb") as f:
         data = np.frombuffer(f.read(), dtype=np.uint32)
@@ -238,7 +244,7 @@ def check_checksums(D, program_checksum, region):
         sys.exit(1)
 
 
-def upload(filename, region):
+def upload(filename, region, checksum_only):
     """
     Uploads the .lsn file to the device via DCBEmu.
     This is a placeholder function; actual implementation will depend on the DCBEmu API.
@@ -262,8 +268,9 @@ def upload(filename, region):
     # This is the meat of the upload code, fairly self-explanatory
     # --------------------------------------------------------------------------------------------
     reboot(D)
-    delete_region(D, region)
-    write_flash (D, data, program_checksum, region)
+    if not checksum_only:
+        delete_region(D, region)
+        write_flash (D, data, program_checksum, region)
     check_checksums (D, program_checksum, region)
     print (f"Upload of {filename} to region {region} completed successfully.")
     # --------------------------------------------------------------------------------------------
