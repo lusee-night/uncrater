@@ -445,6 +445,8 @@ class Scripter:
         avg = (avg3<<2)+avg2
         self.spectrometer_command(lc.RFS_SET_CAL_AVG, avg)
 
+    def cal_set_zoom_navg(self, avg):
+        self.spectrometer_command(lc.RFS_SET_ZOOM_NAVG, avg)
 
     def cal_set_single_weight(self,bin,weight,zero_first=False):
         if zero_first:

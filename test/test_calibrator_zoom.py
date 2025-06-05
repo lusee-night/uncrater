@@ -59,10 +59,17 @@ class Test_CalibratorZoom(Test):
             S.set_bitslice(i, 19)
 
         S.cal_set_pfb_bin(1522)
+        S.cal_set_zoom_navg(8)
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
 
+        ch = 2
+        freq = 38.05 # MHz
+        ampl = 280
+
+        S.awg_tone(ch, freq, ampl)
+
         S.start()
-        S.cdi_wait_seconds(126)
+        S.cdi_wait_seconds(120)
         S.stop()
         S.request_eos()
         S.wait_eos()
