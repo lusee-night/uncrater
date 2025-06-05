@@ -42,7 +42,7 @@ Header has the following contents:
 | 0x0E    | Reserved          | 2 bytes   | Reseved                    |
 
 
-The payload starts at 0x10 and contains (number of pages)x(260 bytes). Each 260 page is 256 bytes page data + 4 byte checksum.
+The payload starts at 0x10 and contains (number of pages)x260 bytes. Each 260 page is 256 bytes page data + 4 byte checksum.
 
 The converter from `.hex` to `.lsn` is provided in `hex2lsn.py` script
 
