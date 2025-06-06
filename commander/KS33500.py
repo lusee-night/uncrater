@@ -15,6 +15,7 @@ except:
     pyvisa = None
     
 import numpy as np
+import time
 
 class KS33500:
     def __init__(self,ip_address):
@@ -93,5 +94,18 @@ class KS33500:
         com += '\n'
         if self.debug:
             print ('writing', com)
+        ## let's try to write in a fail-safe mode
+        for i in range(3):
+            try:
+                self.inst.write(com)
+                return
+            except Exception as e:
+                print(f"Error writing to 33500: {e}")
+                if i < 2:
+                    print("Retrying...")
+                    time.sleep(0.05) ## can't afford to wait too long, spectrometer is running
+                else:
+                    print("Failed to write after 3 attempts.")
+                    raise e
         self.inst.write(com)
 
