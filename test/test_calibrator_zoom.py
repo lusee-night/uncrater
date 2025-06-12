@@ -59,11 +59,11 @@ class Test_CalibratorZoom(Test):
             S.set_bitslice(i, 19)
 
         S.cal_set_pfb_bin(1522)
-        S.cal_set_zoom_navg(8)
+        S.cal_set_zoom_navg(6)
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
 
         ch = 2
-        freq = 38.05 # MHz
+        freq = 38.05  # MHz
         ampl = 280
 
         S.awg_tone(ch, freq, ampl)
@@ -114,6 +114,31 @@ class Test_CalibratorZoom(Test):
         plt.savefig(os.path.join(figures_dir, 'zoom_spectra.pdf'), format='pdf', dpi=300, bbox_inches='tight')
         plt.close()
 
+    def plot_spectra(self, spectra, figures_dir):
+        fig_sp, ax_sp = plt.subplots(4, 4, figsize=(12, 12))
+        freq = np.arange(1, 2048) * 0.025
+
+        for i, S in enumerate(spectra):
+            for c in range(16):
+                x, y = c // 4, c % 4
+
+                if c < 4:
+                    data = S[c].data[1:]
+                    ax_sp[x][y].plot(freq, data, label=f"{i}")
+                    ax_sp[x][y].set_xscale('log')
+                    ax_sp[x][y].set_yscale('log')
+                else:
+                    data = S[c].data[:400] * freq[:400] ** 2
+                    ax_sp[x][y].plot(freq[:400], data)
+            break
+        for j in range(4):
+            ax_sp[3][j].set_xlabel('frequency [MHz]')
+            ax_sp[j][0].set_ylabel('power [uncalibrated]')
+
+        fig_sp.tight_layout()
+        plt.savefig(os.path.join(figures_dir, 'spectra.pdf'), format='pdf', dpi=300, bbox_inches='tight')
+        plt.close()
+
     def analyze(self, C: uc.Collection, uart, commander, figures_dir):
         """ Analyzes the results of the test.
             Returns true if test has passed.
@@ -150,3 +175,4 @@ class Test_CalibratorZoom(Test):
 
         self.results['result'] = int(passed)
         self.plot_zoom_spectra(C.zoom_spectra_packets, figures_dir)
+        self.plot_spectra(C.spectra, figures_dir)
