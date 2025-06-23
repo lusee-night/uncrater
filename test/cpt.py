@@ -53,6 +53,9 @@ def main():
     elif test == 'route':
         out_dir = os.path.join(args.root_dir, 'session_route')
         cmd_line = gen_cmd_line('route',out_dir, 'Vpp=300', awg = awg)
+    elif test == 'chcheck':
+        out_dir = os.path.join(args.root_dir, 'session_chcheck')
+        cmd_line = gen_cmd_line('chcheck',out_dir, 'Vpp=300', awg = awg)
     elif test == 'gain':
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
         cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(), awg = awg)

@@ -36,6 +36,7 @@ from test_encoding_format import Test_EncodingFormat
 from test_binresponse import Test_BinResponse
 from test_power import Test_Power
 from test_live import Test_Live
+from test_chcheck import Test_ChCheck
 
 from commander import Commander
 import uncrater as uc
@@ -63,7 +64,8 @@ Tests = [
     Test_EncodingFormat,
     Test_Calibrator,
     Test_Power,
-    Test_Live
+    Test_Live,
+    Test_ChCheck
 ]
 
 
