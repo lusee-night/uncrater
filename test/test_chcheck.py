@@ -96,12 +96,8 @@ class Test_ChCheck(Test):
             except:
                 db = np.nan
             dbres.append(db)
-            print ("TONE ON CHANNEL %d: %.2f dB" % (i, db))
-        
-        self.results['db_0'] = dbres[0]
-        self.results['db_1'] = dbres[1]
-        self.results['db_2'] = dbres[2]
-        self.results['db_3'] = dbres[3]
+            print ("TONE ON CHANNEL %d: %.1f dB" % (i, db))
+            self.results[f'db_{i}'] = "%.1f" % db
             
         passed= np.all(db > 0)
         self.results['result'] = int(passed)
