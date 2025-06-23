@@ -96,7 +96,7 @@ class Test_ChCheck(Test):
             except:
                 db = np.nan
             dbres.append(db)
-            print ("TONE ON CHANNEL %d: %.2f dB" % (n, db))
+            print ("TONE ON CHANNEL %d: %.2f dB" % (i, db))
         
         self.results['db_0'] = dbres[0]
         self.results['db_1'] = dbres[1]
