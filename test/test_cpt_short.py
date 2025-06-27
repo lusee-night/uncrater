@@ -399,7 +399,11 @@ class Test_CPTShort(Test):
                 for ich in range(4):
                     if ich in sp:
                         sp[ich]._read()
-                        ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        try:
+                            ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        except Exception as e:
+                            print(f"Error plotting channel {ich}: {e}")
+
                 ax_left.set_title('Spectra (Linear Scale)')
                 ax_left.set_xlabel('Frequency')
                 ax_left.set_ylabel('Amplitude')
@@ -407,7 +411,10 @@ class Test_CPTShort(Test):
                 # Plot spectra in the right plot (logarithmic scale)
                 for ich in range(4):
                     if ich in sp:
-                        ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        try:
+                            ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        except Exception as e:
+                            print(f"Error plotting channel {ich}: {e}")
                 ax_right.set_title('Spectra (Logarithmic Scale)')
                 ax_right.set_xlabel('Frequency')
                 ax_right.set_ylabel('Amplitude')
@@ -559,7 +566,7 @@ class Test_CPTShort(Test):
                 conv_fit = interp1d(self.freqs, conv, kind='linear', fill_value='extrapolate')
                 fig, ax = plt.subplots(1,2, figsize=(12,6))
                 ffreq=np.arange(2048)*0.025
-                pzero = np.array(power_zero_terminated[(ch,g)])
+                pzero = np.array(power_zero_terminated[(ch,g)]) if Cterminated is not None else np.array(power_zero[(ch,g)])
                 np.savetxt(figures_dir+f'/../../power_zero_{g}_{ch}.dat', pzero)
                 pzero = pzero.mean(axis=0)
                 self.freqs=np.array(self.freqs)
