@@ -214,7 +214,7 @@ class Test_CPTShort(Test):
         if self.notch:
             S.set_notch(4)
 
-        if self.terminated:
+        if self.nowave and self.terminated:
             for i in range(4):
                 S.awg_tone(0,0,0)
                 S.select_products(0b1111)
@@ -290,10 +290,6 @@ class Test_CPTShort(Test):
         else: 
             Cterminated = None
 
-
-        if (self.terminated and (not self.terminated_set)):
-            self.results['result'] = int(passed)
-            return
 
         # extract data
 
@@ -474,11 +470,11 @@ class Test_CPTShort(Test):
                         power_zero[(ich,g)] = []
                         power_zero_terminated[(ich,g)] = []
                     power_zero[(ich,g)].append(sppow)
-                    if Cterminated is not None and (not self.terminated):
+                    if Cterminated is not None and (not (self.terminated and self.nowave)):
                         sppow_terminated = sp_terminated[ch].data* (2**(bitslic[ch]-31))   
                         power_zero_terminated[(ich,g)].append(sppow_terminated)
 
-        if (self.terminated and self.terminated_set):
+        if (self.terminated and self.nowave and self.terminated_set):
             for i,g in enumerate(self.gains):
                 for ch in range(4):
                     sppow_terminated = Cterminated.spectra[i][ch].data * (2**(self.bitslices[-1]-31))
@@ -519,7 +515,8 @@ class Test_CPTShort(Test):
             fi = self.freqs.index(f)
             #print (key, power_out[key], power_in[key])
             if np.any(np.array(power_out[key])==0):
-                print (f"WARNING: Zero power detected for {key}. Skipping.")
+                if (not self.terminated): 
+                    print (f"WARNING: Zero power detected for {key}. Skipping.")
                 offset, slope = 0,0
             else:
                 try:
@@ -549,8 +546,11 @@ class Test_CPTShort(Test):
         else:
             chlist = self.channels
 
-
-        noise_table = " \\begin{tabular}{|c|"+"c|c|"*len(self.gains)+"}\n"
+        if not self.terminated:
+            noise_table = "Table of power with and without PF noise in nV/rtHz, mean 250kHz to 51MHz:\n\n" 
+        else:
+            noise_table = "Table of noise in arbitrary units normalized to be $\\approx$ 100 if evertyhing is OK:\n\n"
+        noise_table += " \\begin{tabular}{|c|"+"c|c|"*len(self.gains)+"}\n"
         noise_table += "\\hline\n"
         noise_table += "Channel " + " ".join([" & \\multicolumn{2}{|c|}{"+str(g)+"}" for g in self.gains])+"\\\\\n"
         noise_table += "\\hline\n"
@@ -569,8 +569,12 @@ class Test_CPTShort(Test):
                 pzero = np.array(power_zero_terminated[(ch,g)]) if Cterminated is not None else np.array(power_zero[(ch,g)])
                 np.savetxt(figures_dir+f'/../../power_zero_{g}_{ch}.dat', pzero)
                 pzero = pzero.mean(axis=0)
-                self.freqs=np.array(self.freqs)
-                noise_power = pzero/conv_fit(ffreq)
+                self.freqs=np.array(self.freqs)           
+                if not self.terminated: 
+                    noise_power = pzero/conv_fit(ffreq) 
+                else:
+                    noise_norm = {'L':9.0e-4, 'M':5.7e-3, 'H':4.0e-2}
+                    noise_power = pzero/noise_norm[g]**2
                 #noise_power[::8]=0
                 ax[0].plot(ffreq,np.sqrt(noise_power) , 'b-')
                 ax[0].plot(self.freqs[self.freqs<51.2], np.sqrt(pzero_fit/conv)[self.freqs<51.2],'ro' )
@@ -595,6 +599,9 @@ class Test_CPTShort(Test):
 
                 if len(self.terminated_set)>0 and ((avg_rms_sans_pf>5) or np.isnan(avg_rms_sans_pf)):
                     passed = False 
+                elif self.terminated:
+                    if (avg_rms_sans_pf<75) or (avg_rms_sans_pf>125):
+                        passed = False
                 #y axis, left plot
                 yl,yh = ax[0].get_ylim()
                 if yl<20:
