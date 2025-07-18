@@ -24,8 +24,10 @@ class Test_Watchdog(Test):
         S = Scripter()
         S.reset()
         S.wait(5)                    # wait before enabling
-        S.enable_watchdogs()
+        S.enable_watchdogs(0b01111111)  # enable all except CDI and uC watchdog
         S.wait(20)                    # give watchdog time to trip
+        #S.spectrometer_command(lc.RFS_SET_TEST_WATCHDOG, 0x13)  # Stop feeding uC watchdog
+        S.wait(20)
 
 
         return S

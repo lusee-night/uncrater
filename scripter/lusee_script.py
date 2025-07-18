@@ -545,10 +545,10 @@ class Scripter:
         assert (slot >= 0) and (slot < 16)
         self.spectrometer_command(lc.RFS_SET_CAL_WLOAD, slot)
 
+    def notch_detector (self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_NOTCH_DETECTOR, int(enable))
+
     ## flow control part
-
-
-
     def seq_begin(self):
         self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
 

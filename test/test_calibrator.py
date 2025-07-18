@@ -82,12 +82,12 @@ class Test_Calibrator(Test):
 
         S.cal_set_pfb_bin(1522)
         #S.cal_antenna_enable(0b1110) # disable antenna 0
-        S.cal_antenna_enable(0b0010)
+        S.cal_antenna_enable(0b1110)
         slicer = [int(x) for x in self.slicer.split('.')]
         assert(len(slicer)==8)
         S.cal_set_slicer(auto=True, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
 
-        if True:
+        if False:
             sig, noise = np.loadtxt("session_calib_weights_Mar25/calib_weights.dat").T
             #weights = (sig/(noise)**1.5)
             #weights /= weights.max()
@@ -114,15 +114,16 @@ class Test_Calibrator(Test):
 
             S.start()
             #S.cdi_wait_seconds(126)
-            S.cdi_wait_minutes(30)
+            S.cdi_wait_minutes(10)
             S.stop()
             S.request_eos()
             
             S.awg_cal_off()#(fstart)
             S.wait(120)
             S.awg_cal_on(fstart)
-            S.wait(500)
-            S.stop()
+            S.wait(300)
+            S.awg_cal_off()
+
 
         elif self.mode == "run":
             S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  
@@ -134,15 +135,15 @@ class Test_Calibrator(Test):
             S.wait(500)
 
             S.stop()
-
+            S.request_eos()         
 
             
         #S.wait(100)
         #for d in np.linspace(fstart,fend,1300):
         #    if cal_on:
         #        S.awg_cal_on(d)
-        #    S.wait(0.3)
-        #S.wait(100)                
+        #S.wait(100)       
+
         S.wait_eos()
         S.awg_cal_off()
         return S
