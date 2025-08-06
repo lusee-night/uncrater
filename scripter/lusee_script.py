@@ -261,7 +261,7 @@ class Scripter:
     def set_notch(self, Nshift=4, disable_subtract=False):
         if (Nshift%2==1) and not disable_subtract:
             print("Warning: Nshift in notch should be even!")
-            Cd.cd_snr1[200:]
+            
         cmd = lc.RFS_SET_AVG_NOTCH
         arg = Nshift
         if disable_subtract:
