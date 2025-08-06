@@ -17,8 +17,7 @@ class Collection:
         self.dir = dir
         self.cut_to_hello = cut_to_hello
         self.refresh()
-        
-    def refresh(self):
+    def refresh(self, quiet=False):
         self.cont = []
         self.time = []
         self.desc = []
@@ -31,7 +30,8 @@ class Collection:
         self.waveform_packets = []
         self.zoom_spectra_packets = []
         flist = glob.glob(os.path.join(self.dir, "*.bin"))
-        print(f"Analyzing {len(flist)} files from {self.dir}.")
+        if not quiet:
+            print(f"Analyzing {len(flist)} files from {self.dir}.")
         flist = sorted(flist, key=lambda x: int(x[x.rfind("/") + 1 :].split("_")[0]))
         meta_packet = None
 

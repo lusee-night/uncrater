@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 class Test_CPTShort(Test):
 
     name = "cpt-short"
-    version = 0.3
+    version = 0.41
     description = """ Comprehensive Performance Test - Short Version."""
     instructions = """ Connect AWG."""
     default_options = {
@@ -34,8 +34,10 @@ class Test_CPTShort(Test):
         'routing': 'default',
         'notch': False, 
         'slow': False,
+        'nowave': False,
+        'terminated': False, 
         'terminated_set': "",
-        'corr_fact': 0.9
+        'corr_fact': 1.18
     } ## dictinary of options for the test
     options_help = {
         'channels': 'List of channels used in test. 1234 will loop over channels 1 by 1, all_same will do all the same time, all_robin will round-robin frequncies.',
@@ -47,9 +49,14 @@ class Test_CPTShort(Test):
         'routing': 'Routing: default, invert, alt1 ',
         'notch': 'Enable notch filter',
         'slow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need',
+        'nowave': 'Do not record waveforms to speed up',
+        'terminated': 'This is a terminated set, take just the pure noise values',
         'terminated_set': "session directory with the terminated inputs (when AWG is noisy). If non-empty, the noise only sets will be taken from there. Must be run with the same options as the main test.",
-        'corr_fact': "Correction factor to apply. Default is 0.88 which takes into account the suppression in the middle of the PFB response shape."
+        'corr_fact': "Correction factor to apply. Default is 1.18 which takes into account the suppression in the middle of the PFB response shape."
     } ## dictionary of help for the options
+    
+    ### NOTE TO SELF:
+    ### for corrfact see cell 20 of notch_response.ipynb. We use kaiser-03 now.
 
 
     def prepare_list(self):
@@ -207,34 +214,52 @@ class Test_CPTShort(Test):
         if self.notch:
             S.set_notch(4)
 
-        for gain, ch, freq, ampl, bslice in self.todo_list:
-            if gain != old_gain:
-                gain_set = f'{gain}{gain}{gain}{gain}'
-                S.set_ana_gain(gain_set)
+        if self.terminated:
+            for i in range(4):
+                S.awg_tone(0,0,0)
+                S.select_products(0b1111)
+
+            for gain in self.gains:
+                S.set_ana_gain(gain*4)
+                S.set_bitslice('all', self.bitslices[-1])
                 S.cdi_wait_ticks(20) # settle
-                old_gain = gain
+                S.start(no_flash=True)
+                S.cdi_wait_spectra(1)
+                S.stop(no_flash=True)
+                S.wait(10)
+        else:
 
-            for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
-                S.awg_tone(awg_map[i],f,a)
-                S.set_bitslice(i,s)
-            S.cdi_wait_ticks(10)
-            if self.slow:
-                S.waveform(ch)
-            else:
-                S.waveform(4)
+            for gain, ch, freq, ampl, bslice in self.todo_list:
                 
+                if gain != old_gain:
+                    gain_set = f'{gain}{gain}{gain}{gain}'
+                    S.set_ana_gain(gain_set)
+                    S.cdi_wait_ticks(20) # settle
+                    old_gain = gain
 
-            if self.slow:
-                S.select_products(1<<(ch))
+                for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
+                    S.awg_tone(awg_map[i],f,a)
+                    S.set_bitslice(i,s)
+                S.cdi_wait_ticks(10)
+                if (not self.nowave):
+                    if self.slow:
+                        S.waveform(ch)
+                    else:
+                        S.waveform(4)
+                    
+                if self.slow:
+                    S.select_products(1<<(ch))
 
-            #for i in [0,1,2,3]:
-            #    S.waveform(i)
-            #    S.wait(1.0)
-            S.start(no_flash=True)
-            S.cdi_wait_spectra(1)
-            S.stop(no_flash=True)
-            S.wait(9 if self.slow else 7)
-        
+
+                S.start(no_flash=True)
+                S.cdi_wait_spectra(1)
+                S.stop(no_flash=True)
+
+                if self.nowave:
+                    S.wait(4.5 if self.slow else 3)
+                else:
+                    S.wait(9 if self.slow else 7)
+            
         # request housekeeping to force the buffer to empty
         S.house_keeping(0)
         S.request_eos()
@@ -257,12 +282,17 @@ class Test_CPTShort(Test):
         if len(self.terminated_set)>0:
             Cterminated = uc.Collection(self.terminated_set+"/cdi_output/", cut_to_hello=True)
             
-            if len (Cterminated.spectra)!=len(C.spectra):
+            if (not self.terminated) and (len (Cterminated.spectra)!=len(C.spectra)):
                 print ("ERROR: Terminated set has different number of spectra. Breaking.")
                 sys.exit(1)
             print ("Loaded terminated set.")
         else: 
             Cterminated = None
+
+
+        if (self.terminated and (not self.terminated_set)):
+            self.results['result'] = int(passed)
+            return
 
         # extract data
 
@@ -295,7 +325,7 @@ class Test_CPTShort(Test):
         num_sp = len(C.spectra)
 
 
-        if (num_wf!=num_wf_expected):
+        if (num_wf!=num_wf_expected) and (not self.nowave):
             print ("ERROR: Missing waveforms or housekeeping packets.")
             print (num_wf, num_wf_expected)
             passed = False
@@ -338,7 +368,7 @@ class Test_CPTShort(Test):
 
         for cc, sp in enumerate(C.spectra):
             g, ch, freq_set, ampl_set, bitslic = self.todo_list[cc]
-            if Cterminated is not None:
+            if Cterminated is not None and (not self.terminated):
                 sp_terminated = Cterminated.spectra[cc]
 
 
@@ -355,11 +385,12 @@ class Test_CPTShort(Test):
 
                 # Plot waveforms in the large plot
 
-                for ich in range(4):
-                    ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
-                    wform = waveforms[ich][cc]
-                    if wform is not None:
-                        ax_large.plot(wform[:ndxmax], label=f'Channel {ich}')
+                if not self.nowave:
+                    for ich in range(4):
+                        ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
+                        wform = waveforms[ich][cc]
+                        if wform is not None:
+                            ax_large.plot(wform[:ndxmax], label=f'Channel {ich}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 
@@ -390,15 +421,15 @@ class Test_CPTShort(Test):
             waveforms_out = []
             spectra_out = []
             for i in range(4):
-                if len(waveforms[i])>cc:
-                    waveforms_out.append(waveforms[i][cc])
+                if not self.nowave:
+                    if len(waveforms[i])>cc:
+                        waveforms_out.append(waveforms[i][cc])
                 if i in sp:
                     sp[i]._read()
                     spectra_out.append(sp[i].data)
             results_list.append(list(self.todo_list[cc])+[waveforms_out, spectra_out])
 
 
-            
             if ch>=0:
                 chlist = [ch]
             else:
@@ -435,9 +466,16 @@ class Test_CPTShort(Test):
                         power_zero[(ich,g)] = []
                         power_zero_terminated[(ich,g)] = []
                     power_zero[(ich,g)].append(sppow)
-                    if Cterminated is not None:
+                    if Cterminated is not None and (not self.terminated):
                         sppow_terminated = sp_terminated[ch].data* (2**(bitslic[ch]-31))   
                         power_zero_terminated[(ich,g)].append(sppow_terminated)
+
+        if (self.terminated and self.terminated_set):
+            for i,g in enumerate(self.gains):
+                for ch in range(4):
+                    sppow_terminated = Cterminated.spectra[i][ch].data * (2**(self.bitslices[-1]-31))
+                    key = (ch,g,0)
+
 
         pickle.dump(results_list, open(os.path.join(figures_dir, '../../data.pickle'), 'wb'))
         self.results['data_plots'] = "".join(figlist)
@@ -452,9 +490,9 @@ class Test_CPTShort(Test):
 
         print ('... plotting telemetry ...')
 
-        self.plot_telemetry(C.spectra, figures_dir)
-
-
+        self.plot_telemetry(C.spectra, figures_dir, figures_dir+"/../../telemetry.txt")
+        if Cterminated is not None:
+            self.plot_telemetry(Cterminated.spectra, None, figures_dir+"/../../telemetry_terminated.txt")
 
 
         print ("... fitting straight lines ...")
@@ -508,15 +546,20 @@ class Test_CPTShort(Test):
         noise_table += "\\hline\n"
         noise_table += "Channel " + " ".join([" & \\multicolumn{2}{|c|}{"+str(g)+"}" for g in self.gains])+"\\\\\n"
         noise_table += "\\hline\n"
+        gain_out = [self.freqs]
+        noise_out = []
+        noise_out_sans_pf = []
         for ch in chlist:
             noise_table += f"{ch} "
             for g in self.gains:
                 pzero_fit = np.array([power_zero_fit[(ch,g,f)] for f in self.freqs])
                 conv = np.array([conversion[(ch,g,f)] for f in self.freqs])
+                gain_out.append(conv)
                 conv_fit = interp1d(self.freqs, conv, kind='linear', fill_value='extrapolate')
                 fig, ax = plt.subplots(1,2, figsize=(12,6))
                 ffreq=np.arange(2048)*0.025
                 pzero = np.array(power_zero_terminated[(ch,g)])
+                np.savetxt(figures_dir+f'/../../power_zero_{g}_{ch}.dat', pzero)
                 pzero = pzero.mean(axis=0)
                 self.freqs=np.array(self.freqs)
                 noise_power = pzero/conv_fit(ffreq)
@@ -539,7 +582,9 @@ class Test_CPTShort(Test):
                 noise_power_sans_pf [::8] = np.nan
                 avg_rms_sans_pf = np.sqrt(np.nanmean(noise_power_sans_pf[10:-8]))
                 noise_table += f" & {avg_rms:.2f} & {avg_rms_sans_pf:.2f}"
-                
+                noise_out.append(avg_rms)
+                noise_out_sans_pf.append(avg_rms_sans_pf)
+
                 if len(self.terminated_set)>0 and ((avg_rms_sans_pf>5) or np.isnan(avg_rms_sans_pf)):
                     passed = False 
                 #y axis, left plot
@@ -569,31 +614,41 @@ class Test_CPTShort(Test):
 #                    if key not in power_zero_fit:
 #                        power_zero_fit[key] = 0
 #                        conversion[key] = 0
-        # doign real space  analysis:
+        
+        gain_out = np.array(gain_out)
+        np.savetxt(figures_dir+'/../../gain.dat', gain_out.T, fmt='%.6e', delimiter='\t', header='freq\tL0\tL1\tL2\tL3\tM0\tM1\tM2\tM3\tH0\tH1\tH2\tH3', comments='')
+
+        noise_out = np.array(noise_out).reshape(len(chlist), len(self.gains))
+        noise_out_sans_pf = np.array(noise_out_sans_pf).reshape(len(chlist), len(self.gains))
+        np.savetxt(figures_dir+'/../../noise.dat', noise_out.T, fmt='%.6e', delimiter='\t', header='ch0 ch1 ch2 ch3', comments='')
+        np.savetxt(figures_dir+'/../../noise_sans_pf.dat', noise_out_sans_pf.T, fmt='%.6e', delimiter='\t', header='ch0 ch1 ch2 ch3', comments='')
+
+        # time domain simple analysis
         figlist_res_real = []
         v2adu_emi = {'L':5.37E-02,	'M':8.07E-03,	'H':1.22E-03}
         print (len(waveforms[0]),len(waveforms[1]))
-        for g in self.gains:
-            fig, ax = plt.subplots(1,1, figsize=(12,6))
-            for ch in chlist:
-                rat = []
-                for f in self.freqs:
-                    ampl_max =0                    
-                    for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
-                        if ch_ == ch and _g == g and freq_set_[ch] == f and ampl_set_[ch]>ampl_max:
-                            ampl_max = ampl_set_[ch]
-                            cc_max = cc
-                    wform = waveforms[ch][cc_max]
-                    adu_range = wform.max()-wform.min()
-                    Vpp = ampl_max*1e-3*attenuation_fact #1e-3 for mV to V, 1e-2 for 40dB power attenuation
-                    rat.append(Vpp/adu_range*1e4)
-                ax.plot(self.freqs, rat, label=f'Channel {ch}')
-                ax.axhline(v2adu_emi[g], color='r', linestyle='--')
-            ax.set_xlabel('Frequency [MHz]')
-            ax.set_ylabel('Amplitude @ 10kADU')
-            plt.title(f'V2ADU at gain {g}')
-            fig.savefig(os.path.join(figures_dir, f'v2adu_{g}.png'))
-            figlist_res_real.append("\n\\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
+        if not self.nowave:
+            for g in self.gains:
+                fig, ax = plt.subplots(1,1, figsize=(12,6))
+                for ch in chlist:
+                    rat = []
+                    for f in self.freqs:
+                        ampl_max =0                    
+                        for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
+                            if ch_ == ch and _g == g and freq_set_[ch] == f and ampl_set_[ch]>ampl_max:
+                                ampl_max = ampl_set_[ch]
+                                cc_max = cc
+                        wform = waveforms[ch][cc_max]
+                        adu_range = wform.max()-wform.min()
+                        Vpp = ampl_max*1e-3*attenuation_fact #1e-3 for mV to V, 1e-2 for 40dB power attenuation
+                        rat.append(Vpp/adu_range*1e4)
+                    ax.plot(self.freqs, rat, label=f'Channel {ch}')
+                    ax.axhline(v2adu_emi[g], color='r', linestyle='--')
+                ax.set_xlabel('Frequency [MHz]')
+                ax.set_ylabel('Amplitude @ 10kADU')
+                plt.title(f'V2ADU at gain {g}')
+                fig.savefig(os.path.join(figures_dir, f'v2adu_{g}.png'))
+                figlist_res_real.append("\n\\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
 
 
         self.results['ps_results'] = "".join(figlist_res)

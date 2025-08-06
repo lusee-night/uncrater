@@ -134,11 +134,11 @@ class Commander:
                         input_data = input_data.split()
                         have_cmd = True
                 else:
-                    if (len(self.script) > 0) and not wait_eos:
-                        command = self.script[0]
-                        if ctime - script_last > dt:
+                    if (len(self.script) > 0) and not wait_eos:                        
+                        if (ctime - script_last > dt) and not wait_eos:
                             dt = 0
                             have_cmd = True
+                            command = self.script[0]
                             self.script.pop(0)
                             script_last = ctime
                 if have_cmd:

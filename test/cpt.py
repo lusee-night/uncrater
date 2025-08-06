@@ -1,8 +1,8 @@
 import argparse
 import os
+import sys
 import time
 
-#!/usr/bin/env python
 
 def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True, analysis_options=None):
     if analyze:
@@ -19,10 +19,17 @@ def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True, analy
         options += f' -p "{analysis_options}"'
 
     awg_opt = '-g ssl' if awg else ''
-    return  f'python test/cli_driver.py -b DCB  {awg_opt} -w {workdir} {run} {test} {options}'
+    return  f'{sys.executable} test/cli_driver.py -b DCB  {awg_opt} -w {workdir} {run} {test} {options}'
 
 def cpt_options():
     return "channels=0123, gains=LMH, freqs=0.1 0.7 1.1 3.1 5.1 10.1 15.1 20.1 25.1 30.1 35.1 40.1 45.1 50.1 60.1 70.1, amplitudes=280 0, bitslices=25 16, slow=True"
+
+def cpt_options_new(terminated):
+    options =  cpt_options() + ',nowave=True'
+    if terminated:
+        options += ', terminated=True'
+    return options
+
 
 def main():
     parser = argparse.ArgumentParser(description='CPT/TVAC test wrapper.')
@@ -56,6 +63,25 @@ def main():
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
         out_dir_terminated = os.path.join(args.root_dir, 'session_cpt-short_terminated')
         cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(), analysis_options="terminated_set="+out_dir_terminated, awg = awg, analyze=True)
+
+    elif test == 'gain_new':
+        out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options_new(False), awg = awg)
+    elif test == 'noise_new':
+        out_dir = os.path.join(args.root_dir, 'session_cpt-short_terminated')
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options_new(True),awg = awg)
+    elif test == 'combine_new':
+        out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
+        out_dir_terminated = os.path.join(args.root_dir, 'session_cpt-short_terminated')
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options_new(False), analysis_options="terminated=True,terminated_set="+out_dir_terminated, awg = awg, analyze=True)
+
+
+    elif test == 'power':
+        out_dir = os.path.join(args.root_dir, 'session_power')
+        cmd_line = gen_cmd_line('power',out_dir, 'gains=HHHH, bitslice=16, amplitude=75, slow=True, time_mins=30', awg = awg)
+    elif test == "terminated":
+        out_dir = os.path.join(args.root_dir, 'session_terminated')
+        cmd_line = gen_cmd_line('science',out_dir, 'preset=cpt-terminated,slow=True', awg = awg)
     elif test == 'science':
         # we do things a bit differently there
         pass

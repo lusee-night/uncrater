@@ -45,7 +45,7 @@ class Test_Science(Test):
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple', 'simplex2','debug', 'agc-test', 'simplest','trula']:
+        if self.preset not in ['simple', 'simplex2','debug', 'agc-test', 'simplest','trula', 'cpt-terminated']:
             raise ValueError ("Unknown preset.")
 
         if self.time_mins>100:
@@ -70,7 +70,7 @@ class Test_Science(Test):
         if self.preset in ['simple']:
             S.set_Navg(14,6)
             
-        if self.preset in ['simplex2']:
+        if self.preset in ['simplex2','cpt-terminated']:
             S.set_Navg(14,5)
 
         elif self.preset in ['simplest']:
@@ -174,6 +174,18 @@ class Test_Science(Test):
             S.request_eos()
             S.wait_eos()
 
+        elif self.preset == 'cpt-terminated':
+            for _ in range(200):
+                for notch in [0,4]:
+                    S.set_notch(notch)
+                    for gain, slice in [('L',3), ('M',10), ('H',16)]:
+                        S.set_ana_gain(gain*4)
+                        S.set_bitslice('all',slice)
+                        S.start()
+                        S.cdi_wait_spectra(8)
+                        S.stop()
+                        S.request_eos()
+                        S.wait_eos()
                 
 
         else:
