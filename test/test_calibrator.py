@@ -76,7 +76,7 @@ class Test_Calibrator(Test):
         
 
         S.cal_set_avg(self.Nac1,self.Nac2)
-        S.set_notch(self.Nnotch,disable_subtract=True)
+        S.set_notch(self.Nnotch,disable_subtract=False)
         S.cal_set_drift_step(10)
         S.select_products(0b1111)
 
@@ -127,17 +127,16 @@ class Test_Calibrator(Test):
 
         elif self.mode == "run":
             S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  
-            
+            S.notch_detector(True)
             S.awg_cal_off()
             S.start()
             S.wait(10)
             S.awg_cal_on(fstart)
-            S.wait(500)
+            S.wait(300)
 
             S.stop()
-            S.request_eos()         
+            S.request_eos()
 
-            
         #S.wait(100)
         #for d in np.linspace(fstart,fend,1300):
         #    if cal_on:
