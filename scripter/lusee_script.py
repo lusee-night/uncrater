@@ -227,7 +227,7 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_ADC_SPECIAL, arg)
 
     def house_keeping(self, req_type):
-        assert req_type < 2
+        assert req_type < 4
         self.spectrometer_command(lc.RFS_SET_HK_REQ, req_type)
 
     def section_break(self):
@@ -258,7 +258,7 @@ class Scripter:
             arg = (arg << 2) + "LMHA".index(c)
         self.spectrometer_command(cmd, arg)
 
-    def set_notch(self, Nshift=4, disable_subtract=False):
+    def set_notch(self, Nshift=4, disable_subtract=False, notch_detector=False):
         if (Nshift%2==1) and not disable_subtract:
             print("Warning: Nshift in notch should be even!")
             
@@ -266,6 +266,8 @@ class Scripter:
         arg = Nshift
         if disable_subtract:
             arg+=16
+        elif notch_detector:
+            arg+=32
         self.spectrometer_command(cmd, arg)
 
     def waveform(self, ch):
@@ -329,7 +331,9 @@ class Scripter:
         if type(mask) == str:
             if mask == "auto_only":
                 mask = 0b1111
-            else:
+            elif mask == 'all':
+                mask = 0b11111111
+            elif type(mask) == str:
                 print("Unknown mask type for select_products:", mask)
                 raise ValueError
 
@@ -462,7 +466,9 @@ class Scripter:
         assert len(weights) == 512
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,90)
-        for w in weights[90:]:
+        for i,w in enumerate(weights[90:]):
+            #self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, (i+90)%256)
+
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 255)))
 
     def cal_antenna_enable(self,mask):
@@ -520,6 +526,21 @@ class Scripter:
         if auto is not None:
             self.spectrometer_command(lc.RFS_SET_CAL_BITSLICE_AUTO, int(auto))
 
+
+
+    # this is drift min / max ,i.e. 1.2ppm = 120 at x16, but we supply number/20
+    def cal_set_drift_guard(self, guard):
+        guard = int(guard/20)
+        if (guard>255):
+            guard = 255
+            print ("Warning: guard too large, setting to 255*20")
+
+        self.spectrometer_command(lc.RFS_SET_CAL_DRIFT_GUARD, guard)
+
+
+
+
+    # this is delta drift
     def cal_set_ddrift_guard(self, guard):
         guard = int(guard/25)
         if (guard>255):

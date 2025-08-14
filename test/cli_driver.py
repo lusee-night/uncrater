@@ -76,7 +76,7 @@ Tests = [
     Test_Watchdog,
     Test_Watchdog_Command, 
     Test_Grimm,
-    Test_Notch
+    Test_Notch,
     Test_Power,
     Test_Live
 ]

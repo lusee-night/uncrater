@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Packet_Housekeep(PacketBase):
-    valid_types = set(range(2))
+    valid_types = set(range(4))
 
     @property
     def desc(self):
@@ -32,14 +32,8 @@ class Packet_Housekeep(PacketBase):
             print("HK type = ", temp.housekeeping_type)
             print("HK type not recognized, corrupter HK packet?")
 
-        if temp.housekeeping_type == 1:
-            self.copy_attrs(pystruct.housekeeping_data_1.from_buffer_copy(self._blob))
-            adc = process_ADC_stats(self.ADC_stat)
-            for k, v in adc.items():
-                setattr(self, k, v)
-            self.actual_gain = ["LMH"[i] for i in self.actual_gain]
 
-        elif temp.housekeeping_type == 0:
+        if temp.housekeeping_type == 0:
             self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))
             self.time = Time2Time(
                 self.core_state.base.time_32, self.core_state.base.time_16
@@ -50,7 +44,20 @@ class Packet_Housekeep(PacketBase):
             telemetry = process_telemetry(self.core_state.base.TVS_sensors)
             for k, v in telemetry.items():
                 setattr(self, "telemetry_" + k, v)
+        elif temp.housekeeping_type == 1:
+            self.copy_attrs(pystruct.housekeeping_data_1.from_buffer_copy(self._blob))
+            adc = process_ADC_stats(self.ADC_stat)
+            for k, v in adc.items():
+                setattr(self, k, v)
+            self.actual_gain = ["LMH"[i] for i in self.actual_gain]
+        elif temp.housekeeping_type == 2:
+            self.copy_attrs(pystruct.housekeeping_data_2.from_buffer_copy(self._blob))
+            self.ok = (self.heartbeat.magic == b'BRNMRL')
+            self.time = Time2Time(self.heartbeat.time_32, self.heartbeat.time_16)
+            self.telemetry = process_telemetry(self.heartbeat.TVS_sensors)
 
+        elif temp.housekeeping_type == 3:
+            self.copy_attrs(pystruct.housekeeping_data_3.from_buffer_copy(self._blob))
         self._is_read = True
 
     def info(self):

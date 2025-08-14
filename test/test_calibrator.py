@@ -1,3 +1,4 @@
+import binascii
 import sys
 sys.path.append('.')
 sys.path.append('./scripter/')
@@ -78,14 +79,16 @@ class Test_Calibrator(Test):
         S.cal_set_avg(self.Nac1,self.Nac2)
         S.set_notch(self.Nnotch,disable_subtract=False)
         S.cal_set_drift_step(10)
-        S.select_products(0b1111)
+        S.select_products('auto_only')
 
         S.cal_set_pfb_bin(1522)
         #S.cal_antenna_enable(0b1110) # disable antenna 0
-        S.cal_antenna_enable(0b1110)
+        S.cal_antenna_enable(0b1111)
         slicer = [int(x) for x in self.slicer.split('.')]
         assert(len(slicer)==8)
         S.cal_set_slicer(auto=True, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
+
+
 
         if False:
             sig, noise = np.loadtxt("session_calib_weights_Mar25/calib_weights.dat").T
@@ -93,20 +96,27 @@ class Test_Calibrator(Test):
             #weights /= weights.max()
             #weights[weights<0.2]=0
             weights = np.zeros(512)
-            weights[90:350] = 1.0            
-            weights[350:500] = 0
+            #weights[90:350] = 1.0            
+            weights[299:500] = 1.0
             S.cal_set_weights(weights)
-            S.cal_weights_save(0)
+            S.cal_weights_save(1)
+            intweights = (weights*255).astype(np.uint32)
+            pweights = [((w2<<16)+w1) for w1,w2 in zip(intweights[0::2],intweights[1::2])]
+            print ("CRC32 weights: ", hex(binascii.crc32(np.array(pweights,dtype=np.uint32).tobytes())&0xffffffff))
         else:
-            S.cal_weights_load(0)
+            #0 weights 90-350
+            #1 weitsh 90:500
+            S.cal_weights_load(1)
+            S.house_keeping(3)
 
         S.cal_set_corrAB(self.corA,self.corB)
+        S.cal_set_drift_guard(120*(self.Nnotch-3)) # (120 at 4, 240, at 5,etc)
         S.cal_set_ddrift_guard(1500)
         S.cal_set_gphase_guard(250000)
         S.cal_SNRonff(self.snr_on,self.snr_off)
 
         fstart = 17.0
-        fend = +17.0        
+        fend = +16.0        
 
         if self.mode == "full":
             S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_BIT_SLICER_SETTLE)  
@@ -136,6 +146,55 @@ class Test_Calibrator(Test):
 
             S.stop()
             S.request_eos()
+
+        elif self.mode == "erc_spectra" or self.mode=='erc':
+            #get spectra
+            if self.mode == "erc_spectra":
+                S.set_notch(self.Nnotch,disable_subtract=True, notch_detector=False)        
+            else:
+                S.set_notch(self.Nnotch,disable_subtract=False, notch_detector=True)        
+            S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)  
+            S.awg_cal_off()
+            S.start()
+            S.wait(80)
+            S.awg_cal_on(fstart)
+            S.wait(120)
+            for f in np.linspace(fstart,fend,3600):
+                S.awg_cal_on(f)
+                S.wait(0.1)
+            S.wait(120)
+            S.stop()
+            S.request_eos()
+
+
+
+        elif self.mode == "spectra_only":
+            S.cal_enable(enable=False)
+            S.select_products('all')
+            S.awg_cal_on(fstart)
+            S.wait(1)
+            S.set_Navg(14,5)
+            
+            S.set_notch(self.Nnotch,disable_subtract=True)            
+            S.start()
+            S.cdi_wait_spectra(1)
+            S.stop()
+            S.request_eos()
+            S.wait_eos()
+
+            S.set_notch(self.Nnotch,disable_subtract=False)            
+            S.start()
+            S.cdi_wait_spectra(1)
+            S.stop()
+            S.request_eos()
+            S.wait_eos()
+
+            S.set_notch(self.Nnotch,disable_subtract=False, notch_detector=True)            
+            S.start()
+            S.cdi_wait_spectra(1)
+            S.stop()
+            S.request_eos()
+            
 
         #S.wait(100)
         #for d in np.linspace(fstart,fend,1300):
