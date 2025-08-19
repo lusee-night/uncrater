@@ -1,3 +1,4 @@
+from tracemalloc import stop
 from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time, cordic2rad
 from pycoreloop import appId as id
@@ -18,7 +19,9 @@ class Packet_Cal_Metadata(PacketBase):
         self.copy_attrs(temp)
         self.time = Time2Time(self.time_32, self.time_16)
         self._is_read = True
-
+        self.drift_raw = np.array(self.drift).astype(np.int64)
+        self.drift_raw = (self.drift_raw << self.drift_shift)
+        self.drift = cordic2rad(np.repeat(self.drift_raw,8))
     def info(self):
         self._read()
         desc = " Calibrator Metadata\n"
@@ -206,7 +209,7 @@ class Packet_Cal_Debug(PacketBase):
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
         if self.debug_page == 0:
-            self.have_lock = dataw & 0xFF;
+            self.have_lock = dataw & 0xFF
             self.lock_ant = (dataw >> 8) & 0xFF
             self.errors = pystruct.calibrator_errors.from_buffer_copy(self._blob[12+2*1024:12+2*1024+ctypes.sizeof(pystruct.calibrator_errors)])
             self.drift = cordic2rad(datau[1])

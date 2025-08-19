@@ -23,10 +23,11 @@ class Test_Watchdog(Test):
     def generate_script(self):
         S = Scripter()
         S.reset()
+        #S.enable_heartbeat(enable=False)
         S.wait(5)                    # wait before enabling
-        S.enable_watchdogs(0b01111111)  # enable all except CDI and uC watchdog
+        S.enable_watchdogs(0b11111111)  # enable all except CDI and uC watchdog
         S.wait(20)                    # give watchdog time to trip
-        #S.spectrometer_command(lc.RFS_SET_TEST_WATCHDOG, 0x13)  # Stop feeding uC watchdog
+        S.spectrometer_command(lc.RFS_SET_TEST_WATCHDOG, 0x13)  # Stop feeding uC watchdog
         S.wait(20)
 
 

@@ -46,7 +46,7 @@ class BackendBase:
                 ccsds_groupflags = (formatted_data[1] >> 14)        
                 ccsds_sequence_cnt = (formatted_data[1] & 0x3FFF)
                 ccsds_packetlen  = (formatted_data[2])
-                if ccsds_groupflags:
+                if ccsds_groupflags or (ccsds_appid==0x300):
                     # last packet
                     istart = 6
                     iend = 7+ccsds_packetlen
@@ -66,7 +66,7 @@ class BackendBase:
                         #open('debug.bin','wb').write(data)
                         #stop()
                 else:
-                    print (".",end="",flush=True)
+                    print (".", end="",flush=True)
                     iend = 7+ccsds_packetlen
                     
                     

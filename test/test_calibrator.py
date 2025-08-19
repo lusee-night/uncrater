@@ -62,7 +62,7 @@ class Test_Calibrator(Test):
             S.set_dispatch_delay(120)
     
         #S.enable_heartbeat(False)
-        S.set_Navg(14,4)
+        S.set_Navg(14,7)
 
         ### Main spectral engine
         
@@ -83,7 +83,7 @@ class Test_Calibrator(Test):
 
         S.cal_set_pfb_bin(1522)
         #S.cal_antenna_enable(0b1110) # disable antenna 0
-        S.cal_antenna_enable(0b1111)
+        S.cal_antenna_enable(0b1110)
         slicer = [int(x) for x in self.slicer.split('.')]
         assert(len(slicer)==8)
         S.cal_set_slicer(auto=True, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
@@ -118,20 +118,24 @@ class Test_Calibrator(Test):
         fstart = 17.0
         fend = +16.0        
 
+        S.cal_raw11_every(0x4) # always send raw11 data
+
         if self.mode == "full":
             S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_BIT_SLICER_SETTLE)  
-        
-
             S.start()
             #S.cdi_wait_seconds(126)
-            S.cdi_wait_minutes(10)
+            S.cdi_wait_minutes(11)
             S.stop()
             S.request_eos()
             
             S.awg_cal_off()#(fstart)
             S.wait(120)
             S.awg_cal_on(fstart)
-            S.wait(300)
+            S.wait(120)
+            S.awg_cal_off()
+            S.wait(120)
+            S.awg_cal_on(fend)
+            S.wait(120)
             S.awg_cal_off()
 
 

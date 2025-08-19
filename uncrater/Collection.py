@@ -182,6 +182,10 @@ class Collection:
         if len(self.calib_gNacc)>0:
             self.calib_gNacc = np.hstack(self.calib_gNacc)
         dcalib = [c for c in self.calib_debug if None not in c]
+        drift_packets = [p for p in self.cont if p.appid in [id.AppID_Calibrator_Debug, id.AppID_Calibrator_MetaData]]
+        
+        if len(drift_packets)>0:
+            self.cd_drift = np.hstack([p.drift for p in drift_packets])        
         if self.verbose:
             print ('# of calib debug entries', len(dcalib))
         if len(dcalib)>0:
@@ -198,7 +202,7 @@ class Collection:
             self.cd_error_stage3 = np.array([np.hstack([get_counters(x.stage3_err[r]) for r in range(4)]) for x in self.cd_errors])
             
 
-            self.cd_drift = np.hstack([c[0].drift for c in dcalib])
+            
             self.cd_powertop0 = np.hstack([c[0].powertop0 for c in dcalib])
             self.cd_powertop1 = np.hstack([c[1].powertop1 for c in dcalib])
             self.cd_powertop2 = np.hstack([c[1].powertop2 for c in dcalib])
