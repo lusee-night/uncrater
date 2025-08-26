@@ -21,13 +21,14 @@ def gen_cmd_line(test, workdir, options=None, analyze = False, awg = True, analy
     awg_opt = '-g ssl' if awg else ''
     return  f'{sys.executable} test/cli_driver.py -b DCB  {awg_opt} -w {workdir} {run} {test} {options}'
 
-def cpt_options():
-    return "channels=0123, gains=LMH, freqs=0.1 0.7 1.1 3.1 5.1 10.1 15.1 20.1 25.1 30.1 35.1 40.1 45.1 50.1 60.1 70.1, amplitudes=280 0, bitslices=25 16, slow=True"
+def cpt_options(terminated):
+    options = "channels=0123, gains=LMH, freqs=0.1 0.7 1.1 3.1 5.1 10.1 15.1 20.1 25.1 30.1 35.1 40.1 45.1 50.1 60.1 70.1, amplitudes=280 0, bitslices=25 16, slow=True"
+    if terminated:
+        options += ',terminated=True'
+    return options
 
 def cpt_options_new(terminated):
-    options =  cpt_options() + ',nowave=True'
-    if terminated:
-        options += ', terminated=True'
+    options =  cpt_options(terminated) + ',nowave=True'
     return options
 
 
@@ -53,16 +54,19 @@ def main():
     elif test == 'route':
         out_dir = os.path.join(args.root_dir, 'session_route')
         cmd_line = gen_cmd_line('route',out_dir, 'Vpp=300', awg = awg)
+    elif test == 'chcheck':
+        out_dir = os.path.join(args.root_dir, 'session_chcheck')
+        cmd_line = gen_cmd_line('chcheck',out_dir, 'Vpp=300', awg = awg)
     elif test == 'gain':
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
-        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(), awg = awg)
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(False), awg = awg)
     elif test == 'noise':
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_terminated')
-        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(),awg = awg)
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(True),awg = awg)
     elif test == 'combine':
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
         out_dir_terminated = os.path.join(args.root_dir, 'session_cpt-short_terminated')
-        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(), analysis_options="terminated_set="+out_dir_terminated, awg = awg, analyze=True)
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options(False), analysis_options="terminated_set="+out_dir_terminated, awg = awg, analyze=True)
 
     elif test == 'gain_new':
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
