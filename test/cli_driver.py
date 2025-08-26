@@ -43,6 +43,7 @@ from test_grimm import Test_Grimm
 from test_notch import Test_Notch
 from test_power import Test_Power
 from test_live import Test_Live
+from test_chcheck import Test_ChCheck
 
 from commander import Commander
 import uncrater as uc
@@ -78,7 +79,8 @@ Tests = [
     Test_Grimm,
     Test_Notch,
     Test_Power,
-    Test_Live
+    Test_Live,
+    Test_ChCheck
 ]
 
 
