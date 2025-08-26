@@ -77,7 +77,7 @@ def main():
     elif test == 'combine_new':
         out_dir = os.path.join(args.root_dir, 'session_cpt-short_awg')
         out_dir_terminated = os.path.join(args.root_dir, 'session_cpt-short_terminated')
-        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options_new(False), analysis_options="terminated=True,terminated_set="+out_dir_terminated, awg = awg, analyze=True)
+        cmd_line = gen_cmd_line('cpt-short',out_dir, cpt_options_new(False), analysis_options="terminated_set="+out_dir_terminated, awg = awg, analyze=True)
 
 
     elif test == 'power':

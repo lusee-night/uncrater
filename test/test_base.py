@@ -143,7 +143,6 @@ class Test:
             table += " \\texttt{" + texify(key) + "}" + " &  " + texify(value)+ "} \\\\ \n"
         # table += "\\hline\n"
         table += "\\end{tabular}\n"
-        print(table)
         return table
 
     def coreloop_version(self):

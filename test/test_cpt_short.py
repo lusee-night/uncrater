@@ -279,17 +279,16 @@ class Test_CPTShort(Test):
 
         self.get_versions(C)
 
-        if len(self.terminated_set)>0:
-            Cterminated = uc.Collection(self.terminated_set+"/cdi_output/", cut_to_hello=True)
-            
-            if (not self.terminated) and (len (Cterminated.spectra)!=len(C.spectra)):
-                print ("ERROR: Terminated set has different number of spectra. Breaking.")
-                sys.exit(1)
-            print ("Loaded terminated set.")
-        else: 
-            Cterminated = None
-
-
+        def plant_nowave(Cx):
+            spectra = Cx.spectra
+            Cx.spectra = []
+            plant = {}
+            for gain, ch, freq, ampl, bitslice in self.todo_list:
+                ndx = "LMH".index(gain)
+                plant['meta']=spectra[ndx]['meta']
+                plant[ch] = spectra[ndx][ch]
+                Cx.spectra.append(plant)
+            print ("Planted missing spectra to allow analysis.")
         # extract data
 
         waveforms = [[],[],[],[]]
@@ -297,6 +296,21 @@ class Test_CPTShort(Test):
         num_wf =0
 
         self.prepare_list()
+
+        if len(self.terminated_set)>0:
+            Cterminated = uc.Collection(self.terminated_set+"/cdi_output/", cut_to_hello=True)
+            if len(Cterminated.spectra)==3:
+                plant_nowave(Cterminated)
+            
+            if (len (Cterminated.spectra)!=len(C.spectra)):
+                print ("ERROR: Terminated set has different number of spectra. Breaking.")
+                sys.exit(1)
+            print ("Loaded terminated set.")
+        else: 
+            Cterminated = None
+
+
+
         if self.slow:
             num_sp_expected = len(self.todo_list)
             num_wf_expected = num_sp_expected
@@ -325,6 +339,12 @@ class Test_CPTShort(Test):
             print ("ERROR: Missing waveforms or housekeeping packets.")
             print (num_wf, num_wf_expected)
             passed = False
+
+        if (num_sp==3 and self.nowave and self.terminated):
+            ## we will now plant those spectra that are missing.
+            plant_nowave(C)
+            num_sp = len(C.spectra)
+
         if (num_sp!=num_sp_expected):
             print ("ERROR: Missing spectra.")
             print ('got=',num_sp, 'expected=',num_sp_expected)
@@ -364,7 +384,7 @@ class Test_CPTShort(Test):
 
         for cc, sp in enumerate(C.spectra):
             g, ch, freq_set, ampl_set, bitslic = self.todo_list[cc]
-            if Cterminated is not None and (not self.terminated):
+            if Cterminated is not None:
                 sp_terminated = Cterminated.spectra[cc]
 
 
@@ -469,16 +489,9 @@ class Test_CPTShort(Test):
                         power_zero[(ich,g)] = []
                         power_zero_terminated[(ich,g)] = []
                     power_zero[(ich,g)].append(sppow)
-                    if Cterminated is not None and (not (self.terminated and self.nowave)):
+                    if Cterminated is not None:
                         sppow_terminated = sp_terminated[ch].data* (2**(bitslic[ch]-31))   
                         power_zero_terminated[(ich,g)].append(sppow_terminated)
-
-        if (self.terminated and self.nowave and self.terminated_set):
-            for i,g in enumerate(self.gains):
-                for ch in range(4):
-                    sppow_terminated = Cterminated.spectra[i][ch].data * (2**(self.bitslices[-1]-31))
-                    key = (ch,g,0)
-
 
         pickle.dump(results_list, open(os.path.join(figures_dir, '../../data.pickle'), 'wb'))
         self.results['data_plots'] = "".join(figlist)
