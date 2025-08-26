@@ -13,7 +13,7 @@ from test_base import pycoreloop as cl
 from  lusee_script import Scripter
 import uncrater as uc
 from collections import defaultdict
-
+from pycoreloop import pystruct as ps
 
 class Test_Science(Test):
 
@@ -32,7 +32,7 @@ class Test_Science(Test):
         "alarm": 90
     } ## dictinary of options for the test
     options_help = {
-        "preset" : "Type of science preset. Can be 'simple', 'simplex2','agc-test', 'simplest', 'trula', 'debug', more to come.",
+        "preset" : "Type of science preset. Can be 'simple', 'simplex2','agc-test', 'simplest', 'trula', 'debug', 'kitchen','ttd' more to come.",
         "route": "Routing scheme. Can be 'default', 'inverse', 'pairs', 'alt1'.",
         "notch" : "Enable notch filter",
         "disable_awg" : "Disable the AWG before doing anything",
@@ -45,7 +45,7 @@ class Test_Science(Test):
 
     def generate_script(self):
         """ Generates a script for the test """
-        if self.preset not in ['simple', 'simplex2','debug', 'agc-test', 'simplest','trula']:
+        if self.preset not in ['simple', 'simplex2','debug', 'agc-test', 'simplest','trula', 'cpt-terminated','kitchen','ttd']:
             raise ValueError ("Unknown preset.")
 
         if self.time_mins>100:
@@ -54,6 +54,13 @@ class Test_Science(Test):
 
 
         S = Scripter()
+
+        if self.preset=='kitchen':
+            return self.kitchen_mode(S)
+
+        if self.preset=='ttd':
+            S.time_to_die()
+            return S
 
         if self.disable_awg and not 'agc-test' in self.preset:
             S.awg_init()
@@ -70,7 +77,7 @@ class Test_Science(Test):
         if self.preset in ['simple']:
             S.set_Navg(14,6)
             
-        if self.preset in ['simplex2']:
+        if self.preset in ['simplex2','cpt-terminated']:
             S.set_Navg(14,5)
 
         elif self.preset in ['simplest']:
@@ -161,7 +168,7 @@ class Test_Science(Test):
 
             for _ in range(Ngo):
                 S.waveform(4)                
-                S.set_notch(0)                
+                S.set_notch(0)       
                 S.start()                
                 S.cdi_wait_spectra(1)
                 S.stop()
@@ -174,6 +181,18 @@ class Test_Science(Test):
             S.request_eos()
             S.wait_eos()
 
+        elif self.preset == 'cpt-terminated':
+            for _ in range(200):
+                for notch in [0,4]:
+                    S.set_notch(notch)
+                    for gain, slice in [('L',3), ('M',10), ('H',16)]:
+                        S.set_ana_gain(gain*4)
+                        S.set_bitslice('all',slice)
+                        S.start()
+                        S.cdi_wait_spectra(8)
+                        S.stop()
+                        S.request_eos()
+                        S.wait_eos()
                 
 
         else:
@@ -188,6 +207,51 @@ class Test_Science(Test):
             S.wait_eos()
         return S
 
+
+    def kitchen_mode(self, S):
+        """ Kitchen mode is a special mode for testing the spectrometer in the kitchen. """
+        S.reset()
+        S.seq_begin()        
+        S.set_alarm_setpoint(self.alarm)     
+        S.enable_watchdogs(0b11111101)   # cdi alarm not there
+        
+        S.set_notch(4)        
+        S.set_Navg(14,6)
+        S.reject_enable(reject_frac=10, max_bad = 100)          
+        S.set_avg_set_hi(75)
+        S.set_avg_set_mid(150)
+        avg_shift = 6
+        avg = 1<<avg_shift
+        nbins = 25
+        S.set_tr_start_stop(256,256+nbins*avg)
+        S.set_tr_avg_shift(avg_shift)
+        S.set_bitslice_auto(12)
+        S.set_ana_gain('AAAA')
+        for i in range(4):        
+            S.set_route(i, None, i)
+
+        S.set_avg_mode('float')
+        S.loop_start(4)
+        S.waveform(4)
+        S.set_spectra_format(ps.OUTPUT_16BIT_10_PLUS_6)                        
+        S.start()
+        S.cdi_wait_minutes(60)
+        S.stop()
+        S.set_spectra_format(ps.OUTPUT_16BIT_4_TO_5)                        
+        S.start()
+        S.cdi_wait_minutes(60)
+        S.stop()
+        S.set_spectra_format(ps.OUTPUT_32BIT)                        
+        S.start()
+        S.cdi_wait_minutes(60)
+        S.stop()
+        S.loop_next()
+        S.request_eos()
+        S.seq_end(store_flash=True)
+        S.wait_eos()
+        return S
+
+
     def analyze(self, C: uc.Collection, uart, commander, figures_dir):
         """ Analyzes the results of the test.
             Returns true if test has passed.
@@ -195,7 +259,6 @@ class Test_Science(Test):
         self.results = {}
         passed = True
 
-        C.cut_to_hello()
         self.results['packets_received'] = len(C.cont)
         self.get_versions(C)
 
@@ -238,7 +301,7 @@ class Test_Science(Test):
             def get_meta(name, C):
                 return np.array([S['meta'][name] for S in C.spectra])
 
-            weights = get_meta("base.weight_previous",C)
+            weights = get_meta("base.weight",C)
             time = get_meta("time",C)
             time = (time - time[0])/60
             errors = get_meta("base.errors",C)

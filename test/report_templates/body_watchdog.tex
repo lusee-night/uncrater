@@ -1,0 +1,27 @@
+\section{Basic Info}
+
+\begin{tabular}{p{5cm}p{5cm}}
+    Packets Received              & ++packets_received++                                       \\
+    Startup Packet Received       & \bcheckmark{++hello++}                                     \\
+    Software Version              & ++SW_version++                                             \\
+    Firmware Version              & ++FW_version++                                             \\
+    Firmware ID                   & ++FW_ID++                                                  \\
+    Firmware Date                 & ++FW_Date++                                                \\
+    Firmware Time                 & ++FW_Time++                                                \\
+    Watchdog Packets Received     & ++watchdog_count++                                         \\
+    Watchdog Packet Present       & \bcheckmark{++watchdog_present++}                          \\
+    Reboot Detected via Hello     & \bcheckmark{++reboot_detected++}                           \\
+\end{tabular}
+
+\section{Watchdog Packet Details}
+
+\begin{verbatim}
+++watchdog_summary++
+\end{verbatim}
+
+\section{Plots}
+
+\subsubsection*{Telemetry (if available):}
+\includegraphics*[width=\linewidth]{Figures/telemetry.pdf}
+
+\newpage

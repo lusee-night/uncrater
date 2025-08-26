@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 class Test_CPTShort(Test):
 
     name = "cpt-short"
-    version = 0.4
+    version = 0.41
     description = """ Comprehensive Performance Test - Short Version."""
     instructions = """ Connect AWG."""
     default_options = {
@@ -34,6 +34,8 @@ class Test_CPTShort(Test):
         'routing': 'default',
         'notch': False, 
         'slow': False,
+        'nowave': False,
+        'terminated': False, 
         'terminated_set': "",
         'corr_fact': 1.18
     } ## dictinary of options for the test
@@ -47,6 +49,8 @@ class Test_CPTShort(Test):
         'routing': 'Routing: default, invert, alt1 ',
         'notch': 'Enable notch filter',
         'slow': 'Enable very slow operation: large interpacket distance and minimize the number of total packets by limiting to what we really need',
+        'nowave': 'Do not record waveforms to speed up',
+        'terminated': 'This is a terminated set, take just the pure noise values',
         'terminated_set': "session directory with the terminated inputs (when AWG is noisy). If non-empty, the noise only sets will be taken from there. Must be run with the same options as the main test.",
         'corr_fact': "Correction factor to apply. Default is 1.18 which takes into account the suppression in the middle of the PFB response shape."
     } ## dictionary of help for the options
@@ -210,34 +214,52 @@ class Test_CPTShort(Test):
         if self.notch:
             S.set_notch(4)
 
-        for gain, ch, freq, ampl, bslice in self.todo_list:
-            if gain != old_gain:
-                gain_set = f'{gain}{gain}{gain}{gain}'
-                S.set_ana_gain(gain_set)
+        if self.nowave and self.terminated:
+            for i in range(4):
+                S.awg_tone(0,0,0)
+                S.select_products(0b1111)
+
+            for gain in self.gains:
+                S.set_ana_gain(gain*4)
+                S.set_bitslice('all', self.bitslices[-1])
                 S.cdi_wait_ticks(20) # settle
-                old_gain = gain
+                S.start(no_flash=True)
+                S.cdi_wait_spectra(1)
+                S.stop(no_flash=True)
+                S.wait(10)
+        else:
 
-            for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
-                S.awg_tone(awg_map[i],f,a)
-                S.set_bitslice(i,s)
-            S.cdi_wait_ticks(10)
-            if self.slow:
-                S.waveform(ch)
-            else:
-                S.waveform(4)
+            for gain, ch, freq, ampl, bslice in self.todo_list:
                 
+                if gain != old_gain:
+                    gain_set = f'{gain}{gain}{gain}{gain}'
+                    S.set_ana_gain(gain_set)
+                    S.cdi_wait_ticks(20) # settle
+                    old_gain = gain
 
-            if self.slow:
-                S.select_products(1<<(ch))
+                for i,(f,a,s) in enumerate(zip(freq,ampl,bslice)):
+                    S.awg_tone(awg_map[i],f,a)
+                    S.set_bitslice(i,s)
+                S.cdi_wait_ticks(10)
+                if (not self.nowave):
+                    if self.slow:
+                        S.waveform(ch)
+                    else:
+                        S.waveform(4)
+                    
+                if self.slow:
+                    S.select_products(1<<(ch))
 
-            #for i in [0,1,2,3]:
-            #    S.waveform(i)
-            #    S.wait(1.0)
-            S.start(no_flash=True)
-            S.cdi_wait_spectra(1)
-            S.stop(no_flash=True)
-            S.wait(9 if self.slow else 7)
-        
+
+                S.start(no_flash=True)
+                S.cdi_wait_spectra(1)
+                S.stop(no_flash=True)
+
+                if self.nowave:
+                    S.wait(4.5 if self.slow else 3)
+                else:
+                    S.wait(9 if self.slow else 7)
+            
         # request housekeeping to force the buffer to empty
         S.house_keeping(0)
         S.request_eos()
@@ -255,19 +277,18 @@ class Test_CPTShort(Test):
 
         self.results['packets_received'] = len(C.cont)
 
-        C.cut_to_hello()
         self.get_versions(C)
 
-        if len(self.terminated_set)>0:
-            Cterminated = uc.Collection(self.terminated_set+"/cdi_output/")
-            Cterminated.cut_to_hello()
-            if len (Cterminated.spectra)!=len(C.spectra):
-                print ("ERROR: Terminated set has different number of spectra. Breaking.")
-                sys.exit(1)
-            print ("Loaded terminated set.")
-        else: 
-            Cterminated = None
-
+        def plant_nowave(Cx):
+            spectra = Cx.spectra
+            Cx.spectra = []
+            plant = {}
+            for gain, ch, freq, ampl, bitslice in self.todo_list:
+                ndx = "LMH".index(gain)
+                plant['meta']=spectra[ndx]['meta']
+                plant[ch] = spectra[ndx][ch]
+                Cx.spectra.append(plant)
+            print ("Planted missing spectra to allow analysis.")
         # extract data
 
         waveforms = [[],[],[],[]]
@@ -275,6 +296,21 @@ class Test_CPTShort(Test):
         num_wf =0
 
         self.prepare_list()
+
+        if len(self.terminated_set)>0:
+            Cterminated = uc.Collection(self.terminated_set+"/cdi_output/", cut_to_hello=True)
+            if len(Cterminated.spectra)==3:
+                plant_nowave(Cterminated)
+            
+            if (len (Cterminated.spectra)!=len(C.spectra)):
+                print ("ERROR: Terminated set has different number of spectra. Breaking.")
+                sys.exit(1)
+            print ("Loaded terminated set.")
+        else: 
+            Cterminated = None
+
+
+
         if self.slow:
             num_sp_expected = len(self.todo_list)
             num_wf_expected = num_sp_expected
@@ -299,10 +335,16 @@ class Test_CPTShort(Test):
         num_sp = len(C.spectra)
 
 
-        if (num_wf!=num_wf_expected):
+        if (num_wf!=num_wf_expected) and (not self.nowave):
             print ("ERROR: Missing waveforms or housekeeping packets.")
             print (num_wf, num_wf_expected)
             passed = False
+
+        if (num_sp==3 and self.nowave and self.terminated):
+            ## we will now plant those spectra that are missing.
+            plant_nowave(C)
+            num_sp = len(C.spectra)
+
         if (num_sp!=num_sp_expected):
             print ("ERROR: Missing spectra.")
             print ('got=',num_sp, 'expected=',num_sp_expected)
@@ -359,11 +401,12 @@ class Test_CPTShort(Test):
 
                 # Plot waveforms in the large plot
 
-                for ich in range(4):
-                    ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
-                    wform = waveforms[ich][cc]
-                    if wform is not None:
-                        ax_large.plot(wform[:ndxmax], label=f'Channel {ich}')
+                if not self.nowave:
+                    for ich in range(4):
+                        ndxmax = min(int(12 * (102.4e6/(freq_set[ich]*1e6))), 16384) if freq_set[ich]>0 else 16384
+                        wform = waveforms[ich][cc]
+                        if wform is not None:
+                            ax_large.plot(wform[:ndxmax], label=f'Channel {ich}')
                 ax_large.set_title('Waveforms')
                 ax_large.legend(loc='upper right')
 
@@ -371,7 +414,11 @@ class Test_CPTShort(Test):
                 for ich in range(4):
                     if ich in sp:
                         sp[ich]._read()
-                        ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        try:
+                            ax_left.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        except Exception as e:
+                            print(f"Error plotting channel {ich}: {e}")
+
                 ax_left.set_title('Spectra (Linear Scale)')
                 ax_left.set_xlabel('Frequency')
                 ax_left.set_ylabel('Amplitude')
@@ -379,7 +426,10 @@ class Test_CPTShort(Test):
                 # Plot spectra in the right plot (logarithmic scale)
                 for ich in range(4):
                     if ich in sp:
-                        ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        try:
+                            ax_right.plot(sp_freq, sp[ich].data, label=f'Channel {ich}')
+                        except Exception as e:
+                            print(f"Error plotting channel {ich}: {e}")
                 ax_right.set_title('Spectra (Logarithmic Scale)')
                 ax_right.set_xlabel('Frequency')
                 ax_right.set_ylabel('Amplitude')
@@ -394,15 +444,15 @@ class Test_CPTShort(Test):
             waveforms_out = []
             spectra_out = []
             for i in range(4):
-                if len(waveforms[i])>cc:
-                    waveforms_out.append(waveforms[i][cc])
+                if not self.nowave:
+                    if len(waveforms[i])>cc:
+                        waveforms_out.append(waveforms[i][cc])
                 if i in sp:
                     sp[i]._read()
                     spectra_out.append(sp[i].data)
             results_list.append(list(self.todo_list[cc])+[waveforms_out, spectra_out])
 
 
-            
             if ch>=0:
                 chlist = [ch]
             else:
@@ -456,9 +506,9 @@ class Test_CPTShort(Test):
 
         print ('... plotting telemetry ...')
 
-        self.plot_telemetry(C.spectra, figures_dir)
-
-
+        self.plot_telemetry(C.spectra, figures_dir, figures_dir+"/../../telemetry.txt")
+        if Cterminated is not None:
+            self.plot_telemetry(Cterminated.spectra, None, figures_dir+"/../../telemetry_terminated.txt")
 
 
         print ("... fitting straight lines ...")
@@ -477,7 +527,8 @@ class Test_CPTShort(Test):
             fi = self.freqs.index(f)
             #print (key, power_out[key], power_in[key])
             if np.any(np.array(power_out[key])==0):
-                print (f"WARNING: Zero power detected for {key}. Skipping.")
+                if (not self.terminated): 
+                    print (f"WARNING: Zero power detected for {key}. Skipping.")
                 offset, slope = 0,0
             else:
                 try:
@@ -507,23 +558,35 @@ class Test_CPTShort(Test):
         else:
             chlist = self.channels
 
-
-        noise_table = " \\begin{tabular}{|c|"+"c|c|"*len(self.gains)+"}\n"
+        if not self.terminated:
+            noise_table = "Table of power with and without PF noise in nV/rtHz, mean 250kHz to 51MHz:\n\n" 
+        else:
+            noise_table = "Table of noise in arbitrary units normalized to be $\\approx$ 100 if evertyhing is OK:\n\n"
+        noise_table += " \\begin{tabular}{|c|"+"c|c|"*len(self.gains)+"}\n"
         noise_table += "\\hline\n"
         noise_table += "Channel " + " ".join([" & \\multicolumn{2}{|c|}{"+str(g)+"}" for g in self.gains])+"\\\\\n"
         noise_table += "\\hline\n"
+        gain_out = [self.freqs]
+        noise_out = []
+        noise_out_sans_pf = []
         for ch in chlist:
             noise_table += f"{ch} "
             for g in self.gains:
                 pzero_fit = np.array([power_zero_fit[(ch,g,f)] for f in self.freqs])
                 conv = np.array([conversion[(ch,g,f)] for f in self.freqs])
+                gain_out.append(conv)
                 conv_fit = interp1d(self.freqs, conv, kind='linear', fill_value='extrapolate')
                 fig, ax = plt.subplots(1,2, figsize=(12,6))
                 ffreq=np.arange(2048)*0.025
-                pzero = np.array(power_zero_terminated[(ch,g)])
+                pzero = np.array(power_zero_terminated[(ch,g)]) if Cterminated is not None else np.array(power_zero[(ch,g)])
+                np.savetxt(figures_dir+f'/../../power_zero_{g}_{ch}.dat', pzero)
                 pzero = pzero.mean(axis=0)
-                self.freqs=np.array(self.freqs)
-                noise_power = pzero/conv_fit(ffreq)
+                self.freqs=np.array(self.freqs)           
+                if not self.terminated: 
+                    noise_power = pzero/conv_fit(ffreq) 
+                else:
+                    noise_norm = {'L':9.0e-4, 'M':5.7e-3, 'H':4.0e-2}
+                    noise_power = pzero/noise_norm[g]**2
                 #noise_power[::8]=0
                 ax[0].plot(ffreq,np.sqrt(noise_power) , 'b-')
                 ax[0].plot(self.freqs[self.freqs<51.2], np.sqrt(pzero_fit/conv)[self.freqs<51.2],'ro' )
@@ -543,9 +606,14 @@ class Test_CPTShort(Test):
                 noise_power_sans_pf [::8] = np.nan
                 avg_rms_sans_pf = np.sqrt(np.nanmean(noise_power_sans_pf[10:-8]))
                 noise_table += f" & {avg_rms:.2f} & {avg_rms_sans_pf:.2f}"
-                
+                noise_out.append(avg_rms)
+                noise_out_sans_pf.append(avg_rms_sans_pf)
+
                 if len(self.terminated_set)>0 and ((avg_rms_sans_pf>5) or np.isnan(avg_rms_sans_pf)):
                     passed = False 
+                elif self.terminated:
+                    if (avg_rms_sans_pf<75) or (avg_rms_sans_pf>125):
+                        passed = False
                 #y axis, left plot
                 yl,yh = ax[0].get_ylim()
                 if yl<20:
@@ -573,31 +641,41 @@ class Test_CPTShort(Test):
 #                    if key not in power_zero_fit:
 #                        power_zero_fit[key] = 0
 #                        conversion[key] = 0
-        # doign real space  analysis:
+        
+        gain_out = np.array(gain_out)
+        np.savetxt(figures_dir+'/../../gain.dat', gain_out.T, fmt='%.6e', delimiter='\t', header='freq\tL0\tL1\tL2\tL3\tM0\tM1\tM2\tM3\tH0\tH1\tH2\tH3', comments='')
+
+        noise_out = np.array(noise_out).reshape(len(chlist), len(self.gains))
+        noise_out_sans_pf = np.array(noise_out_sans_pf).reshape(len(chlist), len(self.gains))
+        np.savetxt(figures_dir+'/../../noise.dat', noise_out.T, fmt='%.6e', delimiter='\t', header='ch0 ch1 ch2 ch3', comments='')
+        np.savetxt(figures_dir+'/../../noise_sans_pf.dat', noise_out_sans_pf.T, fmt='%.6e', delimiter='\t', header='ch0 ch1 ch2 ch3', comments='')
+
+        # time domain simple analysis
         figlist_res_real = []
         v2adu_emi = {'L':5.37E-02,	'M':8.07E-03,	'H':1.22E-03}
         print (len(waveforms[0]),len(waveforms[1]))
-        for g in self.gains:
-            fig, ax = plt.subplots(1,1, figsize=(12,6))
-            for ch in chlist:
-                rat = []
-                for f in self.freqs:
-                    ampl_max =0                    
-                    for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
-                        if ch_ == ch and _g == g and freq_set_[ch] == f and ampl_set_[ch]>ampl_max:
-                            ampl_max = ampl_set_[ch]
-                            cc_max = cc
-                    wform = waveforms[ch][cc_max]
-                    adu_range = wform.max()-wform.min()
-                    Vpp = ampl_max*1e-3*attenuation_fact #1e-3 for mV to V, 1e-2 for 40dB power attenuation
-                    rat.append(Vpp/adu_range*1e4)
-                ax.plot(self.freqs, rat, label=f'Channel {ch}')
-                ax.axhline(v2adu_emi[g], color='r', linestyle='--')
-            ax.set_xlabel('Frequency [MHz]')
-            ax.set_ylabel('Amplitude @ 10kADU')
-            plt.title(f'V2ADU at gain {g}')
-            fig.savefig(os.path.join(figures_dir, f'v2adu_{g}.png'))
-            figlist_res_real.append("\n\\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
+        if not self.nowave:
+            for g in self.gains:
+                fig, ax = plt.subplots(1,1, figsize=(12,6))
+                for ch in chlist:
+                    rat = []
+                    for f in self.freqs:
+                        ampl_max =0                    
+                        for cc,(_g, ch_, freq_set_, ampl_set_, bitslic_) in enumerate(self.todo_list):
+                            if ch_ == ch and _g == g and freq_set_[ch] == f and ampl_set_[ch]>ampl_max:
+                                ampl_max = ampl_set_[ch]
+                                cc_max = cc
+                        wform = waveforms[ch][cc_max]
+                        adu_range = wform.max()-wform.min()
+                        Vpp = ampl_max*1e-3*attenuation_fact #1e-3 for mV to V, 1e-2 for 40dB power attenuation
+                        rat.append(Vpp/adu_range*1e4)
+                    ax.plot(self.freqs, rat, label=f'Channel {ch}')
+                    ax.axhline(v2adu_emi[g], color='r', linestyle='--')
+                ax.set_xlabel('Frequency [MHz]')
+                ax.set_ylabel('Amplitude @ 10kADU')
+                plt.title(f'V2ADU at gain {g}')
+                fig.savefig(os.path.join(figures_dir, f'v2adu_{g}.png'))
+                figlist_res_real.append("\n\\includegraphics[width=1.0\\textwidth]{Figures/v2adu_"+f"{g}"+".png}\n")
 
 
         self.results['ps_results'] = "".join(figlist_res)

@@ -38,7 +38,9 @@ class Test_Bootload(Test):
                     'register {addres} {arg}', 'wait {seconds}', 'launch {region}', 'delete {region}' or 'write {region} {hex file} [slow]'"""            
     } ## dictionary of help for the options
 
-
+    def __init__(self, options, analysis_options=None):
+        super().__init__(options, analysis_options)
+        self.need_cut_to_hello = False
 
     def hex_line_error_checking(self, num, line):
         #Check basic conformance

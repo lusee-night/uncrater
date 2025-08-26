@@ -89,10 +89,10 @@ class Commander:
         if awg_backend is not None:
             if awg_backend[:4] == "lab7":
                 if "_ch" in awg_backend:
-                    ch = int(awg_backend.split("_ch")[1])
+                    ch = [int (i) for i in iawg_backend.split("_ch")[1]]
                 else:
-                    ch = 3
-                self.awg = AWGBackendLab7(channel=ch)
+                    ch = [1,3]
+                self.awg = AWGBackendLab7(channels=ch)
             elif awg_backend == "ssl":
                 self.awg = AWGBackendSSL()
             else:
@@ -134,7 +134,7 @@ class Commander:
                         input_data = input_data.split()
                         have_cmd = True
                 else:
-                    if len(self.script) > 0:                        
+                    if (len(self.script) > 0) and not wait_eos:                        
                         if (ctime - script_last > dt) and not wait_eos:
                             dt = 0
                             have_cmd = True
@@ -162,6 +162,7 @@ class Commander:
                         elif cmd == 0xE1: 
                             # wait EOS
                             wait_eos = True
+                            self.clog.logt(f"Waiting for EOS. \n")
                         else:
                             if (cmd ==0x10) or (cmd == 0x11):
                                 pretty_cmd = command_from_value[cmd] if cmd in command_from_value else f"UNKNOWN! {hex(cmd)} refresh pycoreloop? "
@@ -181,6 +182,7 @@ class Commander:
                             # now wait
                             dt = 0.01
                 if wait_eos and self.backend.eos_flag:
+                    self.clog.logt(f"Received EOS.\n")
                     self.backend.drop_eos_flag()
                     wait_eos = False
                 if (len(self.script) == 0) and (ctime - script_last > dt) and (not wait_eos) :

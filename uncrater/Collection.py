@@ -12,11 +12,12 @@ from .error_utils import *
 
 class Collection:
 
-    def __init__(self, dir):
+    def __init__(self, dir, verbose = False, cut_to_hello = False):
+        self.verbose = verbose
         self.dir = dir
+        self.cut_to_hello = cut_to_hello
         self.refresh()
-
-    def refresh(self):
+    def refresh(self, quiet=False):
         self.cont = []
         self.time = []
         self.desc = []
@@ -24,10 +25,13 @@ class Collection:
         tr_spectra = []
         self.calib = []
         self.heartbeat_packets = []
+        self.watchdog_packets = []
         self.housekeeping_packets = []
         self.waveform_packets = []
+        self.zoom_spectra_packets = []
         flist = glob.glob(os.path.join(self.dir, "*.bin"))
-        print(f"Analyzing {len(flist)} files from {self.dir}.")
+        if not quiet:
+            print(f"Analyzing {len(flist)} files from {self.dir}.")
         flist = sorted(flist, key=lambda x: int(x[x.rfind("/") + 1 :].split("_")[0]))
         meta_packet = None
 
@@ -37,22 +41,36 @@ class Collection:
         self.calib_gphase = []
         self.calib_pfb = []
         self.calib_debug = []
+        waveforms = [None,None,None,None]
+        def fn2appid(fn):
+            return int(fn.replace(".bin", "").split("_")[-1], 16)
+        if self.cut_to_hello:
+            appids = [fn2appid(fn) for fn in flist]
+            for i in range(len(appids)-1,0,-1):
+                if appid_is_hello(appids[i]):
+                    flist = flist[i:]
+                    break
 
         for i, fn in enumerate(flist):
-            #print ("reading ",fn)
-            appid = int(fn.replace(".bin", "").split("_")[-1], 16)
+            if self.verbose:
+                print ("Reading ",fn)
+            appid = fn2appid(fn)
+
             ## sometimes there is initial garbage to throw out
             if appid_is_spectrum(appid) and meta_packet is None:
                 continue
             if appid_is_tr_spectrum(appid) and meta_packet is None:
                 continue
             
-
             packet = Packet(appid, blob_fn=fn)
+
             # spectral/TR spectral packets must be read only after we set their metadata packet
             # all other packets: read immediately
             if not (appid_is_spectrum(appid) or appid_is_tr_spectrum(appid) or appid_is_cal_any(appid)):
                 packet.read()
+            if appid_is_watchdog(appid):
+                packet.read()
+
 
             if isinstance(packet, Packet_Metadata):
                 meta_packet = packet
@@ -81,20 +99,20 @@ class Collection:
                 if appid_is_cal_data_start(appid):
                     packet.read()
                     cal_packet_id = packet.unique_packet_id
-                    self.calib_data.append([to_cplx(packet.data[0],packet.data[1]), to_cplx(packet.data[2], packet.data[3]),None,None])
+                    self.calib_data.append([np.array(data,complex) for data in packet.data])
                 else:
                     packet.set_meta_id(cal_packet_id)
                     packet.read()
                     if packet.data_page == 1:
-                        self.calib_data[-1][2] = to_cplx(packet.data[0], packet.data[1])
-                        self.calib_data[-1][3] = to_cplx(packet.data[2], packet.data[3])
+                        for a, img_part  in zip(self.calib_data[-1], packet.data):
+                            a+= 1j*np.array(img_part)
                     else:
                         self.calib_gNacc.append(packet.gNacc)
                         self.calib_gphase.append(packet.gphase)
 
                 
             if appid_is_rawPFB(appid):
-                if appid_is_cal_pfb_start(appid):
+                if appid_is_rawPFB_start(appid):
                     packet.read()
                     cal_packet_id = packet.unique_packet_id
                     self.calib_pfb.append([np.array(packet.data,complex),None,None,None])
@@ -104,28 +122,41 @@ class Collection:
                     ch = packet.channel
                     part = packet.part
                     if (part==0): # real part, comes first
-                        self.calib_pbf[-1]['pfb'][packet.channel] = np.array(packet.data, complex)
+                        self.calib_pfb[-1][packet.channel] = np.array(packet.data, complex)
                     else:
-                        self.calib_pfb[-1]['pfb'][packet.channel] += 1j*np.array(packet.data, complex)                    
-                    
+                        self.calib_pfb[-1][packet.channel] += 1j*np.array(packet.data, complex)
+
+            if appid_is_cal_zoom(appid):
+                packet.read()
+                self.zoom_spectra_packets.append(packet)
+
             if appid_is_cal_debug(appid):
                 if appid_is_cal_debug_start(appid):
                     packet.read()
                     cal_packet_id = packet.unique_packet_id
-                    self.calib_debug.append(packet.data+[None]*7)
+                    self.calib_debug.append([packet]+7*[None])
                 else:
                     packet.set_meta_id(cal_packet_id)
                     packet.read()
-                    self.calib[-1]['debug'][packet.debug_page]= packet.data[i]
+                    self.calib_debug[-1][packet.debug_page]= packet
 
             if isinstance(packet, Packet_Heartbeat):
                 self.heartbeat_packets.append(packet)
+
+            if isinstance(packet, Packet_Watchdog):
+                self.watchdog_packets.append(packet)
 
             if isinstance(packet, Packet_Housekeep):
                 self.housekeeping_packets.append(packet)
 
             if isinstance(packet, Packet_Waveform):
                 self.waveform_packets.append(packet)
+                waveforms[packet.ch] = packet
+                
+            if isinstance(packet, Packet_Waveform_Meta):
+                packet.set_packets(waveforms)
+                packet.read()
+                waveforms=[None,None,None,None]
 
             self.cont.append(packet)
             self.time.append(os.path.getmtime(fn))
@@ -144,45 +175,56 @@ class Collection:
         if len(pfb[0])>0:
             self.pfb = np.array([np.hstack(p) for p in self.pfb])
         
+    
+        self.calib_gphase = np.array(self.calib_gphase)
+        self.calib_data = np.array(self.calib_data)
+        
+        if len(self.calib_gNacc)>0:
+            self.calib_gNacc = np.hstack(self.calib_gNacc)
+        dcalib = [c for c in self.calib_debug if None not in c]
+        drift_packets = [p for p in self.cont if p.appid in [id.AppID_Calibrator_Debug, id.AppID_Calibrator_MetaData]]
+        
+        if len(drift_packets)>0:
+            self.cd_drift = np.hstack([p.drift for p in drift_packets])        
+        if self.verbose:
+            print ('# of calib debug entries', len(dcalib))
+        if len(dcalib)>0:
+            self.cd_have_lock = np.hstack([c[0].have_lock for c in dcalib])
+            self.cd_lock_ant = np.hstack([c[0].lock_ant for c in dcalib])
+            self.cd_errors = [c[0].errors for c in dcalib]
+            # phase errors are 8 bits over two counter
+            def get_counters(num):
+                return [num&0xFF, (num>>8)&0xFF , (num>>16)&0xFF, (num>>24)&0xFF] 
 
-        if False:
-            ## will fix later when needed
-            dacalib = [c for c in self.calib if ((c['data'][0] is not None) and c['data'][1] is not None) and (c['data'][2] is not None)]  ## look at the last one.
-            if len(dacalib)>0:
-                pass
-                data_real = np.array([c['data'][0] for c in dacalib])
-                data_imag = np.array([c['data'][1] for c in dacalib])
-                self.calib_data = np.array(data_real + 1j * data_imag).transpose(1, 0, 2)
-                self.gNacc = np.array([c['data'][2][0] for c in dacalib])
-                self.gphase = np.array([c['data'][2][1] for c in dacalib])
+            self.cd_error_phaser = np.array([(get_counters(x.cal_phaser_err[0])+get_counters(x.cal_phaser_err[1])) for x in self.cd_errors])
+            self.cd_error_averager = np.array([[get_counters(x.averager_err[r]) for r in range(16)] for x in self.cd_errors])
+            self.cd_error_process = np.array([np.hstack([get_counters(x.averager_err[r]) for r in range(8)]) for x in self.cd_errors])
+            self.cd_error_stage3 = np.array([np.hstack([get_counters(x.stage3_err[r]) for r in range(4)]) for x in self.cd_errors])
+            
 
-            dcalib = [c for c in self.calib if c['debug'][0] is not None]
-            if len(dcalib)>0:
-                self.cd_have_lock = np.hstack([c['debug'][0].have_lock for c in dcalib])
-                self.cd_lock_ant = np.hstack([c['debug'][0].lock_ant for c in dcalib])
-                self.cd_drift = np.hstack([c['debug'][0].drift for c in dcalib])
-                self.cd_powertop0 = np.hstack([c['debug'][0].powertop0 for c in dcalib])
-                self.cd_powertop1 = np.hstack([c['debug'][1].powertop1 for c in dcalib])
-                self.cd_powertop2 = np.hstack([c['debug'][1].powertop2 for c in dcalib])
-                self.cd_powertop3 = np.hstack([c['debug'][1].powertop3 for c in dcalib])
-                self.cd_powerbot0 = np.hstack([c['debug'][2].powerbot0 for c in dcalib])
-                self.cd_powerbot1 = np.hstack([c['debug'][2].powerbot1 for c in dcalib])
-                self.cd_powerbot2 = np.hstack([c['debug'][2].powerbot2 for c in dcalib])
-                self.cd_powerbot3 = np.hstack([c['debug'][3].powerbot3 for c in dcalib])
-                self.cd_fd0 = np.hstack([c['debug'][3].fd0 for c in dcalib])
-                self.cd_fd1 = np.hstack([c['debug'][3].fd1 for c in dcalib])
-                self.cd_fd2 = np.hstack([c['debug'][4].fd2 for c in dcalib])
-                self.cd_fd3 = np.hstack([c['debug'][4].fd3 for c in dcalib])
-                self.cd_sd0 = np.hstack([c['debug'][4].sd0 for c in dcalib])
-                self.cd_sd1 = np.hstack([c['debug'][5].sd1 for c in dcalib])
-                self.cd_sd2 = np.hstack([c['debug'][5].sd2 for c in dcalib])
-                self.cd_sd3 = np.hstack([c['debug'][5].sd3 for c in dcalib])
-                self.cd_fdx = np.hstack([c['debug'][6].fdx for c in dcalib])
-                self.cd_sdx = np.hstack([c['debug'][6].sdx for c in dcalib])
-                self.cd_snr0 = np.hstack([c['debug'][6].snr0 for c in dcalib])
-                self.cd_snr1 = np.hstack([c['debug'][7].snr1 for c in dcalib])
-                self.cd_snr2 = np.hstack([c['debug'][7].snr2 for c in dcalib])
-                self.cd_snr3 = np.hstack([c['debug'][7].snr3 for c in dcalib])
+            
+            self.cd_powertop0 = np.hstack([c[0].powertop0 for c in dcalib])
+            self.cd_powertop1 = np.hstack([c[1].powertop1 for c in dcalib])
+            self.cd_powertop2 = np.hstack([c[1].powertop2 for c in dcalib])
+            self.cd_powertop3 = np.hstack([c[1].powertop3 for c in dcalib])
+            self.cd_powerbot0 = np.hstack([c[2].powerbot0 for c in dcalib])
+            self.cd_powerbot1 = np.hstack([c[2].powerbot1 for c in dcalib])
+            self.cd_powerbot2 = np.hstack([c[2].powerbot2 for c in dcalib])
+            self.cd_powerbot3 = np.hstack([c[3].powerbot3 for c in dcalib])
+            self.cd_fd0 = np.hstack([c[3].fd0 for c in dcalib])
+            self.cd_fd1 = np.hstack([c[3].fd1 for c in dcalib])
+            self.cd_fd2 = np.hstack([c[4].fd2 for c in dcalib])
+            self.cd_fd3 = np.hstack([c[4].fd3 for c in dcalib])
+            self.cd_sd0 = np.hstack([c[4].sd0 for c in dcalib])
+            self.cd_sd1 = np.hstack([c[5].sd1 for c in dcalib])
+            self.cd_sd2 = np.hstack([c[5].sd2 for c in dcalib])
+            self.cd_sd3 = np.hstack([c[5].sd3 for c in dcalib])
+            self.cd_fdx = np.hstack([c[6].fdx for c in dcalib])
+            self.cd_sdx = np.hstack([c[6].sdx for c in dcalib])
+            self.cd_snr0 = np.hstack([c[6].snr0 for c in dcalib])
+            self.cd_snr1 = np.hstack([c[7].snr1 for c in dcalib])
+            self.cd_snr2 = np.hstack([c[7].snr2 for c in dcalib])
+            self.cd_snr3 = np.hstack([c[7].snr3 for c in dcalib])
 
 
 
@@ -192,21 +234,6 @@ class Collection:
         # packet but no actual data, we assume it's fine and don't include it into self.tr_spectra
         self.tr_spectra = [trs for trs in tr_spectra if len(trs) > 1]
         assert all(["meta" in trs for trs in tr_spectra])
-
-    def cut_to_hello(self):
-        i = len(self.cont) - 1
-        num_spectra = 0
-        while i >= 0 and not isinstance(self.cont[i], Packet_Hello):
-            if isinstance(self.cont[i], Packet_Metadata):
-                num_spectra += 1
-            i -= 1
-
-        if i < 0:
-            i = 0
-        self.cont = self.cont[i:]
-        self.time = self.time[i:]
-        self.desc = self.desc[i:]
-        self.spectra = self.spectra[-num_spectra:]
 
     def __len__(self):
         return len(self.cont)
@@ -331,7 +358,33 @@ class Collection:
                 result = 0
         return result
 
+    def get_meta(self,name):
+        return np.array([S['meta'][name] for S in self.spectra])
+
+
     def xxd(self, i, intro=False):
         if intro:
             return self._intro(i) + self.cont[i].xxd()
         return self.cont[i].xxd()
+
+    def np_spectra(self, ndx=None, channel=None):
+        """ Returns a numpy array of the spectra data.
+            If ndx is not None, returns only the spectra at that time.
+            If channel is not None, returns only the spectra for that channel.
+        """
+
+        if (ndx is None) and (channel is None):        
+            return np.array([[S[ch].data for ch in range(16)] for S in self.spectra])
+        
+        if (ndx is not None) and (channel is None):
+            S = self.spectra[ndx]
+            return np.array([S[ch].data for ch in range(16)])   
+        
+        if (ndx is None) and (channel is not None):
+            return np.array([S[channel].data for S in self.spectra])
+
+        if (ndx is not None) and (channel is not None):
+            S = self.spectra[ndx]
+            return S[channel].data
+        
+        assert(False), "Should not reach here"

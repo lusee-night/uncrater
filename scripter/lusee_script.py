@@ -11,6 +11,7 @@ if os.environ.get("CORELOOP_DIR") is not None:
 # now try to import pycoreloop
 try:
     from pycoreloop import command as lc
+    from pycoreloop import pystruct as pst
 except ImportError:
     print("Can't import pycoreloop\n")
     print(
@@ -93,13 +94,15 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CDI_SW_DLY, delay)
 
 
-    def reset(self, stored_state = 'ignore', special = True):
+    def reset(self, stored_state = 'delete_all', cdi_clear = False, special = True):
         if stored_state == 'load':
             arg_low = 0
         elif stored_state == "ignore":
             arg_low = 1
         elif stored_state == "delete_all":
             arg_low = 2
+        if not cdi_clear:
+            arg_low += 4
         else:
             raise ValueError("Unknown stored_state")
         master = lc.RFS_SPECIAL if special else lc.RFS_SETTINGS
@@ -108,7 +111,7 @@ class Scripter:
     def reboot(self):
         # there are low-level commands outside coreloop
         self.command(bl.CMD_REBOOT, 0);
-    
+
     def reboot_hard(self):
         # there are low-level commands outside coreloop
         self.write_register(0x0,0x1)
@@ -143,13 +146,13 @@ class Scripter:
             for num,chunk in enumerate(page):
                 running_sum += chunk & 0xFFFF
                 running_sum += (chunk & 0xFFFF0000) >> 16
-                # the pre 0x22a way is 
+                # the pre 0x22a way is
                 #self.write_register(0x640 + num, chunk)
                 if num == 0:
                     self.write_register(0x640, chunk)
                 else:
                     self.write_register_next(chunk)
-                
+
             print(f"Page {page_num} checksum is {hex(bl.convert_checksum(running_sum, 16))}")
             self.write_register(0x621, bl.convert_checksum(running_sum, 16))
             self.write_register(0x620, page_num)
@@ -201,7 +204,7 @@ class Scripter:
         self.command(bl.CMD_REG_LSB, val & 0xFFFF)
         self.command(bl.CMD_REG_MSB_NEXT, val >> 16)
 
-        
+
 
 
     def write_adc_register(self,adc, reg, val):
@@ -215,7 +218,7 @@ class Scripter:
         self.wait(0.1)
         self.write_register(ADC_FUNCTION, 0)
 
-    
+
 
     def ADC_special_mode (self, mode='normal'):
         print (mode)
@@ -224,7 +227,7 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_ADC_SPECIAL, arg)
 
     def house_keeping(self, req_type):
-        assert req_type < 2
+        assert req_type < 4
         self.spectrometer_command(lc.RFS_SET_HK_REQ, req_type)
 
     def section_break(self):
@@ -255,12 +258,16 @@ class Scripter:
             arg = (arg << 2) + "LMHA".index(c)
         self.spectrometer_command(cmd, arg)
 
-    def set_notch(self, Nshift=4):
-        if (Nshift%2==1):
+    def set_notch(self, Nshift=4, disable_subtract=False, notch_detector=False):
+        if (Nshift%2==1) and not disable_subtract:
             print("Warning: Nshift in notch should be even!")
-            raise ValueError
+            
         cmd = lc.RFS_SET_AVG_NOTCH
         arg = Nshift
+        if disable_subtract:
+            arg+=16
+        elif notch_detector:
+            arg+=32
         self.spectrometer_command(cmd, arg)
 
     def waveform(self, ch):
@@ -274,6 +281,10 @@ class Scripter:
 
     def enable_heartbeat (self, enable=True):
         self.spectrometer_command(lc.RFS_SET_HEARTBEAT, int(enable))
+
+    def enable_watchdogs(self, enable=0xFF):
+        self.spectrometer_command(lc.RFS_SET_ENABLE_WATCHDOGS, enable)
+
 
     def set_bitslice(self, ch, value):
         assert value < 32
@@ -297,6 +308,20 @@ class Scripter:
         arg = keep_bits
         self.spectrometer_command(cmd, arg)
 
+
+    def set_avg_mode(self, mode='float'):
+        if mode=='int':
+            arg = pst.AVG_INT32
+        elif mode=='40bit':
+            arg = pst.AVG_INT_40_BITS
+        elif mode=='float':
+            arg = pst.AVG_FLOAT
+        else:
+            print("Unknown mode for set_avg_mode:", mode)
+            print ("Must be one of, int, 40bit, float")
+            raise ValueError
+        self.spectrometer_command(lc.RFS_SET_AVG_MODE, arg)
+
     def range_ADC(self):
         cmd = lc.RFS_SET_RANGE_ADC
         arg = 0
@@ -306,7 +331,9 @@ class Scripter:
         if type(mask) == str:
             if mask == "auto_only":
                 mask = 0b1111
-            else:
+            elif mask == 'all':
+                mask = 0b11111111
+            elif type(mask) == str:
                 print("Unknown mask type for select_products:", mask)
                 raise ValueError
 
@@ -330,7 +357,8 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_GAIN_ANA_CFG_MULT, arg2)
 
     def set_Navg(self, Navg1, Navg2):
-        val = Navg1 + (Navg2 << 4)
+        assert (Navg1 < 24) and (Navg1>=8) and (Navg2 < 16) and (Navg2>=0)
+        val = (Navg1-8) + (Navg2 << 4)
         self.spectrometer_command(lc.RFS_SET_AVG_SET, val)
 
     def set_avg_set_hi(self, frac: int):
@@ -371,7 +399,7 @@ class Scripter:
     def time_to_die(self):
         cmd = lc.RFS_SET_TIME_TO_DIE
         arg = 0
-        self.spectrometer_command(cmd, arg)
+        self.command(lc.RFS_SPECIAL, cmd<<8+arg)
 
     def start(self, no_flash=True):
         cmd = lc.RFS_SET_START
@@ -399,12 +427,12 @@ class Scripter:
 
     def awg_cal_on(self, alpha):
         self.script.append(f"AWG CAL ON {alpha}")
-    
+
     def awg_cal_off(self):
         self.script.append("AWG CAL OFF")
-        
-    def cal_enable(self, on=True, mode=0x10):
-        if on:
+
+    def cal_enable(self, enable=True, mode=0x10):
+        if enable:
             arg = mode
         else:
             arg = 0xFF
@@ -421,6 +449,8 @@ class Scripter:
         avg = (avg3<<2)+avg2
         self.spectrometer_command(lc.RFS_SET_CAL_AVG, avg)
 
+    def cal_set_zoom_navg(self, avg):
+        self.spectrometer_command(lc.RFS_SET_ZOOM_NAVG, avg)
 
     def cal_set_single_weight(self,bin,weight,zero_first=False):
         if zero_first:
@@ -431,22 +461,146 @@ class Scripter:
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_HI,bin-256)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL,weight)
 
-    
+
     def cal_set_weights(self,weights):
         assert len(weights) == 512
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,90)
-        for w in weights[90:]:
-            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 128)))
+        for i,w in enumerate(weights[90:]):
+            #self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, (i+90)%256)
+
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 255)))
 
     def cal_antenna_enable(self,mask):
         self.spectrometer_command(lc.RFS_SET_CAL_ANT_EN,mask)
 
     def cal_SNRonff(self,snron,snroff):
-        self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON,snron)
+        # after fix, those numbers are in Q16.4 format, so let's bump them up by 4 bits
+        snron = int (snron * 16)
+        snroff = int (snroff * 16)
+        snron_low = snron &  0xFF
+        snron_high = (snron & 0xFF00) >> 8
+        self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON,snron_low)
+        if snron_high>0:
+            self.spectrometer_command(lc.RFS_SET_CAL_SNR_ON_HIGH,snron_high)
         self.spectrometer_command(lc.RFS_SET_CAL_SNR_OFF,snroff)
 
-    
+    def cal_set_drift_step(self, step):
+        self.spectrometer_command(lc.RFS_SET_CAL_DRIFT_STEP,step)
+
+    def cal_set_corrAB(self, corrA, corrB):
+        corrA = int (corrA*16)
+        corrB = int (corrB*16)
+        self.spectrometer_command(lc.RFS_SET_CAL_CORRA_LSB, corrA & 0xFF)
+        if corrA > 255:
+            self.spectrometer_command(lc.RFS_SET_CAL_CORRA_MSB, (corrA >> 8) & 0xFF)
+        self.spectrometer_command(lc.RFS_SET_CAL_CORRB_LSB, corrB & 0xFF)
+        if corrB > 255:
+            self.spectrometer_command(lc.RFS_SET_CAL_CORRB_MSB, (corrB >> 8) & 0xFF)
+
     def set_alarm_setpoint(self, val):
         assert (val < 256)
         self.spectrometer_command(lc.RFS_SET_TEMP_ALARM, val)
+
+    def cal_set_slicer (self, auto=None, powertop=None, sum1=None, sum2=None, prod1=None, prod2=None, delta_powerbot=None, fd_slice=None, sd2_slice=None):
+        def cal_slicer_command (reg, val):
+            self.spectrometer_command (lc.RFS_SET_CAL_BITSLICE, (reg<<5)+val)
+
+        if fd_slice is not None:
+            cal_slicer_command(0, fd_slice)
+        if powertop is not None:
+            cal_slicer_command(1, powertop)
+        if sum1 is not None:
+            cal_slicer_command(2, sum1)
+        if sum2 is not None:
+            cal_slicer_command(3, sum2)
+        if prod1 is not None:
+            cal_slicer_command(4, prod1)
+        if prod2 is not None:
+            cal_slicer_command(5, prod2)
+        if delta_powerbot is not None:
+            cal_slicer_command(6, delta_powerbot)
+        if sd2_slice is not None:
+            cal_slicer_command(7, sd2_slice)
+
+        if auto is not None:
+            self.spectrometer_command(lc.RFS_SET_CAL_BITSLICE_AUTO, int(auto))
+
+
+
+    # this is drift min / max ,i.e. 1.2ppm = 120 at x16, but we supply number/20
+    def cal_set_drift_guard(self, guard):
+        guard = int(guard/20)
+        if (guard>255):
+            guard = 255
+            print ("Warning: guard too large, setting to 255*20")
+
+        self.spectrometer_command(lc.RFS_SET_CAL_DRIFT_GUARD, guard)
+
+
+
+
+    # this is delta drift
+    def cal_set_ddrift_guard(self, guard):
+        guard = int(guard/25)
+        if (guard>255):
+            guard = 255
+            print ("Warning: guard too large, setting to 255*25")
+
+        self.spectrometer_command(lc.RFS_SET_CAL_DDRIFT_GUARD, guard)
+
+    def cal_set_gphase_guard(self, guard):
+        guard = int(guard/2000)
+        if (guard>255):
+            guard = 255
+            print ("Warning: guard too large, setting to 255*2000")
+
+        self.spectrometer_command(lc.RFS_SET_CAL_GPHASE_GUARD, guard)
+
+
+    def cal_weights_save (self, slot):
+        assert (slot >= 0) and (slot < 16)
+        self.spectrometer_command(lc.RFS_SET_CAL_WSAVE, slot)
+
+    def cal_weights_load (self, slot):
+        assert (slot >= 0) and (slot < 16)
+        self.spectrometer_command(lc.RFS_SET_CAL_WLOAD, slot)
+
+    def cal_raw11_every(self, value):
+        """ Set the raw11 every value, i.e. how many compress 11 packets to average before sending raw11 data.
+            Value is in range 0-255, 0x00 means all packets are raw, 0xFF means never
+        """
+        assert (value >= 0) and (value < 256)
+        self.spectrometer_command(lc.RFS_SET_CAL_RAW11_EVERY, value)
+
+    def notch_detector (self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_NOTCH_DETECTOR, int(enable))
+
+    ## flow control part
+    def seq_begin(self):
+        self.command(lc.RFS_SPECIAL, lc.RFS_SET_SEQ_BEGIN<<8)
+
+    def seq_end(self, store_flash=False):
+        self.command(lc.RFS_SPECIAL, (lc.RFS_SET_SEQ_END<<8) + (1 if store_flash else 0))
+
+    def seq_break(self):
+        self.command(lc.RFS_SPECIAL, lc.RFS_SET_BREAK<<8)
+
+    def flash_clear(self):
+        self.spectrometer_command(lc.RFS_SET_FLASH_CLR,0)
+
+    def loop_start(self, repetitions):
+        self.spectrometer_command(lc.RFS_SET_LOOP_START, repetitions)
+
+    def loop_next(self):
+        self.spectrometer_command(lc.RFS_SET_LOOP_NEXT,0)
+
+    def reject_enable(self, enable=True, reject_frac = 16, max_bad = 20):
+        if enable == False:
+            self.spectrometer_command(lc.RFS_SET_REJ_SET,0)
+        else:
+            self.spectrometer_command(lc.RFS_SET_REJ_SET,reject_frac)
+            self.spectrometer_command(lc.RFS_SET_REJ_NBAD, max_bad)
+
+    def enable_grimm_tales(self, enable=True):
+        self.spectrometer_command(lc.RFS_SET_GRIMMS_TALES, int(enable))

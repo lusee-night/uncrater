@@ -25,7 +25,7 @@ class Test_BinResponse(Test):
         "bin" : 100,
         "amplitude" : "40",
         "gain": "M",
-        "bitslice": 31,
+        "bitslice": 24,
         "notch": "0",
         "channel" : 0,
         "Df": 0.04,
@@ -37,7 +37,7 @@ class Test_BinResponse(Test):
         "amplitude" : "Amplitude of the signal",
         "gain": "Gain setting",
         "bitslice": "Bitslicer setting",
-        "notch": "Enable notch filter by listing the Nnoth_shift values",
+        "notch": "Enable notch filter by listing the Nnoth_shift values,split by dot, e.g. 0.4",
         "channel" : "Channel number (starting with 0).",
         "Df": "+/- frequency deviation",
         "Nf": "Number of frequencies to test"
@@ -64,7 +64,7 @@ class Test_BinResponse(Test):
         delta_freq = self.get_frequencies()
         central_freq= 0.025*self.bin
 
-        notch = [int(i) for i in self.notch.split()]
+        notch = [int(i) for i in self.notch.split('.')]
         for n in notch:
             S.set_notch(n)
             for i,df  in enumerate(delta_freq):
@@ -88,13 +88,12 @@ class Test_BinResponse(Test):
         self.results = {}
         passed = True
 
-        C.cut_to_hello()
         self.results['packets_received'] = len(C.cont)
         self.get_versions(C)
 
         Ns = len(C.spectra)
         self.results['Ns'] = Ns
-        notch = [int(i) for i in self.notch.split()]
+        notch = [int(i) for i in self.notch.split('.')]
         self.results['Ns_expected'] = self.Nf * len(notch)
         self.results['Ns_ok'] = int(Ns == self.results['Ns_expected'])
 
@@ -106,20 +105,29 @@ class Test_BinResponse(Test):
             self.results['adc_max'] = adc_max
             self.results['bitslicer'] = C.spectra[0]['meta'].base.bitslice[self.channel]
             freqs = self.get_frequencies()
-            values = np.array([S[self.channel].data[self.bin] for S in C.spectra])
-            values = values.reshape((len(notch),self.Nf))
+            values = np.array(
+                [np.array([S[self.channel].data[self.bin+i] for S in C.spectra]).reshape(len(notch), self.Nf)
+                 for i in range(+2,-3,-1)])
+
+            print(values.shape) 
 
             fig, ax = plt.subplots(2,1, figsize=(10, 6))
-            for n,v in zip(notch,values):                
-                ax[0].plot(freqs,v,label='Notch '+ ('off' if n==0 else "Nnotch = "+str(2**n))+'')
-                ax[1].plot(freqs,v)
+            ffreqs = np.hstack ((freqs - 2*0.025, freqs - 0.025, freqs, freqs + 0.025, freqs + 2*0.025))
+            output = []
+            for i,n in enumerate(notch):
+                v = values[:,i,:].flatten()
+
+                ax[0].plot(ffreqs,v,label='Notch '+ ('off' if n==0 else "Nnotch = "+str(2**n))+'')
+                ax[1].plot(ffreqs,v)
+                output.append(v)
+
             ax[0].legend()
             ax[1].set_yscale('log')
             ax[0].set_xlabel('Frequency deviation (MHz)')
             ax[0].set_ylabel('Response')
             ax[1].set_xlabel('Frequency deviation (MHz)')
 
-        
+            np.savetxt(figures_dir+"/../../response.txt", np.vstack((ffreqs, *output)).T, fmt='%.6f', header='Frequency (MHz) ' + ' '.join(['Notch '+ ('off' if n==0 else "Nnotch = "+str(2**n)) for n in notch]))
             fig.tight_layout()
             fig.savefig(figures_dir + '/response.pdf')
 

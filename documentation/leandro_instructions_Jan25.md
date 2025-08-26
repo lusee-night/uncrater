@@ -317,7 +317,7 @@ Now we can run some other tests. Normally you specify GSE driver with the `-g` o
 Try running these test to completion:
 
  * `python test/cli_driver.py -b DCB -r route`
- * `python test/cli_driver.py -b DCB -r cpt-short -o "channels=0123, gains=LMH, freqs=0.1 0.7 1.1 3.1 5.1 10.1 15.1 20.1 25.1 30.1 35.1 40.1 45.1 50.1 60.1 70.1, amplitudes=280 0, bitslices=25 16, superslow=True"`
+ * `python test/cli_driver.py -b DCB -r cpt-short -o "channels=0123, gains=LMH, freqs=0.1 0.7 1.1 3.1 5.1 10.1 15.1 20.1 25.1 30.1 35.1 40.1 45.1 50.1 60.1 70.1, amplitudes=280 0, bitslices=25 16, slow=True"`
 
 
 Then there are some tests that will run forver, so you need to stop then with Ctrl-C. These are good ones for long term testing when you need some background data taking.

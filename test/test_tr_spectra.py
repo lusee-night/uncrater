@@ -114,7 +114,7 @@ class Test_TRSpectra(Test):
         Returns true if test has passed.
         """
         self.results = {}
-        coll.cut_to_hello()
+
         self.get_versions(coll)
         tr_shape_ok = 1
 

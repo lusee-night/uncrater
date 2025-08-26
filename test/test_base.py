@@ -20,6 +20,22 @@ except ImportError:
     sys.exit(1)
 
 
+def texify(s):
+    """Convert a string to a TeX-friendly format"""
+    if type(s) is str:
+        s = s.replace("_", r"\_")
+        s = s.replace("%", r"\%")
+        s = s.replace("&", r"\&")
+        s = s.replace("$", r"\$")
+        s = s.replace("#", r"\#")
+        s = s.replace("{", r"\{")
+        s = s.replace("}", r"\}")
+        s = s.replace("^", r"\^{}")
+        s = s.replace("~", r"\~{}")
+    else:
+        s = str(s)
+    return s
+
 class Test:
 
     name = None
@@ -33,10 +49,19 @@ class Test:
         self.options = self.default_options
         self.analysis_options = analysis_options if analysis_options is not None else {}
         self.options.update(options)
+        self.need_cut_to_hello = True # most test do need this
 
         # first check options sanity internally
         if not (set(self.default_options.keys()) == set(self.options_help.keys())):
-            raise ValueError("Internal error: options and options_help do not match.")
+            for k in self.default_options.keys():
+                if k not in self.options_help:
+                    print("Missing help for option: ", k)
+                    sys.exit(1)
+            for k in self.options_help.keys():
+                if k not in self.default_options:
+                    print("Missing option: ", k)
+                    sys.exit(1)
+            raise ValueError("Internal error: options and options_help do not match OR mismatching test specification")
 
         for k, v in self.options.items():
             if k not in self.default_options:
@@ -57,7 +82,7 @@ class Test:
 
     def texify_name(self) -> str:
         """Convert self.name to valid TeX representation"""
-        return self.name.replace("_", "\\_")
+        return texify(self.name)
 
     def make_report(self, work_dir, output_file, add_keys={}, verbose=False):
         """Makes a report for the test.
@@ -115,8 +140,7 @@ class Test:
         # table += " Option & Value \\\\ \n"
         # table += "\\hline\n"
         for key, value in self.options.items():
-            skey = key.replace("_", "\\_")
-            table += " \\texttt{" + f"{skey}" + "}" + f" & {value} \\\\ \n"
+            table += " \\texttt{" + texify(key) + "}" + " &  " + texify(value)+ "} \\\\ \n"
         # table += "\\hline\n"
         table += "\\end{tabular}\n"
         return table
@@ -168,7 +192,7 @@ class Test:
             self.results["FW_Date"] = "N/A"
             self.results["FW_Time"] = "N/A"
 
-    def plot_telemetry(self, spectra, figures_dir):
+    def plot_telemetry(self, spectra, figures_dir, save_data=None):
         time, V1_0, V1_8, V2_5, T_FPGA = [], [], [], [], []
         for sp in spectra:
             time.append(sp["meta"].time)
@@ -211,5 +235,11 @@ class Test:
         ax[3].legend()
         if not figures_dir is None:
             fig.savefig(os.path.join(figures_dir, "telemetry.pdf"))
+        if save_data is not None:
+            np.savetxt(
+                save_data,
+                np.array([time, V1_0, V1_8, V2_5, T_FPGA]).T,
+                fmt="%s",
+            )
 
         return time, V1_0, V1_8, V2_5, T_FPGA

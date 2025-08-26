@@ -26,6 +26,9 @@ from test_wave import Test_Wave
 from test_cpt_short import Test_CPTShort
 from test_route import Test_Route
 from test_calibrator import Test_Calibrator
+from test_calibrator_zoom import Test_CalibratorZoom
+from test_calibweights import Test_Calib_Weights
+from test_watchdog import Test_Watchdog, Test_Watchdog_Command
 
 # from test_spec      import Test_Spec
 # from test_crosstalk import Test_CrossTalk
@@ -34,7 +37,13 @@ from test_tr_spectra import Test_TRSpectra
 from test_bootload import Test_Bootload
 from test_encoding_format import Test_EncodingFormat
 from test_binresponse import Test_BinResponse
+from test_reject import Test_Reject
+from test_control import Test_Control
+from test_grimm import Test_Grimm
+from test_notch import Test_Notch
 from test_power import Test_Power
+from test_live import Test_Live
+from test_chcheck import Test_ChCheck
 
 from commander import Commander
 import uncrater as uc
@@ -61,7 +70,17 @@ Tests = [
     Test_BinResponse,
     Test_EncodingFormat,
     Test_Calibrator,
+    Test_CalibratorZoom,
+    Test_Calib_Weights,
+    Test_Reject,
+    Test_Control,
+    Test_Watchdog,
+    Test_Watchdog_Command, 
+    Test_Grimm,
+    Test_Notch,
     Test_Power,
+    Test_Live,
+    Test_ChCheck
 ]
 
 
@@ -233,7 +252,7 @@ def main():
         # Create an instance of the test with the loaded options
         analysis_options = opt2dict(args.analysis_options)
         t = T(options, analysis_options)
-        C = uc.Collection(os.path.join(workdir, "cdi_output"))
+        C = uc.Collection(os.path.join(workdir, "cdi_output"),cut_to_hello=t.need_cut_to_hello)
 
         def read_and_fix(fn, max_lines=200, max_line_length=2000):
             try:
