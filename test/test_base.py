@@ -20,6 +20,22 @@ except ImportError:
     sys.exit(1)
 
 
+def texify(s):
+    """Convert a string to a TeX-friendly format"""
+    if type(s) is str:
+        s = s.replace("_", r"\_")
+        s = s.replace("%", r"\%")
+        s = s.replace("&", r"\&")
+        s = s.replace("$", r"\$")
+        s = s.replace("#", r"\#")
+        s = s.replace("{", r"\{")
+        s = s.replace("}", r"\}")
+        s = s.replace("^", r"\^{}")
+        s = s.replace("~", r"\~{}")
+    else:
+        s = str(s)
+    return s
+
 class Test:
 
     name = None
@@ -66,7 +82,7 @@ class Test:
 
     def texify_name(self) -> str:
         """Convert self.name to valid TeX representation"""
-        return self.name.replace("_", "\\_")
+        return texify(self.name)
 
     def make_report(self, work_dir, output_file, add_keys={}, verbose=False):
         """Makes a report for the test.
@@ -124,10 +140,10 @@ class Test:
         # table += " Option & Value \\\\ \n"
         # table += "\\hline\n"
         for key, value in self.options.items():
-            skey = key.replace("_", "\\_")
-            table += " \\texttt{" + f"{skey}" + "}" + f" & {value} \\\\ \n"
+            table += " \\texttt{" + texify(key) + "}" + " &  " + texify(value)+ "} \\\\ \n"
         # table += "\\hline\n"
         table += "\\end{tabular}\n"
+        print(table)
         return table
 
     def coreloop_version(self):

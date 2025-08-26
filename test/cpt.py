@@ -91,7 +91,7 @@ def main():
         return
             
     if test!='science':
-        if (test!='combine') and (os.path.exists(out_dir) and not args.force):
+        if (test not in ['combine','combine_new']) and (os.path.exists(out_dir) and not args.force):
             print ('Test data already exists:', out_dir)
             print ('Use -f to force test.')
             return

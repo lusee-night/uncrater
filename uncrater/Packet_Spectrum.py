@@ -233,16 +233,16 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
         #     print ("Spurious data, trimming!!!")
         #     self._blob = self._blob[:8 + 2048 * 4]
 
-        if self.meta.format == 0:
+        #if self.meta.format == 0:
             # data consists of uint16_t, _blob has type int32_t
-            Ndata = len(self._blob[8:]) // 2
-            try:
-                enc_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
-                enc_data = np.array(enc_data, dtype=np.uint16)
-                data = decode_10plus6(enc_data)
-            except:
-                self.error_data_read = True
-                data = np.zeros(Ndata, dtype=np.int32)
-        else:
-            raise NotImplementedError("Only format 0 is supported")
+        Ndata = len(self._blob[8:]) // 2
+        try:
+            enc_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
+            enc_data = np.array(enc_data, dtype=np.uint16)
+            data = decode_10plus6(enc_data)
+        except:
+            self.error_data_read = True
+            data = np.zeros(Ndata, dtype=np.int32)
+        #else:
+        #    raise NotImplementedError("Only format 0 is supported")
         self.data = np.array(data, dtype=np.int32)
