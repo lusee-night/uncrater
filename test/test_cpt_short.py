@@ -282,9 +282,9 @@ class Test_CPTShort(Test):
         def plant_nowave(Cx):
             spectra = Cx.spectra
             Cx.spectra = []
-            plant = {}
             for gain, ch, freq, ampl, bitslice in self.todo_list:
                 ndx = "LMH".index(gain)
+                plant = {}
                 plant['meta']=spectra[ndx]['meta']
                 plant[ch] = spectra[ndx][ch]
                 Cx.spectra.append(plant)
@@ -373,6 +373,8 @@ class Test_CPTShort(Test):
         power_zero = {}
         power_zero_terminated = {}
         data_plots = int(self.analysis_options['data_plots']) if 'data_plots' in self.analysis_options else True
+        if (self.nowave and self.terminated):
+            data_plots = False
         attenuation = int(self.analysis_options['attenuation']) if 'attenuation' in self.analysis_options else 40
         attenuation_fact = 10**(-attenuation/20)
         print (f"Attenuation {attenuation}dB, Afact={attenuation_fact}, use -p attenuation=X to change to X dB.")
@@ -483,7 +485,6 @@ class Test_CPTShort(Test):
                 ## *(1e9)**2 to get from V^2 to nV^2, /25e3 to get from 25kHz bandwidth to get to nV^2/Hz
                 ## here we also apply the correction factor since the power measure at the bin center will be in effect this number
                 power_in[key].append((ampl_set[ich]/2/1000)**2*(attenuation_fact**2) * self.corr_fact *(1e9)**2 /25e3)
-                #print ('here',ch, ampl_set, power_in[key][-1], power_out[key][-1])
                 if ampl_set[ich] == 0:
                     if (ich,g) not in power_zero:
                         power_zero[(ich,g)] = []
@@ -585,6 +586,7 @@ class Test_CPTShort(Test):
                 if not self.terminated: 
                     noise_power = pzero/conv_fit(ffreq) 
                 else:
+                    # nominal values for a good board
                     noise_norm = {'L':9.0e-4, 'M':5.7e-3, 'H':4.0e-2}
                     noise_power = pzero/noise_norm[g]**2
                 #noise_power[::8]=0
