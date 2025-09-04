@@ -145,6 +145,15 @@ class Test:
         table += "\\end{tabular}\n"
         return table
 
+    def get_meta(self):
+        """ Returns a list to be passed to Scripter.export() """
+        meta = []
+        meta.append(str(self.name) + ' v'+str(self.version)) 
+        meta.append('coreloop '+hex(self.coreloop_version()))
+        for k,v in self.options.items():
+            meta.append(f"{k} = {v}")
+        return meta
+
     def coreloop_version(self):
         return pycoreloop.pystruct.VERSION_ID
 

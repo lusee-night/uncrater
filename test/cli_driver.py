@@ -145,15 +145,17 @@ def main():
 
     parser = argparse.ArgumentParser(description="Driver for tests.")
     parser.add_argument("test_name", nargs="?", default=None,       help="Name of the test")
-    parser.add_argument("-w", "--workdir",  default="session_%test_name%", help="Output directory (as test_name.pdf)")
     parser.add_argument("-l", "--list",     action="store_true",    help="Show the available tests")
     parser.add_argument("-i", "--info",     action="store_true",    help="Print information for the test")
     parser.add_argument("-r", "--run",      action="store_true",    help="Run the test and analyze the results")
     parser.add_argument("-a", "--analyze",  action="store_true",    help="Analyze the results on a previously run test")
-    parser.add_argument("-d", "--dataview", action="store_true",    help="Send the data to DataView viewer")
+    parser.add_argument("-e", "--export",   action="store_true",    help="Export the script into the workdir as script.seq")
+    parser.add_argument("-w", "--workdir",  default="session_%test_name%", help="Output directory")
+    parser.add_argument("-E", "--export-filename",  default="%test_name%.seq", help="Output filename when exporting.")
     parser.add_argument("-o", "--options",  default="",             help="Test options, option=value, comma separated.")
     parser.add_argument("-p", "--analysis-options",default="",      help="Analysis options, option=value, comma separated.")
-    parser.add_argument("-I", "--inspect",  action="store_true",    help="Inspect data before sending DataView viewer")
+    parser.add_argument("-I", "--inspect",  action="store_true",    help="Inspect data before sending DataView viewer (deprecated)")
+    parser.add_argument("-d", "--dataview", action="store_true",    help="Send the data to DataView viewe (deprecated)")
     parser.add_argument('-v', '--verbose',  action='store_true',    help='Verbose processing')
     parser.add_argument(  "--skip-report",  action="store_true",    help='Skip creating report.pdf')
     parser.add_argument('-b', '--backend',  default='DCBEmu',          help='What to command. Possible values: DCBEmu (DCB Emulator), DCB (DCB), coreloop (coreloop running on PC)')
@@ -193,8 +195,10 @@ def main():
         if args.backend not in ["DCBEmu", "DCBEmu_nouart", "DCB", "coreloop"]:
             print("Unknown backend: ", args.backend)
             sys.exit(1)
+
+    if args.run or args.export:
         t = Name2Test(args.test_name)
-        print("Running test: ", t.name)
+        print("Test: ", t.name)
 
         options = opt2dict(args.options, t.default_options)
 
@@ -205,28 +209,37 @@ def main():
         print("Generating script... ", end="")
         S = T.generate_script()
         print("OK.")
-        workdir = args.workdir.replace("%test_name%", t.name)
-        ## this will also generated the work dir
-        print("Starting commander...")
-        awg = None if args.awg == "None" else args.awg
-        C = Commander(
-            session=workdir, script=S.script, backend=args.backend, awg_backend=awg
-        )
-        # Save options to YAML file
-        options_file = f"{workdir}/options.yaml"
-        with open(options_file, "w") as file:
-            yaml.dump(options, file)
 
-        run_data = {'operator': args.operator, 'comments': args.comments, 'test_time': save_time()} 
-        with open(f"{workdir}/run_data.yaml", "w") as file:
-            yaml.dump(run_data, file)
+        if args.export:
+            outfile = args.export_filename.replace("%test_name%", t.name)
+            print(f"Exporting script to {outfile} ... ", end="")
+            S.export(outfile, T.get_meta())
+            print("OK.")
 
-        try:
-            C.run()
-        except KeyboardInterrupt:
-            print("Interrupted.")
+        if args.run:
+            print("Running test...")
+            workdir = args.workdir.replace("%test_name%", t.name)
+            ## this will also generated the work dir
+            print("Starting commander...")
+            awg = None if args.awg == "None" else args.awg
+            C = Commander(
+                session=workdir, script=S.script, backend=args.backend, awg_backend=awg
+            )
+            # Save options to YAML file
+            options_file = f"{workdir}/options.yaml"
+            with open(options_file, "w") as file:
+                yaml.dump(options, file)
 
-        print("Commander done.")
+            run_data = {'operator': args.operator, 'comments': args.comments, 'test_time': save_time()} 
+            with open(f"{workdir}/run_data.yaml", "w") as file:
+                yaml.dump(run_data, file)
+
+            try:
+                C.run()
+            except KeyboardInterrupt:
+                print("Interrupted.")
+
+            print("Commander done.")
 
     if args.run or args.analyze:
         T = Name2Test(args.test_name)

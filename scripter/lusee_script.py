@@ -27,6 +27,22 @@ class Scripter:
         self.script = []
         self.total_time = 0
 
+
+    def export(self, filename, meta=[]):
+        """ Export the script to a file """
+        with open(filename, 'w') as f:
+            for line in meta:
+                f.write(f"# {line}\n")
+            for cmd,arg in self.script:
+                if type(cmd)==str:
+                    f.write(f"# {cmd}\n")
+                else:
+                    if cmd==0x10 or cmd==0x11:
+                        f.write(f"C {cmd:02X}{arg:04X}\n")
+                    if cmd==0xE0:
+                        f.write(f"W {arg*10}\n")
+        
+
     def command(self, cmd, arg):
         self.total_time += (
             0.01  ## assume 10ms for a real command, already overestimated
