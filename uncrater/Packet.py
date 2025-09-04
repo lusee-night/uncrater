@@ -30,7 +30,7 @@ PacketDict = {
     id.AppID_uC_Housekeeping: Packet_Housekeep,
     id.AppID_uC_Start: Packet_Hello,
     id.AppID_uC_Heartbeat: Packet_Heartbeat,
-    id.AppID_Watchdog: Packet_Watchdog,
+    #id.AppID_Watchdog: None,
     id.AppID_End_Of_Sequence: Packet_EOS,
     id.AppID_MetaData: Packet_Metadata,
     id.AppID_Calibrator_MetaData: Packet_Cal_Metadata,
@@ -39,7 +39,7 @@ PacketDict = {
     id.AppID_Calibrator_Data+2: Packet_Cal_Data,
     id.AppID_Calibrator_Debug: Packet_Cal_Debug,
     id.AppID_ZoomSpectra: Packet_Cal_ZoomSpectra,
-    id.AppID_RawADC_Meta: Packet_Waveform_Meta,
+    #id.AppID_RawADC_Meta: None
 }
 
 for i in range(16):
@@ -116,7 +116,7 @@ def appid_is_metadata(appid):
     return appid == id.AppID_MetaData
 
 def appid_is_watchdog(appid):
-    return appid == id.AppID_Watchdog
+    return appid == 0#id.AppID_Watchdog
 
 def appid_is_heartbeat(appid):
     return appid == id.AppID_uC_Heartbeat
