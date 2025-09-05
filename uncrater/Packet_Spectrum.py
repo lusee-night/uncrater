@@ -78,6 +78,9 @@ class Packet_SpectrumBase(PacketBase):
     def set_priority(self):
         raise RuntimeError("Packet_SpectrumBase is abstract, do not instantiate")
 
+    def parse_header(self):
+        raise RuntimeError("Packet_SpectrumBase is abstract, do not instantiate")
+
     def parse_spectra(self):
         raise RuntimeError("Packet_SpectrumBase is abstract, do not instantiate")
 
@@ -88,14 +91,14 @@ class Packet_SpectrumBase(PacketBase):
             return "i", np.int32
 
     def check_crc(self):
-        calculated_crc = binascii.crc32(self._blob[8:]) & 0xFFFFFFFF
+        calculated_crc = binascii.crc32(self._blob[self.header_size():]) & 0xFFFFFFFF
         self.error_crc_mismatch = not (self.crc == calculated_crc)
         if self.error_crc_mismatch:
             print(f"CRC: {self.crc:x} {calculated_crc:x}")
             print("WARNING CRC mismatch!!!!!")
             try:
-                Ndata = len(self._blob[8:]) // 4
-                data = struct.unpack(f"<{Ndata}{self.get_fmt_and_ptype()[0]}", self._blob[8:])
+                Ndata = len(self._blob[self.header_size():]) // 4
+                data = struct.unpack(f"<{Ndata}{self.get_fmt_and_ptype()[0]}", self._blob[self.header_size():])
                 print(data, Ndata)
             except:
                 pass
@@ -110,7 +113,8 @@ class Packet_SpectrumBase(PacketBase):
 
         self.set_priority()
         super()._read()
-        self.unique_packet_id, self.crc = struct.unpack("<II", self._blob[:8])
+
+        self.parse_header()
 
         if not hasattr(self, "meta"):
             print("Loading packet without metadata!")
@@ -120,9 +124,9 @@ class Packet_SpectrumBase(PacketBase):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
 
-        if self.meta.format == 0 and len(self._blob[8:]) // 4 > 2048:
+        if self.meta.format == 0 and len(self._blob[self.header_size():]) // 4 > 2048:
             print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + 2048 * 4]
+            self._blob = self._blob[: self.header_size() + 2048 * 4]
 
         self.parse_spectra()
         self.check_crc()
@@ -145,6 +149,12 @@ class Packet_SpectrumBase(PacketBase):
 
 class Packet_Spectrum(Packet_SpectrumBase):
 
+    def parse_header(self):
+        self.unique_packet_id, self.crc, self.n_rejected = struct.unpack("<III", self._blob[:12])
+
+    def header_size(self):
+        return 12
+
     def set_priority(self):
         if (
             self.appid >= id.AppID_SpectraHigh
@@ -166,23 +176,23 @@ class Packet_Spectrum(Packet_SpectrumBase):
             self.product = self.appid - id.AppID_SpectraLow
 
     def parse_spectra(self):
-        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[8:]) // 4 > 2048:
+        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[self.header_size():]) // 4 > 2048:
             print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + 2048 * 4]
+            self._blob = self._blob[: self.header_size() + 2048 * 4]
 
         fmt, ptype = self.get_fmt_and_ptype()
 
         if self.meta.format == cl.OUTPUT_32BIT:
-            Ndata = len(self._blob[8:]) // 4
+            Ndata = len(self._blob[self.header_size():]) // 4
             try:
-                data = struct.unpack(f"<{Ndata}{fmt}", self._blob[8:])
+                data = struct.unpack(f"<{Ndata}{fmt}", self._blob[self.header_size():])
             except:
                 self.error_data_read = True
                 data = np.zeros(Ndata)
         elif self.meta.format in [cl.OUTPUT_16BIT_10_PLUS_6, cl.OUTPUT_16BIT_4_TO_5]:
-            Ndata = len(self._blob[8:]) // 2
+            Ndata = len(self._blob[self.header_size():]) // 2
             try:
-                compressed_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
+                compressed_data = struct.unpack(f"<{Ndata}H", self._blob[self.header_size():])
                 compressed_data = np.array(compressed_data, dtype=np.uint16)
             except:
                 print("ERROR unpacking byte sequence")
@@ -206,6 +216,12 @@ class Packet_Spectrum(Packet_SpectrumBase):
 
 
 class Packet_TR_Spectrum(Packet_SpectrumBase):
+    def parse_header(self):
+        self.unique_packet_id, self.crc = struct.unpack("<II", self._blob[:8])
+
+    def header_size(self):
+        return 8
+
     def set_priority(self):
         if (
             self.appid >= id.AppID_SpectraTRHigh
@@ -235,9 +251,9 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
 
         #if self.meta.format == 0:
             # data consists of uint16_t, _blob has type int32_t
-        Ndata = len(self._blob[8:]) // 2
+        Ndata = len(self._blob[self.header_size():]) // 2
         try:
-            enc_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
+            enc_data = struct.unpack(f"<{Ndata}H", self._blob[self.header_size():])
             enc_data = np.array(enc_data, dtype=np.uint16)
             data = decode_10plus6(enc_data)
         except:
