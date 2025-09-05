@@ -1,9 +1,13 @@
 import ctypes
 import os
 import numpy as np
+import sys
 from typing import Union
 
-lib_path = os.path.join(os.environ['CORELOOP_DIR'],'build','libcl_utils.so')
+if sys.platform == "darwin":
+    lib_path = os.path.join(os.environ['CORELOOP_DIR'],'build','libcl_utils.dylib')
+else:
+    lib_path = os.path.join(os.environ['CORELOOP_DIR'],'build','libcl_utils.so')
 lib = ctypes.CDLL(lib_path)
 
 lib.encode_10plus6.argtypes = [ctypes.c_int32]
