@@ -5,11 +5,11 @@ import socket
 import subprocess
 import sys
 import time
-import glob 
+import glob
 
 class CoreloopBackend(BackendBase):
 
-    def __init__(self, clog, uart_log, session):
+    def __init__(self, clog, uart_log, session, spectrum_fname=None):
         super().__init__(clog, uart_log, session)
         self.clog.logt("Coreloop Backend initialized\n")
         self.coreloop_exe = os.path.join(os.environ['CORELOOP_DIR'],'build','coreloop')
@@ -20,6 +20,12 @@ class CoreloopBackend(BackendBase):
         self.sockout = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.port = 32100
         self.stop_threads = False
+        if spectrum_fname:
+            self.spectrum_path = os.path.join(os.environ["CORELOOP_DIR"],
+                                              "data", spectrum_fname)
+            assert os.path.exists(self.spectrum_path)
+        else:
+            self.spectrum_path = None
 
     def send_command(self, cmd, arg):
         b=bytearray(4)
@@ -35,6 +41,8 @@ class CoreloopBackend(BackendBase):
     def exec_thread(self):
         self.clog.logt("Executing Coreloop\n")
         options = f"-m port -o {self.cdi_output_dir()}"
+        if self.spectrum_path:
+            options += f" -s {self.spectrum_path} "
         self.clog.logt(f"Executing {self.coreloop_exe} {options}\n")
         self.process = subprocess.Popen([self.coreloop_exe]+options.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = self.process.communicate()

@@ -38,6 +38,7 @@ from test_bootload import Test_Bootload
 from test_encoding_format import Test_EncodingFormat
 from test_binresponse import Test_BinResponse
 from test_reject import Test_Reject
+from test_reject_1 import Test_Reject1
 from test_control import Test_Control
 from test_grimm import Test_Grimm
 from test_notch import Test_Notch
@@ -73,6 +74,7 @@ Tests = [
     Test_CalibratorZoom,
     Test_Calib_Weights,
     Test_Reject,
+    Test_Reject1,
     Test_Control,
     Test_Watchdog,
     Test_Watchdog_Command, 
@@ -204,13 +206,19 @@ def main():
         T = t(options)
         print("Generating script... ", end="")
         S = T.generate_script()
+        if hasattr(T, "spectrum_fname"):
+            assert args.backend == "coreloop"
+            spectrum_fname = getattr(T, "spectrum_fname")
+        else:
+            spectrum_fname = None
         print("OK.")
         workdir = args.workdir.replace("%test_name%", t.name)
         ## this will also generated the work dir
         print("Starting commander...")
         awg = None if args.awg == "None" else args.awg
         C = Commander(
-            session=workdir, script=S.script, backend=args.backend, awg_backend=awg
+            session=workdir, script=S.script, backend=args.backend, awg_backend=awg,
+            spectrum_fname=spectrum_fname
         )
         # Save options to YAML file
         options_file = f"{workdir}/options.yaml"

@@ -59,7 +59,7 @@ def read_script(fname):
 
 class Commander:
 
-    def __init__ (self, session = "session", script = None, commanding_ip=None, commanding_port = None, backend = 'DCBEmu', awg_backend = None):
+    def __init__ (self, session = "session", script = None, commanding_ip=None, commanding_port = None, backend = 'DCBEmu', awg_backend = None, spectrum_fname = None):
         print ("Starting commander.")
         self.session=session
         if script is None:
@@ -72,6 +72,8 @@ class Commander:
 
         self.script = script
 
+        self.spectrum_fname = spectrum_fname
+
         self.prepare_directory()
 
         if backend == "DCBEmu":
@@ -79,7 +81,7 @@ class Commander:
         elif backend == "DCBEmu_nouart":
             self.backend = DCBEmulator(self.clog, None, self.session)
         elif backend == "coreloop":
-            self.backend = CoreloopBackend(self.clog, self.uart_log, self.session)
+            self.backend = CoreloopBackend(self.clog, self.uart_log, self.session, self.spectrum_fname)
         elif backend == "DCB":
             print("Using the SSL DCB")
             self.backend = DCB(self.clog, self.uart_log, self.session)
