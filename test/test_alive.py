@@ -101,6 +101,7 @@ class Test_Alive(Test):
     instructions = """ Do not need to connect anything."""
     default_options = {
         "waveform_type": "ramp",
+        "avg_mode": "int",
         "cdi_delay": 1,
         "slow": False,
         "test_death": False,
@@ -108,6 +109,7 @@ class Test_Alive(Test):
     } ## dictinary of options for the test
     options_help = {
         "waveform_type" : "Waveform to be generated. Can be 'ramp', 'zeros', 'ones', or 'input'",
+        "avg_mode" : "Averaging mode. Can be 'int', '40bit', or 'float'",
         "cdi_delay": "Delay in units of 1.26ms for the CDI to space packets by (0=225ns)",
         "slow": "Snail mode for SSL",
         "test_death": "Send the kill switch command half-way there",
@@ -137,6 +139,7 @@ class Test_Alive(Test):
         S.ADC_special_mode(self.waveform_type)
         S.waveform(4)                
         S.set_Navg(14,6 if self.slow else 3)
+        S.set_avg_mode(self.avg_mode)
         S.start()        
         S.cdi_wait_spectra(2 if self.slow else 9)
         S.stop()        
