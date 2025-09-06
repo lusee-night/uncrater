@@ -150,7 +150,7 @@ class Packet_SpectrumBase(PacketBase):
 class Packet_Spectrum(Packet_SpectrumBase):
 
     def parse_header(self):
-        self.unique_packet_id, self.crc, self.n_rejected = struct.unpack("<III", self._blob[:12])
+        self.unique_packet_id, self.crc = struct.unpack("<II", self._blob[:12])
 
     def header_size(self):
         return 12
