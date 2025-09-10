@@ -6,7 +6,7 @@ import struct
 import numpy as np
 import binascii
 from typing import Tuple
-
+from icecream import ic
 
 if os.environ.get("CORELOOP_DIR") is not None:
     sys.path.append(os.environ.get("CORELOOP_DIR"))
@@ -150,10 +150,10 @@ class Packet_SpectrumBase(PacketBase):
 class Packet_Spectrum(Packet_SpectrumBase):
 
     def parse_header(self):
-        self.unique_packet_id, self.crc = struct.unpack("<II", self._blob[:12])
+        self.unique_packet_id, self.crc = struct.unpack("<II", self._blob[:8])
 
     def header_size(self):
-        return 12
+        return 8
 
     def set_priority(self):
         if (
@@ -212,7 +212,7 @@ class Packet_Spectrum(Packet_SpectrumBase):
             raise NotImplementedError(f"Format {self.meta.format} is not supported")
 
         self.data = np.array(data, dtype=ptype).astype(np.float64)/self.meta.base.weight*(1<<self.meta.base.Navg2_shift)
-        
+
 
 
 class Packet_TR_Spectrum(Packet_SpectrumBase):
