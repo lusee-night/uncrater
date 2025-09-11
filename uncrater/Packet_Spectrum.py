@@ -175,6 +175,15 @@ class Packet_Spectrum(Packet_SpectrumBase):
             self.priority = 3
             self.product = self.appid - id.AppID_SpectraLow
 
+    def n_received_channels(self):
+        if self.meta.base.Navgf == 1:
+            return 2048
+        if self.meta.base.Navgf== 2:
+            return 2048 // 2
+        if self.meta.base.Navgf in [3, 4]:
+            return 2048 // 4
+
+
     def parse_spectra(self):
         if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[self.header_size():]) // 4 > 2048:
             print("Spurious data, trimming!!!")
@@ -198,16 +207,20 @@ class Packet_Spectrum(Packet_SpectrumBase):
                 print("ERROR unpacking byte sequence")
                 self.error_data_read = True
                 compressed_data = np.zeros(Ndata, dtype=np.uint16)
-            try:
-                if self.meta.format == cl.OUTPUT_16BIT_10_PLUS_6:
+            if self.meta.format == cl.OUTPUT_16BIT_10_PLUS_6:
+                try:
                     data = decode_10plus6(compressed_data)
-                else:
-                    assert self.meta.format == cl.OUTPUT_16BIT_4_TO_5
+                except:
+                    print("ERROR calling decode10plus6 function")
+                    self.error_data_read = True
+                    data = np.zeros(Ndata, dtype=np.int32)
+            else:
+                try:
                     data = decode_5_into_4(compressed_data)
-            except:
-                print("ERROR calling decode function")
-                self.error_data_read = True
-                data = np.zeros(Ndata // 2, dtype=np.int32)
+                except:
+                    print("ERROR calling decode_5_into_4 function")
+                    self.error_data_read = True
+                    data = np.zeros(Ndata, dtype=np.int32)
         else:
             raise NotImplementedError(f"Format {self.meta.format} is not supported")
 

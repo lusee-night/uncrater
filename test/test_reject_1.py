@@ -15,10 +15,18 @@ from  lusee_script import Scripter
 import uncrater as uc
 from collections import defaultdict
 
+if os.environ.get("CORELOOP_DIR") is not None:
+    sys.path.append(os.environ.get("CORELOOP_DIR"))
+import pycoreloop
+from pycoreloop import pystruct as cl
+
+from helpers_avg_reject import simulate_averaging, create_trig_spectra
+
 N_PRODUCTS = 16
 N_AUTO_PRODUCTS = 4
 N_CHANNELS = 2048
 INT32_MAX = np.iinfo(np.int32).max
+
 
 def save_to_file(data: np.ndarray, fname: str):
     full_fname =  os.path.join(os.environ["CORELOOP_DIR"], "data", fname)
@@ -78,67 +86,67 @@ def create_spec_reject_normal_noise(fname: str, navg2: int, n_spectra: int=4, se
     return data
 
 
-def get_average(spectra: np.ndarray, avg_iter: int, navg2: int, reject_ratio: int,
-                max_bad: int, prev_accepted) -> Tuple[np.ndarray, List[int]]:
-    assert reject_ratio >= 0
-    if avg_iter == 0:
-        # all packets are accepted
-        spectra = spectra[:navg2, :, :]
-        avg = np.mean(spectra.astype(np.int64), axis=0, dtype=np.int64).astype(np.int32)
-        # if avg_mode == "float":
-        #     avg = np.mean(spectra.astype(np.float32), axis=0, dtype=np.float32).astype(np.int32)
-        # elif avg_mode == "int":
-        #     avg = np.sum(spectra.astype(np.int32) // navg2, axis=0, dtype=np.int32).astype(np.int32)
-        # elif avg_mode == "40bit":
-        #     avg = np.mean(spectra.astype(np.int64), axis=0, dtype=np.int64).astype(np.int32)
-        accepted = list(range(navg2))
-    else:
-        n_avg_iters = spectra.shape[0] // navg2
-        curr_avg_iter, prev_avg_iter = avg_iter % n_avg_iters, (avg_iter - 1) % n_avg_iters
-
-        curr_spectra = spectra[curr_avg_iter * navg2:(curr_avg_iter + 1) * navg2, :, :]
-
-        if len(prev_accepted) <= navg2 // 2:
-            # we accepted too few packets in previous iteration to compare with average, accepting all now
-            accepted = list(range(navg2))
-        else:
-            prev_spectra = spectra[prev_avg_iter * navg2:(prev_avg_iter + 1) * navg2, :N_AUTO_PRODUCTS, :]
-            prev_spectra = prev_spectra[prev_accepted, :, :]
-
-            prev_avg = np.mean(prev_spectra, axis=0, dtype=np.int64)
-
-            accepted = []
-
-            for spec_idx in range(navg2):
-                spectrum = curr_spectra[spec_idx, :N_AUTO_PRODUCTS, :]
-                assert spectrum.shape == prev_avg.shape
-                delta = np.abs(spectrum.astype(np.int64) - prev_avg.astype(np.int64))
-                if reject_ratio > 0:
-                    n_bad = np.sum(delta > prev_avg // reject_ratio)
-                else:
-                    n_bad = 0
-                if n_bad <= max_bad:
-                    accepted.append(spec_idx)
-
-        avg = np.mean(curr_spectra[accepted, :, :].astype(np.int64), axis=0, dtype=np.int64).astype(np.int32)
-
-    return avg, accepted
-
-
-def simulate_averaging(spectra, navg2, reject_ratio, max_bad, avg_mode, n_avg_iters):
-    # initialize with None, will be removed at the end
-    results = [None]
-    all_accepted = [None]
-
-    for avg_iter in range(n_avg_iters):
-        avg, accepted = get_average(spectra=spectra, avg_iter=avg_iter, navg2=navg2, reject_ratio=reject_ratio, max_bad=max_bad, prev_accepted=all_accepted[-1])
-        results.append(avg)
-        all_accepted.append(accepted)
-
-    results = results[1:]
-    all_accepted = all_accepted[1:]
-
-    return results, all_accepted
+# def get_average(spectra: np.ndarray, avg_iter: int, navg2: int, reject_ratio: int,
+#                 max_bad: int, prev_accepted) -> Tuple[np.ndarray, List[int]]:
+#     assert reject_ratio >= 0
+#     if avg_iter == 0:
+#         # all packets are accepted
+#         spectra = spectra[:navg2, :, :]
+#         avg = np.mean(spectra.astype(np.int64), axis=0, dtype=np.int64).astype(np.int32)
+#         # if avg_mode == "float":
+#         #     avg = np.mean(spectra.astype(np.float32), axis=0, dtype=np.float32).astype(np.int32)
+#         # elif avg_mode == "int":
+#         #     avg = np.sum(spectra.astype(np.int32) // navg2, axis=0, dtype=np.int32).astype(np.int32)
+#         # elif avg_mode == "40bit":
+#         #     avg = np.mean(spectra.astype(np.int64), axis=0, dtype=np.int64).astype(np.int32)
+#         accepted = list(range(navg2))
+#     else:
+#         n_avg_iters = spectra.shape[0] // navg2
+#         curr_avg_iter, prev_avg_iter = avg_iter % n_avg_iters, (avg_iter - 1) % n_avg_iters
+#
+#         curr_spectra = spectra[curr_avg_iter * navg2:(curr_avg_iter + 1) * navg2, :, :]
+#
+#         if len(prev_accepted) <= navg2 // 2:
+#             # we accepted too few packets in previous iteration to compare with average, accepting all now
+#             accepted = list(range(navg2))
+#         else:
+#             prev_spectra = spectra[prev_avg_iter * navg2:(prev_avg_iter + 1) * navg2, :N_AUTO_PRODUCTS, :]
+#             prev_spectra = prev_spectra[prev_accepted, :, :]
+#
+#             prev_avg = np.mean(prev_spectra, axis=0, dtype=np.int64)
+#
+#             accepted = []
+#
+#             for spec_idx in range(navg2):
+#                 spectrum = curr_spectra[spec_idx, :N_AUTO_PRODUCTS, :]
+#                 assert spectrum.shape == prev_avg.shape
+#                 delta = np.abs(spectrum.astype(np.int64) - prev_avg.astype(np.int64))
+#                 if reject_ratio > 0:
+#                     n_bad = np.sum(delta > prev_avg // reject_ratio)
+#                 else:
+#                     n_bad = 0
+#                 if n_bad <= max_bad:
+#                     accepted.append(spec_idx)
+#
+#         avg = np.mean(curr_spectra[accepted, :, :].astype(np.int64), axis=0, dtype=np.int64).astype(np.int32)
+#
+#     return avg, accepted
+#
+#
+# def simulate_averaging(spectra, navg2, reject_ratio, max_bad, avg_mode, n_avg_iters):
+#     # initialize with None, will be removed at the end
+#     results = [None]
+#     all_accepted = [None]
+#
+#     for avg_iter in range(n_avg_iters):
+#         avg, accepted = get_average(spectra=spectra, avg_iter=avg_iter, navg2=navg2, reject_ratio=reject_ratio, max_bad=max_bad, prev_accepted=all_accepted[-1])
+#         results.append(avg)
+#         all_accepted.append(accepted)
+#
+#     results = results[1:]
+#     all_accepted = all_accepted[1:]
+#
+#     return results, all_accepted
 
 
 class Test_Reject1(Test):
@@ -149,17 +157,21 @@ class Test_Reject1(Test):
     default_options = {
         "seed": 42,
         "avg_mode": "int",
+        "output_format": "32bit",
+        "navgf": 1,
         "Navg2_shift": 3,
         "cdi_delay": 0,
         "reject_ratio": 4,
         "max_bad": 16,
         "n_spectra_to_receive": 8,
         "n_spectra_to_generate": 32,
-        "data_gen_func": "create_spec_reject_simple"
+        "data_gen_func": "create_trig_spectra"
     } ## dictinary of options for the test
     options_help = {
         "seed" : "Random seed",
         "avg_mode" : "Averaging mode. Can be 'int', '40bit', or 'float'",
+        "output_format": "Output encoding, can be '32bit', '4to5', '10plus6'",
+        "navgf" : "Number of bins to average in outputting spectra, 1-4",
         "Navg2_shift" : "Second phase averaging shift",
         "cdi_delay": "Delay in units of 1.26ms for the CDI to space packets by (0=225ns)",
         "reject_ratio": "Maximal deviation ratio to declare entry bad",
@@ -176,6 +188,15 @@ class Test_Reject1(Test):
         self.spectrum_fname = "user_spectrum.dat"
         self.navg2 = 2 ** self.Navg2_shift
 
+        if self.output_format == "32bit":
+            self.format = cl.OUTPUT_32BIT
+        elif self.output_format == "4to5":
+            self.format = cl.OUTPUT_16BIT_4_TO_5
+        elif self.output_format == "10plus6":
+            self.format = cl.OUTPUT_16BIT_10_PLUS_6
+        else:
+            raise RuntimeError("Unknown output format, supported values are 32bit, 4to5 and 10plus6")
+
         self.true_data = data_func(self.spectrum_fname, n_spectra=self.n_spectra_to_generate, navg2=self.navg2, seed=self.seed)
 
         self.expected_data, self.expected_accepted = simulate_averaging(spectra=self.true_data,
@@ -183,7 +204,8 @@ class Test_Reject1(Test):
                                                  reject_ratio=self.reject_ratio,
                                                  max_bad=self.max_bad,
                                                  n_avg_iters=self.n_spectra_to_receive,
-                                                 avg_mode=self.avg_mode)
+                                                 avg_mode=self.avg_mode,
+                                                 navgf=self.navgf)
 
 
     def generate_script(self):
@@ -193,28 +215,34 @@ class Test_Reject1(Test):
 
         assert self.n_spectra_to_generate >= self.navg2
 
-        S = Scripter()
-        S.reset()
+        scripter = Scripter()
+        scripter.reset()
         
         ## Sequence
-        S.seq_begin()
-        S.set_cdi_delay(int(self.cdi_delay))
-        S.set_dispatch_delay(2)
-        S.house_keeping(0)
-        S.ADC_special_mode("normal")
-        S.set_Navg(14, self.Navg2_shift)
-        S.reject_enable(enable=True, reject_frac = self.reject_ratio, max_bad = self.max_bad)
-        S.set_avg_mode(self.avg_mode)
-        S.start()
-        S.cdi_wait_spectra(self.n_spectra_to_receive)
-        S.stop()        
-        S.house_keeping(0)
-        S.request_eos()
-        S.flash_clear()
-        S.seq_end(store_flash=True)
-        S.wait_eos()
+        scripter.seq_begin()
+        scripter.set_cdi_delay(int(self.cdi_delay))
+        scripter.set_dispatch_delay(2)
+        scripter.set_spectra_format(self.format)
+        scripter.house_keeping(0)
+        scripter.ADC_special_mode("normal")
+        scripter.set_Navg(14, self.Navg2_shift)
+        scripter.reject_enable(enable=True, reject_frac = self.reject_ratio, max_bad = self.max_bad)
+        scripter.set_avg_mode(self.avg_mode)
+        scripter.set_avg_freq(self.navgf)
+        scripter.start()
+        scripter.cdi_wait_spectra(self.n_spectra_to_receive)
+        scripter.stop()
+        scripter.house_keeping(0)
+        scripter.request_eos()
+        scripter.flash_clear()
+        scripter.seq_end(store_flash=True)
+        scripter.wait_eos()
 
-        return S
+        return scripter
+
+    def get_rel_error(self, received_prod, expected_prod):
+        # return np.max(np.abs(received_prod - expected_prod) / (np.abs(expected_prod) + 0.0001))
+        return np.max(np.abs(received_prod - expected_prod) / np.mean(np.abs(expected_prod)))
 
     def compare_spectra(self, C):
         if len(self.expected_data) != self.n_spectra_to_receive:
@@ -234,10 +262,12 @@ class Test_Reject1(Test):
                 for prod_idx in range(N_PRODUCTS):
                     received_prod = spectra[prod_idx].data
                     expected_prod = self.expected_data[s_idx][prod_idx, :]
-                    assert received_prod.size == N_CHANNELS and expected_prod.size == N_CHANNELS
-                    rel_error = np.sum(np.abs(received_prod - expected_prod)) / np.sum(np.abs(expected_prod))
-                    if rel_error > 0.001:
-                        print(f"ERROR: spectrum idx = {s_idx}, prod_idx = {prod_idx}, real weight = {real_weight}, {rel_error=}")
+                    if not received_prod.size == self.n_received_channels() == expected_prod.size:
+                        ic(received_prod.size, expected_prod.size, self.n_received_channels(), self.navgf)
+                        assert False
+                    rel_error = self.get_rel_error(received_prod, expected_prod)
+                    if rel_error > self.max_rel_error():
+                        print(f"ERROR: compare_spectra, spectrum idx = {s_idx}, prod_idx = {prod_idx}, real weight = {real_weight}, {rel_error=}")
                         result = result and False
 
         return result
@@ -262,8 +292,24 @@ class Test_Reject1(Test):
             result = 0
         return result
 
+    def n_received_channels(self):
+        if self.navgf == 1:
+            return N_CHANNELS
+        if self.navgf == 2:
+            return N_CHANNELS // 2
+        if self.navgf in [3, 4]:
+            return N_CHANNELS // 4
+
+    def max_rel_error(self):
+        if self.format in [cl.OUTPUT_16BIT_4_TO_5, cl.OUTPUT_16BIT_10_PLUS_6]:
+            return 0.005
+        else:
+            return 0.001
+
+
     def rel_error_ok(self, C):
         rel_error_computed = False
+
         for s_idx, spectra in enumerate(C.spectra):
             real_weight = spectra["meta"].base.weight
             expected_weight = len(self.expected_accepted[s_idx])
@@ -272,13 +318,16 @@ class Test_Reject1(Test):
                 return 0
             if not real_weight:
                 continue
+
+
             for prod_idx in range(N_PRODUCTS):
                 rel_error_computed = True
                 received_prod = spectra[prod_idx].data
                 expected_prod = self.expected_data[s_idx][prod_idx, :]
-                assert received_prod.size == N_CHANNELS and expected_prod.size == N_CHANNELS
-                rel_error = np.sum(np.abs(received_prod - expected_prod)) / np.sum(np.abs(expected_prod))
-                if rel_error > 0.001:
+                assert received_prod.size == self.n_received_channels() and expected_prod.size == self.n_received_channels()
+                # rel_error = np.sum(np.abs(received_prod - expected_prod)) / np.sum(np.abs(expected_prod))
+                rel_error = self.get_rel_error(received_prod, expected_prod)
+                if rel_error > self.max_rel_error():
                     print(f"ERROR: spectrum idx = {s_idx}, prod_idx = {prod_idx}, real weight = {real_weight}, {rel_error=}")
                     return 0
 
@@ -358,7 +407,8 @@ class Test_Reject1(Test):
                 if prod_idx < 4:
                     ax.set_yscale('log')
 
-                channels = np.arange(N_CHANNELS)
+                channels = np.arange(self.n_received_channels())
+
 
                 if real_weight == 0:
                     # Special color for zero weight - plot only received
@@ -411,7 +461,6 @@ class Test_Reject1(Test):
 
         if not self.compare_spectra(C):
             passed = False
-            assert False
 
         num_hb = C.num_heartbeats()
         num_sp = C.num_spectra_packets()
