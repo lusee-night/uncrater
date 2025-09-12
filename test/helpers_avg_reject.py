@@ -248,8 +248,13 @@ def filter_and_average(spectra: np.ndarray, avg_iter: int, navg2: int, reject_ra
                 prev_avg = np.sum(prev_spectra, axis=0, dtype=np.float32) / np.float32(len(prev_accepted))
             elif avg_mode == "int":
                 prev_spectra = prev_spectra[prev_accepted, :, :].astype(np.int32)
-                prev_avg = np.sum(prev_spectra, axis=0, dtype=np.int32) // np.int32(len(prev_accepted))
-                prev_avg = prev_avg * np.int32(navg2)
+                # imitate loss of precision: first divide by navg2, then multiply
+                x = (prev_spectra // np.int32(navg2)).astype(np.int32)
+                if len(prev_accepted) != navg2:
+                    prev_avg = np.sum(x, axis=0, dtype=np.int32) // np.int32(len(prev_accepted))
+                    prev_avg = prev_avg * np.int32(navg2)
+                else:
+                    prev_avg = np.sum(x, axis=0, dtype=np.int32)
 
             # prev_avg = average_spectra(spectra=prev_spectra, navg2=navg2, accepted=prev_accepted, avg_mode=avg_mode, navgf=1)
 
@@ -272,6 +277,9 @@ def filter_and_average(spectra: np.ndarray, avg_iter: int, navg2: int, reject_ra
                         for channel_idx in range(N_CHANNELS):
                             if avg_mode == "float":
                                 if delta[p_idx, channel_idx] > prev_avg[p_idx, channel_idx] / np.float32(reject_ratio):
+                                    bad_channels.append((p_idx, channel_idx))
+                            elif avg_mode == "int":
+                                if spectrum[p_idx, channel_idx] >= navg2 * reject_ratio and delta[p_idx, channel_idx] > prev_avg[p_idx, channel_idx] // reject_ratio:
                                     bad_channels.append((p_idx, channel_idx))
                             else:
                                 if delta[p_idx, channel_idx] > prev_avg[p_idx, channel_idx] // reject_ratio:
