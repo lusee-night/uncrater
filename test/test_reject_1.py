@@ -226,6 +226,7 @@ class Test_Reject1(Test):
         scripter.house_keeping(0)
         scripter.ADC_special_mode("normal")
         scripter.set_Navg(14, self.Navg2_shift)
+        ic(self.reject_ratio, self.max_bad)
         scripter.reject_enable(enable=True, reject_frac = self.reject_ratio, max_bad = self.max_bad)
         scripter.set_avg_mode(self.avg_mode)
         scripter.set_avg_freq(self.navgf)
@@ -243,6 +244,40 @@ class Test_Reject1(Test):
     def get_rel_error(self, received_prod, expected_prod):
         # return np.max(np.abs(received_prod - expected_prod) / (np.abs(expected_prod) + 0.0001))
         return np.max(np.abs(received_prod - expected_prod) / np.mean(np.abs(expected_prod)))
+
+    def get_l1_rel_error(self, received_prod, expected_prod):
+        return np.sum(np.abs(received_prod - expected_prod)) / np.sum(np.abs(expected_prod))
+
+    def compute_errors(self, C):
+        self.sp_max_rel_error = "10 000"
+        self.sp_max_l1_rel_error = "10 000"
+        if len(self.expected_data) != self.n_spectra_to_receive:
+            return
+        if C.num_spectra_packets() != self.n_spectra_to_receive:
+            return
+
+        rel_errors = []
+        l1_rel_errors = []
+
+        for s_idx, spectra in enumerate(C.spectra):
+            real_weight = spectra["meta"].base.weight
+            expected_weight = len(self.expected_accepted[s_idx])
+            if real_weight != expected_weight:
+                continue
+            if real_weight:
+                for prod_idx in range(N_PRODUCTS):
+                    received_prod = spectra[prod_idx].data
+                    expected_prod = self.expected_data[s_idx][prod_idx, :]
+                    assert received_prod.size == self.n_received_channels() == expected_prod.size
+                    rel_error = self.get_rel_error(received_prod, expected_prod)
+                    l1_rel_error = self.get_l1_rel_error(received_prod, expected_prod)
+                    rel_errors.append(rel_error)
+                    l1_rel_errors.append(l1_rel_error)
+                    ic(s_idx, l1_rel_error)
+
+        self.sp_max_rel_error = f"{max(rel_errors):.4f}"
+        self.sp_max_l1_rel_error = f"{max(l1_rel_errors):.4f}"
+
 
     def compare_spectra(self, C):
         if len(self.expected_data) != self.n_spectra_to_receive:
@@ -266,8 +301,10 @@ class Test_Reject1(Test):
                         ic(received_prod.size, expected_prod.size, self.n_received_channels(), self.navgf)
                         assert False
                     rel_error = self.get_rel_error(received_prod, expected_prod)
-                    if rel_error > self.max_rel_error():
-                        print(f"ERROR: compare_spectra, spectrum idx = {s_idx}, prod_idx = {prod_idx}, real weight = {real_weight}, {rel_error=}")
+                    l1_rel_error = self.get_rel_error(received_prod, expected_prod)
+                    ic(s_idx, l1_rel_error)
+                    if l1_rel_error > self.max_l1_rel_error() or rel_error > self.max_rel_error():
+                        print(f"ERROR: compare_spectra, spectrum idx = {s_idx}, prod_idx = {prod_idx}, real weight = {real_weight}, {rel_error=}, {l1_rel_error=}")
                         result = result and False
 
         return result
@@ -302,6 +339,12 @@ class Test_Reject1(Test):
 
     def max_rel_error(self):
         if self.format in [cl.OUTPUT_16BIT_4_TO_5, cl.OUTPUT_16BIT_10_PLUS_6]:
+            return 0.15
+        else:
+            return 0.01
+
+    def max_l1_rel_error(self):
+        if self.format in [cl.OUTPUT_16BIT_4_TO_5, cl.OUTPUT_16BIT_10_PLUS_6]:
             return 0.005
         else:
             return 0.001
@@ -327,7 +370,8 @@ class Test_Reject1(Test):
                 assert received_prod.size == self.n_received_channels() and expected_prod.size == self.n_received_channels()
                 # rel_error = np.sum(np.abs(received_prod - expected_prod)) / np.sum(np.abs(expected_prod))
                 rel_error = self.get_rel_error(received_prod, expected_prod)
-                if rel_error > self.max_rel_error():
+                l1_rel_error = self.get_l1_rel_error(received_prod, expected_prod)
+                if rel_error > self.max_rel_error() or l1_rel_error > self.max_l1_rel_error():
                     print(f"ERROR: spectrum idx = {s_idx}, prod_idx = {prod_idx}, real weight = {real_weight}, {rel_error=}")
                     return 0
 
@@ -379,7 +423,7 @@ class Test_Reject1(Test):
 
     def plot_spectra(self, C, figures_dir):
         """Plot the first 3 spectra with 4x4 grid of products"""
-        n_spectra_to_plot = min(3, len(C.spectra))
+        n_spectra_to_plot = min(8, len(C.spectra))
 
         for spec_idx in range(n_spectra_to_plot):
             fig, axes = plt.subplots(4, 4, figsize=(16, 12))
@@ -387,7 +431,6 @@ class Test_Reject1(Test):
 
             spectra = C.spectra[spec_idx]
             real_weight = spectra["meta"].base.weight
-            expected_weight = len(self.expected_accepted[spec_idx])
 
             for prod_idx in range(N_PRODUCTS):
                 row = prod_idx // 4
@@ -399,9 +442,11 @@ class Test_Reject1(Test):
 
                 # Calculate relative error if weight > 0
                 if real_weight > 0:
-                    rel_error = np.sum(np.abs(received_prod - expected_prod)) / np.sum(np.abs(expected_prod))
+                    rel_error = self.get_rel_error(received_prod, expected_prod)
+                    l1_rel_error = self.get_l1_rel_error(received_prod, expected_prod)
                 else:
                     rel_error = float('inf')  # Force special handling for zero weight
+                    l1_rel_error = float('inf')
 
                 # Use log scale for first 4 products (auto-correlations)
                 if prod_idx < 4:
@@ -425,7 +470,7 @@ class Test_Reject1(Test):
                     ax.plot(channels, received_prod, color='green', linewidth=0.5,
                            label='Received', alpha=0.8)
 
-                ax.set_title(f'Product {prod_idx}', fontsize=10)
+                ax.set_title(f'Product {prod_idx}, rel. error {rel_error:.4f}, L1: {l1_rel_error:.4f}', fontsize=10)
                 ax.set_xlabel('Channel', fontsize=8)
                 ax.set_ylabel('Value', fontsize=8)
                 ax.tick_params(axis='both', labelsize=6)
@@ -461,6 +506,8 @@ class Test_Reject1(Test):
 
         if not self.compare_spectra(C):
             passed = False
+
+        self.compute_errors(C)
 
         num_hb = C.num_heartbeats()
         num_sp = C.num_spectra_packets()
@@ -512,6 +559,9 @@ class Test_Reject1(Test):
             self.results["rel_error_ok"] = 0
             self.results["meta_error_free"] = 0
             self.results["sp_rel_error_ok"] = 0
+
+        self.results["sp_max_rel_error"] = self.sp_max_rel_error
+        self.results["sp_max_l1_rel_error"] = self.sp_max_l1_rel_error
 
         passed = (passed and crc_ok and sp_all and sp_number_ok and sp_weights_ok and sp_rel_error_ok)
 

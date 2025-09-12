@@ -13,6 +13,7 @@ N_PRODUCTS = 16
 N_AUTO_PRODUCTS = 4
 N_CHANNELS = 2048
 INT32_MAX = np.iinfo(np.int32).max
+INT32_MIN = np.iinfo(np.int32).min
 
 def save_to_file(data: np.ndarray, fname: str):
     full_fname =  os.path.join(os.environ["CORELOOP_DIR"], "data", fname)
@@ -32,7 +33,7 @@ def save_to_file(data: np.ndarray, fname: str):
 def create_trig_spectra(fname: str, n_spectra: int=4, max_amplitude: int= 3 * INT32_MAX // 4, seed: int=42, **kwargs) -> np.ndarray:
     np.random.seed(seed)
 
-    apply_noise = False
+    apply_noise = True
 
     # Noise parameters (as variables, not function parameters)
     normal_noise_std = 0.002  # Standard deviation for normal noise (as fraction of signal)
@@ -129,7 +130,7 @@ def create_trig_spectra(fname: str, n_spectra: int=4, max_amplitude: int= 3 * IN
                 data[spectrum, product, :] += salt_pepper_mask * salt_pepper_values
 
     # Convert to int32
-    data = np.clip(data, -INT32_MAX, INT32_MAX).astype(np.int32)
+    data = np.clip(data, INT32_MIN, INT32_MAX).astype(np.int32)
 
     # Ensure the first N_AUTO_PRODUCTS components are non-negative
     data[:, :N_AUTO_PRODUCTS, :] = np.abs(data[:, :N_AUTO_PRODUCTS, :])
@@ -235,22 +236,55 @@ def filter_and_average(spectra: np.ndarray, avg_iter: int, navg2: int, reject_ra
             accepted = list(range(navg2))
         else:
             prev_spectra = spectra[prev_avg_iter * navg2:(prev_avg_iter + 1) * navg2, :N_AUTO_PRODUCTS, :]
-            prev_spectra = prev_spectra[prev_accepted, :, :]
-
             # TODO: actual logic is more delicate
-            prev_avg = np.mean(prev_spectra, axis=0, dtype=np.int64)
+            # prev_spectra = prev_spectra[prev_accepted, :, :]
+            # prev_avg = np.mean(prev_spectra, axis=0, dtype=np.int64)
+            # this is for spectra_in logic, navgf=1 means we don't average over different bins
+            if avg_mode == "40bit":
+                prev_spectra = prev_spectra[prev_accepted, :, :]
+                prev_avg = np.sum(prev_spectra, axis=0, dtype=np.int64) // np.int64(len(prev_accepted))
+            elif avg_mode == "float":
+                prev_spectra = prev_spectra[prev_accepted, :, :].astype(np.float32)
+                prev_avg = np.sum(prev_spectra, axis=0, dtype=np.float32) / np.float32(len(prev_accepted))
+            elif avg_mode == "int":
+                prev_spectra = prev_spectra[prev_accepted, :, :].astype(np.int32)
+                prev_avg = np.sum(prev_spectra, axis=0, dtype=np.int32) // np.int32(len(prev_accepted))
+                prev_avg = prev_avg * np.int32(navg2)
+
+            # prev_avg = average_spectra(spectra=prev_spectra, navg2=navg2, accepted=prev_accepted, avg_mode=avg_mode, navgf=1)
 
             accepted = []
 
             for spec_idx in range(navg2):
                 spectrum = curr_spectra[spec_idx, :N_AUTO_PRODUCTS, :]
-                assert spectrum.shape == prev_avg.shape
-                delta = np.abs(spectrum.astype(np.int64) - prev_avg.astype(np.int64))
-                if reject_ratio > 0:
-                    n_bad = np.sum(delta > prev_avg // reject_ratio)
+                if spectrum.shape != prev_avg.shape:
+                    ic(spectrum.shape)
+                    assert spectrum.shape == prev_avg.shape
+                if avg_mode in ["40bit", "int"]:
+                    delta = np.abs(spectrum.astype(np.int64) - prev_avg.astype(np.int64))
                 else:
-                    n_bad = 0
-                # ic(avg_iter, spec_idx, n_bad)
+                    delta = np.abs(spectrum.astype(np.float32) - prev_avg)
+
+                n_bad = 0
+                if reject_ratio > 0:
+                    bad_channels = []
+                    for p_idx in range(N_AUTO_PRODUCTS):
+                        for channel_idx in range(N_CHANNELS):
+                            if avg_mode == "float":
+                                if delta[p_idx, channel_idx] > prev_avg[p_idx, channel_idx] / np.float32(reject_ratio):
+                                    bad_channels.append((p_idx, channel_idx))
+                            else:
+                                if delta[p_idx, channel_idx] > prev_avg[p_idx, channel_idx] // reject_ratio:
+                                    bad_channels.append((p_idx, channel_idx))
+                    # if avg_iter == 1 and spec_idx == 0:
+                    #     ic(avg_iter, spec_idx, bad_channels)
+                    n_bad = len(bad_channels)
+
+                # if reject_ratio > 0:
+                #     n_bad = np.sum(delta > prev_avg // reject_ratio)
+                # else:
+                #     n_bad = 0
+                ic(avg_iter, spec_idx, n_bad)
                 if n_bad <= max_bad:
                     accepted.append(spec_idx)
 
