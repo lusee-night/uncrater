@@ -215,9 +215,10 @@ class Test_Science(Test):
         S.reset()
         S.wait(0.5)
         S.seq_begin()        
+        S.set_cdi_delay(1)
         S.set_dispatch_delay(100)
         S.set_alarm_setpoint(self.alarm)     
-        S.enable_watchdogs(0b11111101)   # cdi alarm not there        
+        S.enable_watchdogs(0b01111111)   # cdi alarm not there        
         S.set_notch(4)        
         S.set_Navg(14,6)
         #S.reject_enable(reject_frac=10, max_bad = 100)          
@@ -232,7 +233,7 @@ class Test_Science(Test):
         S.set_ana_gain('AAAA')
         
         # zoom
-        S.cal_set_pfb_bin(1522)
+        S.cal_set_pfb_bin(1520)
         S.cal_set_zoom_navg(7)
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
         
