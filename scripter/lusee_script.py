@@ -552,6 +552,21 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CAL_AVG, avg)
 
     @lusee_command
+    def cal_set_zoom_ch(self, ch1=0, ch2=1, mode='all'):
+        assert mode in ['auto00', 'auto_both', 'all']
+        assert (ch1>=0 & ch1<4)
+        assert (ch2>=0 & ch2<4)
+
+        if mode == 'auto00':
+            mode_val = 0
+        elif mode == 'auto_both':
+            mode_val = 1
+        else:
+            mode_val = 2
+        arg = (mode_val << 6) + (ch2 << 3) + ch1
+        self.spectrometer_command(lc.RFS_SET_ZOOM_CH, arg)
+
+    @lusee_command
     def cal_set_zoom_navg(self, avg):
         self.spectrometer_command(lc.RFS_SET_ZOOM_NAVG, avg)
 
