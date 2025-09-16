@@ -215,7 +215,8 @@ class Test_Science(Test):
         S.reset()
         S.wait(0.5)
         S.seq_begin()        
-        S.set_cdi_delay(6)
+
+        S.set_cdi_delay(1)
         S.set_dispatch_delay(100)
         S.set_alarm_setpoint(self.alarm)     
         S.enable_watchdogs(0b01111111)   # cdi alarm not there        
@@ -235,6 +236,7 @@ class Test_Science(Test):
         # zoom
 
         S.cal_set_zoom_ch(2,3)
+        S.cal_set_pfb_bin(1520)
         S.cal_set_zoom_navg(7)
         S.cal_set_pfb_bin(436)
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
