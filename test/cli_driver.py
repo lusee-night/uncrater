@@ -44,6 +44,8 @@ from test_notch import Test_Notch
 from test_power import Test_Power
 from test_live import Test_Live
 from test_chcheck import Test_ChCheck
+from test_transit import Test_Transit
+from test_production import Test_Production
 
 from commander import Commander
 import uncrater as uc
@@ -80,7 +82,9 @@ Tests = [
     Test_Notch,
     Test_Power,
     Test_Live,
-    Test_ChCheck
+    Test_ChCheck,
+    Test_Transit,
+    Test_Production
 ]
 
 

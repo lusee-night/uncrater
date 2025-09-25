@@ -604,3 +604,11 @@ class Scripter:
 
     def enable_grimm_tales(self, enable=True):
         self.spectrometer_command(lc.RFS_SET_GRIMMS_TALES, int(enable))
+
+    @lusee_command
+    def grimm_tales_weight (self, ndx, val):
+        assert (ndx<32)
+        assert (val>=0) and (val<=255)
+        self.spectrometer_command(lc.RFS_SET_GRIMM_W_NDX, ndx)
+        self.spectrometer_command(lc.RFS_SET_GRIMM_W_VAL, val)
+        

@@ -233,6 +233,9 @@ class Collection:
         # we don't always send TR spectra; if dict contains only metadata
         # packet but no actual data, we assume it's fine and don't include it into self.tr_spectra
         self.tr_spectra = [trs for trs in tr_spectra if len(trs) > 1]
+        self.grimm_spectra = [P.data for P in self.cont if P.appid == id.AppID_SpectraGrimm]
+        if len(self.grimm_spectra)>0:
+            self.grimm_spectra = np.vstack(self.grimm_spectra)
         assert all(["meta" in trs for trs in tr_spectra])
 
     def __len__(self):
