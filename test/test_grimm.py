@@ -50,12 +50,13 @@ class Test_Grimm(Test):
         S.set_Navg(14,6)
 
         S.set_bitslice_auto(10)
-        S.set_avg_mode('float')
+        S.set_avg_mode('40bit')
         for i in range(32):
             S.grimm_tales_weight(i,20+3*i)
         S.enable_grimm_tales()
         S.cal_set_zoom_ch(1,2)
-        S.cal_set_zoom_navg(5)
+        S.cal_set_zoom_navg(6)
+        S.cal_set_pfb_bin(1172)
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
         
         #for i in range(1172, 1193):

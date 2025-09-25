@@ -262,15 +262,17 @@ class Packet_Cal_ZoomSpectra(PacketBase):
 
         fft_size = 64
         # ch1 autocorr + ch2 autocorr + ch12 corr real/imaginary parts = 4 arrays in total
-        total_entries = fft_size * 4
+        total_entries = fft_size * 4  ## 6 bytes for header
         use_float = True
-
-        if len(self._blob) == total_entries * 4:
+        self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
+        self.pfb_bin = struct.unpack("<H", self._blob[4:6])[0]
+        blob = self._blob[6:-2]  # last 2 bytes are padding to make it multiple of 4 bytes
+        if len(blob) == total_entries * 4:
             if use_float:
-                data = struct.unpack(f"<{total_entries}f", self._blob)
+                data = struct.unpack(f"<{total_entries}f", blob)
                 dtype = np.float32
             else:
-                data = struct.unpack(f"<{total_entries}i", self._blob)
+                data = struct.unpack(f"<{total_entries}i", blob)
                 dtype = np.int32
 
             # we always use float32 in NumPy, dtype is just for conversion from raw byte array
@@ -279,7 +281,7 @@ class Packet_Cal_ZoomSpectra(PacketBase):
             self.ch1_2_corr_real = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
             self.ch1_2_corr_imag = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
         else:
-            print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(self._blob)} bytes.")
+            print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(blob)} bytes.")
             self.ch1_autocorr = np.zeros(fft_size, dtype=np.float32)
             self.ch2_autocorr = np.zeros(fft_size, dtype=np.float32)
             self.ch1_2_corr_real = np.zeros(fft_size, dtype=np.float32)
