@@ -127,7 +127,7 @@ class Test_Alive(Test):
 
         S = Scripter()
         S.reset()
-        
+        S.wait(0.5)
         ## Sequence
         S.seq_begin()
         #S.enable_watchdogs()
