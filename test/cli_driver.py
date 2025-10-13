@@ -47,6 +47,7 @@ from test_chcheck import Test_ChCheck
 from test_transit import Test_Transit
 from test_production import Test_Production
 from test_region import Test_Region
+from test_calupload import Test_CalUpload
 from commander import Commander
 import uncrater as uc
 import yaml
@@ -85,7 +86,8 @@ Tests = [
     Test_ChCheck,
     Test_Transit,
     Test_Production,
-    Test_Region
+    Test_Region,
+    Test_CalUpload
 ]
 
 
