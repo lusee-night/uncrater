@@ -771,3 +771,31 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_GRIMM_W_NDX, ndx)
         self.spectrometer_command(lc.RFS_SET_GRIMM_W_VAL, val)
         
+
+    @lusee_command
+    def region_info (self):
+        self.spectrometer_command(lc.RFS_SET_REGION_INFO,0);
+
+    @lusee_command
+    def region_unlock(self, unlock=True):
+        if unlock:
+            arg = 0xAB
+        else:
+            arg = 0;
+        self.spectrometer_command(lc.RFS_SET_REGION_UNLOCK,arg);
+
+    @lusee_command
+    def region_cpy (self, src, tgt):
+        assert (src>=1) and (src<=6)
+        assert (tgt>=1) and (tgt<=6)
+        self.spectrometer_command(lc.RFS_SET_REGION_CPY, (tgt<<4)+src);
+
+    @lusee_command
+    def region_enable(self, region):
+        assert (region>=1) and (region<=6)
+        self.spectrometer_command(lc.RFS_SET_REGION_ENABLE, region)
+
+    @lusee_command
+    def region_disable(self, region):
+        assert (region>=1) and (region<=6)
+        self.spectrometer_command(lc.RFS_SET_REGION_DISABLE, region)

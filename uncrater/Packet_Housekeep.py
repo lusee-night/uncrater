@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Packet_Housekeep(PacketBase):
-    valid_types = set(range(4))
+    valid_types = set([0,1,2,3,100,101])
 
     @property
     def desc(self):
@@ -58,6 +58,12 @@ class Packet_Housekeep(PacketBase):
 
         elif temp.housekeeping_type == 3:
             self.copy_attrs(pystruct.housekeeping_data_3.from_buffer_copy(self._blob))
+
+        elif temp.housekeeping_type == 100:
+            self.copy_attrs(pystruct.housekeeping_data_100.from_buffer_copy(self._blob))
+        elif temp.housekeeping_type == 101:
+            self.copy_attrs(pystruct.housekeeping_data_101.from_buffer_copy(self._blob))
+        
         self._is_read = True
 
     def info(self):
