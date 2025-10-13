@@ -552,23 +552,41 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CAL_AVG, avg)
 
     @lusee_command
-    def cal_set_zoom_ch(self, ch1=0, ch2=1, mode='all'):
-        assert mode in ['auto00', 'auto_both', 'all']
-        assert (ch1>=0 & ch1<4)
-        assert (ch2>=0 & ch2<4)
+    def cal_set_zoom_ch(self, chA=0, chB=1, chA_minus=2, chB_minus=3):
+        assert (chA>=0 & chA<4)
+        assert (chB>=0 & chB<4)
+        assert (chA_minus>=0 & chA_minus<4)
+        assert (chB_minus>=0 & chB_minus<4)
 
-        if mode == 'auto00':
-            mode_val = 0
-        elif mode == 'auto_both':
-            mode_val = 1
-        else:
-            mode_val = 2
-        arg = (mode_val << 6) + (ch2 << 3) + ch1
+        arg = (chB_minus << 6) + (chA_minus<<4) + (chB << 2) + chA
         self.spectrometer_command(lc.RFS_SET_ZOOM_CH, arg)
 
     @lusee_command
     def cal_set_zoom_navg(self, avg):
         self.spectrometer_command(lc.RFS_SET_ZOOM_NAVG, avg)
+
+    @lusee_command
+    def cal_set_zoom_range(self, range):
+        if range==0:
+            arg = 0
+        else:
+            arg = int(16*(math.sqrt(1+range/8)-1))
+            if arg+arg*arg//32<range:
+                arg+=1
+            actual = arg+arg*arg//32
+            if (actual != range):
+                print(f"Warning: can't set exact range of {range}, setting to {actual} (arg={arg})")
+        self.spectrometer_command(lc.RFS_SET_ZOOM_RANGE, arg)
+        
+    @lusee_command
+    def cal_set_zoom_diff(self, diff_A=True, diff_B=True):
+        arg = 0
+        if diff_A:
+            arg+=1
+        if diff_B:
+            arg+=2
+        self.spectrometer_command(lc.RFS_SET_ZOOM_DIFF, arg)
+
 
     @lusee_command
     def cal_set_single_weight(self,bin,weight,zero_first=False):

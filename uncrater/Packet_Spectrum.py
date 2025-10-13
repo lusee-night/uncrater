@@ -235,6 +235,8 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
 
         #if self.meta.format == 0:
             # data consists of uint16_t, _blob has type int32_t
+
+        
         Ndata = len(self._blob[8:]) // 2
         try:
             enc_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
@@ -246,7 +248,9 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
         #else:
         #    raise NotImplementedError("Only format 0 is supported")
         self.data = np.array(data, dtype=np.int32)
-
+        if self.meta is not None:
+            Nbins = (self.meta.base.tr_stop-self.meta.base.tr_start)//(1<<self.meta.base.tr_avg_shift)
+            self.data = self.data.reshape((-1,Nbins))
 
 class Packet_Grimm(PacketBase):
     @property

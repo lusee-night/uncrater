@@ -391,3 +391,28 @@ class Collection:
             return S[channel].data
         
         assert(False), "Should not reach here"
+
+    def np_tr_spectra(self, ndx=None, channel=None):
+        """ Returns a numpy array of the spectra data.
+            If ndx is not None, returns only the spectra at that time.
+            If channel is not None, returns only the spectra for that channel.
+        """
+
+        if len(self.tr_spectra)==0:
+            return np.array([])
+
+        if (ndx is None) and (channel is None):        
+            return np.vstack([[S[ch].data for ch in range(16)] for S in self.tr_spectra])
+        
+        if (ndx is not None) and (channel is None):
+            S = self.tr_spectra[ndx]
+            return np.array([S[ch].data for ch in range(16)])   
+        
+        if (ndx is None) and (channel is not None):
+            return np.vstack([S[channel].data for S in self.tr_spectra])
+
+        if (ndx is not None) and (channel is not None):
+            S = self.tr_spectra[ndx]
+            return S[channel].data
+        
+        assert(False), "Should not reach here"

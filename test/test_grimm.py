@@ -39,32 +39,29 @@ class Test_Grimm(Test):
         for i in range(4):        
             S.set_route(i, None, i)
  
-        S.set_ana_gain('MMMM')
-        
-        #S.loop_start(200)
-        #S.waveform(1)
-        #S.cdi_wait_ticks(50)
-        #S.loop_next()
-        
-        
-        S.set_Navg(14,6)
-
+        S.set_ana_gain('AAAA')
         S.set_bitslice_auto(10)
+        S.set_Navg(14,6)
         S.set_avg_mode('40bit')
-        for i in range(32):
-            S.grimm_tales_weight(i,20+3*i)
         S.enable_grimm_tales()
         S.cal_set_zoom_ch(1,2)
-        S.cal_set_zoom_navg(6)
-        S.cal_set_pfb_bin(1172)
+        S.cal_set_zoom_navg(7)
+        #S.cal_set_zoom_range(20)
+        #S.cal_set_pfb_bin(574-10)
+        
+        GRIMM_NDX=[574, 835, 1182, 1672]
         S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
         
-        #for i in range(1172, 1193):
-        #    S.cal_set_pfb_bin(i)
+        
         S.start()
-        S.cdi_wait_minutes(20)
-        S.stop()
 
+        S.loop_start(4)
+        for ndx in GRIMM_NDX:
+            S.cal_set_pfb_bin(ndx-1)
+            S.cdi_wait_minutes(30)
+        S.loop_next()
+
+        S.stop()
         
         S.request_eos()        
 

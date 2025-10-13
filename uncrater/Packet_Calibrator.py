@@ -177,6 +177,8 @@ class Packet_Cal_RawPFB(PacketBase):
 
 
 
+
+
 class Packet_Cal_Debug(PacketBase):
     @property
     def desc(self):
@@ -192,19 +194,46 @@ class Packet_Cal_Debug(PacketBase):
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
         self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
 
+        payload = self._blob[12:]
+        if len(payload)<3*1024*4:
+            # let's to to RLE decode it
+            def rle_decode (stream,  max_length = 12300, magic = 37):
+                if len(stream) >= max_length:
+                    return stream
+                decoded = bytearray()
+                i = 0
+                while i < len(stream):
+                    if stream[i] == magic:
+                        
+                        count = stream[i+1]
+                        char = stream[i+2]
+                        decoded.extend([char] * count)
+                        i += 3
+                    else:
+                        decoded.append(stream[i])
+                        i += 1
+                return bytes(decoded)
+                        
+            payload = rle_decode(payload, magic=37, max_length = 3*1024*4)
+            if len(payload)<3*1024*4 or len(payload)>3*1024*4+3:
+                print (f"RLE decode failed, size = {len(payload)}")
+                return
+            payload = payload[:3*1024*4] # trim any extra bytes due to CDI padding
+            
+
 
         self.debug_page = self.appid - id.AppID_Calibrator_Debug
         if (self.debug_page>0) and (self.unique_packet_id != self.expected_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
         
-        if len(self._blob)!=3*1024*4+12:
+        if len(payload)!=3*1024*4:
             print (f"Bad packet size. size = {len(self.blob)} appid = {self.appid:x} page = {self.debug_page}")
             return
 
-        datai = np.array(struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])).reshape(3,1024)
-        datau = np.array(struct.unpack(f"<{len(self._blob[12:])//4}I", self._blob[12:])).reshape(3,1024)
-        dataw = np.array(struct.unpack(f"<{len(self._blob[12:12+2*1024])//2}H", self._blob[12:12+2*1024]))
+        datai = np.array(struct.unpack(f"<{len(payload)//4}i", payload)).reshape(3,1024)
+        datau = np.array(struct.unpack(f"<{len(payload)//4}I", payload)).reshape(3,1024)
+        dataw = np.array(struct.unpack(f"<{len(payload)//2}H", payload)).reshape(6,1024)
 
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
@@ -276,16 +305,16 @@ class Packet_Cal_ZoomSpectra(PacketBase):
                 dtype = np.int32
 
             # we always use float32 in NumPy, dtype is just for conversion from raw byte array
-            self.ch1_autocorr = np.array(data[0:fft_size], dtype=dtype).astype(np.float32)
-            self.ch2_autocorr = np.array(data[fft_size:2*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
-            self.ch1_2_corr_real = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
-            self.ch1_2_corr_imag = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.AA = np.array(data[0:fft_size], dtype=dtype).astype(np.float32)
+            self.BB = np.array(data[fft_size:2*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.ABR = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.ABI = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
         else:
             print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(blob)} bytes.")
-            self.ch1_autocorr = np.zeros(fft_size, dtype=np.float32)
-            self.ch2_autocorr = np.zeros(fft_size, dtype=np.float32)
-            self.ch1_2_corr_real = np.zeros(fft_size, dtype=np.float32)
-            self.ch1_2_corr_imag = np.zeros(fft_size, dtype=np.float32)
+            self.AA = np.zeros(fft_size, dtype=np.float32)
+            self.BB = np.zeros(fft_size, dtype=np.float32)
+            self.ABR = np.zeros(fft_size, dtype=np.float32)
+            self.ABI = np.zeros(fft_size, dtype=np.float32)
 
         self._is_read = True
 

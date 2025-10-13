@@ -118,7 +118,7 @@ class Test_Calibrator(Test):
         fstart = 17.0
         fend = +16.0        
 
-        S.cal_raw11_every(0x4) # always send raw11 data
+        S.cal_raw11_every(0x0) # always send raw11 data
 
         if self.mode == "full":
             S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_BIT_SLICER_SETTLE)  
