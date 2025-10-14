@@ -47,16 +47,18 @@ class Test_CalUpload(Test):
             fname = self.src_dir + f'/{s}.dat'
             try:
                 weights = np.loadtxt(fname)
-                weights = weights.astype(np.uint8)
+                weights = weights.astype(int)
             except:
                 raise FileNotFoundError(f"Could not open weights file {fname}")
             if len(weights) != 512:
                 raise ValueError(f"Weights file {fname} has incorrect length")
-            intweights = (weights).astype(np.uint32)
-            pweights = [((w2<<16)+w1) for w1,w2 in zip(intweights[0::2],intweights[1::2])]
-            crc = binascii.crc32(np.array(pweights,dtype=np.uint32).tobytes())&0xffffffff
-            print(f"Slot {s}: CRC32 = {crc:08x}")
-            res.append( (s, weights, crc) )
+            weights[:90] = 0  # zero the first 90 weights
+            weights[500:] = 0  # zero the last 11 weights
+            weights = weights.astype(np.uint32)
+            checksum = (weights[::2]<<16).sum()+weights[1::2].sum()
+            csum = checksum & 0xFFFFFFFF
+            print(f"Slot {s}: Checksum = {csum:08x}")
+            res.append( (s, weights, csum) )
         return res
 
     def generate_script(self):
@@ -68,15 +70,16 @@ class Test_CalUpload(Test):
         S.reset()
         S.wait(1)
         if self.cmd == "copy":
-            for (slot, weights, crc) in todo:
+            for (slot, weights, _) in todo:
                 print(f"Uploading weights to slot {slot}")
-                S.cal_set_weights(weights)
+                print (weights)
+                S.cal_set_weights(weights,raw=True)
                 S.cal_weights_save(slot)
                 S.wait(1)
         ## now load those weights
-        for (slot, weights, crc) in todo:
+        for (slot, weights, _) in todo:
             print(f"Checking weights in slot {slot}")
-            S.cal_set_single_weight(300,0xFF,zero_first=True)
+            S.cal_set_single_weight(300,0xFF,zero_first=True, raw= True)
             S.cal_weights_load(slot)
             # get CRC report
             S.house_keeping(3)
@@ -95,24 +98,38 @@ class Test_CalUpload(Test):
 
         
 
-        out = "\\begin{tabular}{p{2.5cm}p{2.5cm}p{2.5cm}p{2.5cm}}\n"
-        out += "Slot & Expected CRC & Reported CRC & Match? \\\\\n"
-        load_crc = []
+        out = "\\begin{tabular}{p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}}\n"
+        out += "Slot & Expected  & Save & Load & Match? & Last index \\\\\n"
+        load_csum = []
+        load_index = []
         for P in C.cont:
             if (type(P) == uc.Packet_Housekeep) and P.hk_type == 3:
-                load_crc.append(P.crc)
-        print("Found load CRCs:", load_crc)
+                load_csum.append(P.checksum)
+                load_index.append(P.weight_ndx)
+                
+        
         todo = self.load_weights()
-        if len(todo)!=len(load_crc):
-            out += "Mismatch in number of CRC reports and number of slots\\\\\n"
+        if self.cmd=="copy":
+            save_csum = load_csum[:len(todo)]
+            load_csum = load_csum[len(todo):]  # only keep the load ones
+            save_index = load_index[:len(todo)]
+        else:
+            save_csum = [0] * len(todo)
+            load_csum = load_csum[:len(todo)] ## does nothing really
+            save_index = [0] * len(todo)
+        
+        if (len(todo)!=len(load_csum)) or (len(todo)!=len(save_csum)):
+            out += "Mismatch in number of csums reports and number of slots\\\\\n"
             passed = False
         else:
-            for i, (slot, weights, crc) in enumerate(todo):
-                match = (crc == load_crc[i])
+            for i, (slot, _ , csum) in enumerate(todo):
+                match = (csum == load_csum[i]) 
+                if self.cmd=='copy':
+                    match = match and (csum == save_csum[i])
                 if not match:
                     passed = False
-                out += f"{slot} & {crc:08x} & {load_crc[i]:08x} & {'Yes' if match else 'No'} \\\\\n"
+                out += f"{slot} & {csum:08x} & {save_csum[i]:08x} & {load_csum[i]:08x} & {'Yes' if match else 'No'} & {save_index[i]} \\\\\n"
 
         out += "\\end{tabular}\n"
-        self.results['crc_table'] = out
+        self.results['csum_table'] = out
         self.results['result'] = int(passed)

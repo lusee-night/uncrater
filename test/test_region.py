@@ -92,12 +92,12 @@ class Test_Region(Test):
                     out = "\\begin{tabular}{p{6.5cm}p{6.5cm}}\n"
                     out += f" Source region : &  {P.report.region_1} \\\\"
                     out += f" Target region : &  {P.report.region_2} \\\\ \n"
-                    out += f" Source size (bytes) : &  {P.report.size_1} \\\\ \n"
-                    out += f" Target size (bytes) : &  {P.report.size_2} \\\\ \n"
-                    out += f" Source metadata checksum : &  {P.report.checksum_1_meta} \\\\ \n"
-                    out += f" Source data checksum : &  {P.report.checksum_1_data} \\\\ \n"
-                    out += f" Target metadata checksum : &  {P.report.checksum_2_meta} \\\\ \n"
-                    out += f" Target data checksum : &  {P.report.checksum_2_data} \\\\ \n"
+                    out += f" Source size (bytes) : &  {4*P.report.size_1} \\\\ \n"
+                    out += f" Target size (bytes) : &  {4*P.report.size_2} \\\\ \n"
+                    out += f" Source metadata checksum : &  {P.report.checksum_1_meta:0x} \\\\ \n"
+                    out += f" Source data checksum : &  {P.report.checksum_1_data:0x} \\\\ \n"
+                    out += f" Target metadata checksum : &  {P.report.checksum_2_meta:0x} \\\\ \n"
+                    out += f" Target data checksum : &  {P.report.checksum_2_data:0x} \\\\ \n"
                     out += f" Copy status : &  {status_desc[P.report.status]} \\\\ \n"
                     out += "\\end{tabular}\n"
                     self.results['copy_report'] = out
@@ -112,7 +112,7 @@ class Test_Region(Test):
                 out += f" Region & Enabled & Size (bytes) & Data checksum & Metadata checksum \\\\ \\hline \n"
                 for i in range(6):
                     enabled = "Yes" if P.meta_valid[i] else "No"
-                    size = P.size[i]
+                    size = 4 * P.size[i]
                     checksum_meta = P.checksum_meta[i]
                     checksum_data = P.checksum_data[i]
 

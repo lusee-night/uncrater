@@ -589,25 +589,25 @@ class Scripter:
 
 
     @lusee_command
-    def cal_set_single_weight(self,bin,weight,zero_first=False):
+    def cal_set_single_weight(self,bin,weight,zero_first=False,raw=False):
         if zero_first:
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         if (bin<256):
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,bin)
         else:
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_HI,bin-256)
-        self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL,weight)
+        self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, weight if raw else int(round(weight * 255)))
 
 
     @lusee_command
-    def cal_set_weights(self,weights):
+    def cal_set_weights(self,weights, raw=False):
         assert len(weights) == 512
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,90)
         for i,w in enumerate(weights[90:]):
             #self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, (i+90)%256)
 
-            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 255)))
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, w if raw else int(round(w * 255)))
 
     @lusee_command
     def cal_antenna_enable(self,mask):
