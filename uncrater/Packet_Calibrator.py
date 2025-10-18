@@ -1,6 +1,6 @@
 from tracemalloc import stop
 from .PacketBase import PacketBase, pystruct
-from .utils import Time2Time, cordic2rad
+from .utils import Time2Time, cordic2rad, rle_decode
 from pycoreloop import appId as id
 import struct, ctypes
 import numpy as np
@@ -22,6 +22,7 @@ class Packet_Cal_Metadata(PacketBase):
         self.drift_raw = np.array(self.drift).astype(np.int64)
         self.drift_raw = (self.drift_raw << self.drift_shift)
         self.drift = cordic2rad(np.repeat(self.drift_raw,8))
+
     def info(self):
         self._read()
         desc = " Calibrator Metadata\n"
@@ -197,29 +198,14 @@ class Packet_Cal_Debug(PacketBase):
         payload = self._blob[12:]
         if len(payload)<3*1024*4:
             # let's to to RLE decode it
-            def rle_decode (stream,  max_length = 12300, magic = 37):
-                if len(stream) >= max_length:
-                    return stream
-                decoded = bytearray()
-                i = 0
-                while i < len(stream):
-                    if stream[i] == magic:
-                        
-                        count = stream[i+1]
-                        char = stream[i+2]
-                        decoded.extend([char] * count)
-                        i += 3
-                    else:
-                        decoded.append(stream[i])
-                        i += 1
-                return bytes(decoded)
-                        
-            payload = rle_decode(payload, magic=37, max_length = 3*1024*4)
+
+
+            payload = rle_decode(payload, original_size = 3*1024*4)
             if len(payload)<3*1024*4 or len(payload)>3*1024*4+3:
                 print (f"RLE decode failed, size = {len(payload)}")
-                return
+                raise Exception("RLE decode failed")
+                #return
             payload = payload[:3*1024*4] # trim any extra bytes due to CDI padding
-            
 
 
         self.debug_page = self.appid - id.AppID_Calibrator_Debug
@@ -238,9 +224,13 @@ class Packet_Cal_Debug(PacketBase):
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
         if self.debug_page == 0:
-            self.have_lock = dataw & 0xFF
-            self.lock_ant = (dataw >> 8) & 0xFF
-            self.errors = pystruct.calibrator_errors.from_buffer_copy(self._blob[12+2*1024:12+2*1024+ctypes.sizeof(pystruct.calibrator_errors)])
+            self.have_lock = dataw[0] & 0xFF
+            self.lock_ant = (dataw[0] >> 8) & 0xFF
+            ## the actual metadata packet that would come is hidden in here
+            self.metadata = pystruct.calibrator_metadata.from_buffer_copy(payload[2*1024:2*1024+ctypes.sizeof(pystruct.calibrator_metadata)])
+            self.metadata.unique_packet_id = self.unique_packet_id
+            self.metadata.time = Time2Time(self.metadata.time_32, self.metadata.time_16)
+            self.metadata._from_debug = True
             self.drift = cordic2rad(datau[1])
             self.powertop0 = datau[2]
         elif self.debug_page == 1:

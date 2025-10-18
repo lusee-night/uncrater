@@ -24,7 +24,7 @@ class Test_CalUpload(Test):
     instructions = """ No need to connect anything"""
     default_options = {
         "cmd": "check",
-        "slots": "0.1.2.3.4",
+        "slots": "0.1.2.3.4.5.6.7.8",
         "src_dir": "cal_weights/"
     } ## dictinary of options for the test
     options_help = {

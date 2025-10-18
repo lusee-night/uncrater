@@ -104,3 +104,48 @@ def cordic_add (val1,val2):
         val = 0b01<<30 | val
 
     return val
+
+def _as_memoryview(stream):
+    if isinstance(stream, memoryview):
+        return stream
+    if isinstance(stream, (bytes, bytearray)):
+        return memoryview(stream)
+    return memoryview(bytes(stream))
+
+
+def rle_decode(stream, original_size):
+    # Run-length decode the given stream to the original size
+    # This revert the rle_encode function defined in utils.c of coreloop
+    # see also copression/rle_280.ipynb for details
+
+    if len(stream) == original_size:
+        return stream
+        
+    data = _as_memoryview(stream)
+    result = bytearray()
+    i = 0
+    n = len(data)
+    while i < n:
+        byte = data[i]
+        if byte == 0x8C:
+            if i + 1 >= n:
+                raise ValueError("Incomplete 0x8C run marker")
+            count = data[i + 1]
+            if count == 0:
+                result.append(0x8C)
+            else:
+                result.extend(b"\x00" * count)
+            i += 2
+        elif byte == 0x8D:
+            if i + 1 >= n:
+                raise ValueError("Incomplete 0x8D run marker")
+            count = data[i + 1]
+            if count == 0:
+                result.append(0x8D)
+            else:
+                result.extend(b"\xFF" * count)
+            i += 2
+        else:
+            result.append(byte)
+            i += 1
+    return bytes(result)

@@ -134,6 +134,7 @@ class Collection:
                 if appid_is_cal_debug_start(appid):
                     packet.read()
                     cal_packet_id = packet.unique_packet_id
+                    self.calib_meta.append(packet.metadata)
                     self.calib_debug.append([packet]+7*[None])
                 else:
                     packet.set_meta_id(cal_packet_id)
@@ -182,7 +183,8 @@ class Collection:
         if len(self.calib_gNacc)>0:
             self.calib_gNacc = np.hstack(self.calib_gNacc)
         dcalib = [c for c in self.calib_debug if None not in c]
-        drift_packets = [p for p in self.cont if p.appid in [id.AppID_Calibrator_Debug, id.AppID_Calibrator_MetaData]]
+        ## we take drift packets for both debug and metadata but make sure we don't duplicate
+        drift_packets = [p for p in self.cont if (p.appid==id.AppID_Calibrator_Debug or (p.appid==id.AppID_Calibrator_MetaData and p.from_debug==False))]
         
         if len(drift_packets)>0:
             self.cd_drift = np.hstack([p.drift for p in drift_packets])        
@@ -191,7 +193,7 @@ class Collection:
         if len(dcalib)>0:
             self.cd_have_lock = np.hstack([c[0].have_lock for c in dcalib])
             self.cd_lock_ant = np.hstack([c[0].lock_ant for c in dcalib])
-            self.cd_errors = [c[0].errors for c in dcalib]
+            self.cd_errors = [c[0].metadata.error_reg for c in dcalib]
             # phase errors are 8 bits over two counter
             def get_counters(num):
                 return [num&0xFF, (num>>8)&0xFF , (num>>16)&0xFF, (num>>24)&0xFF] 
