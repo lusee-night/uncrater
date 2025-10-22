@@ -36,7 +36,7 @@ class Test_Calibrator(Test):
         "notch_detector": False,
         "auto_slice" : 9,
         "snr_on": 5.0,
-        "snr_off": 1.0,
+        "snr_off": 0.1,
         "Nnotch": 4,
         "corA": 0.0,
         "corB": 0.0
