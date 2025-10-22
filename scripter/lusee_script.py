@@ -268,6 +268,22 @@ class Scripter:
         self.command(bl.CMD_REG_LSB, val & 0xFFFF)
         self.command(bl.CMD_REG_MSB_NEXT, val >> 16)
 
+    @lusee_command
+    def write_register_uC(self, reg, val):
+        val0 = val & 0xFF
+        val1 = (val & 0xFF00) >> 8
+        val2 = (val & 0xFF0000) >> 16
+        val3 = (val & 0xFF000000) >> 24
+        reg0 = reg & 0xFF
+        reg1 = (reg & 0xFF00) >> 8
+        self.spectrometer_command(lc.RFS_SET_WR_ADR_LSB, reg0)
+        self.spectrometer_command(lc.RFS_SET_WR_ADR_MSB, reg1)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_0, val0)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_1, val1)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_2, val2)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_3, val3)
+        
+
 
 
 

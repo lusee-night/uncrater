@@ -24,7 +24,7 @@ class Test_Calibrator(Test):
     instructions = """ Connect the VW calibrator.  """
     default_options = { 
         "mode": "manual",
-        "mins": 4,
+        "mins": 5,
         "slow": True,
         "gain": "LLLL",
         "antenna_mask": 0b1111,
@@ -34,6 +34,7 @@ class Test_Calibrator(Test):
         #"slicer": "15.19.21.15.18.1.6.0",
         "slicer": "24.25.27.15.18.1.12.0",
         "notch_detector": False,
+        "auto_slice" : 9,
         "snr_on": 5.0,
         "snr_off": 1.0,
         "Nnotch": 4,
@@ -48,6 +49,7 @@ class Test_Calibrator(Test):
         "antenna_mask": "Antenna mask to enable antennas (bits 0-3 for ch 0-3)",
         "slicer": "Slicer configuration in the format powertop.sum1.sum2.prod1.prod2.delta_powerbot.fd_slice,sd2_slice",
         "notch_detector": "Enable notch detector",
+        "auto_slice": "Auto slicer setting (0=off, 1=keep going, 2=disable after first)",
         "snr_on": "SNR on value for calibration",
         "snr_off": "SNR off value for calibration",
         "Nac1": "First Nac value for calibration (5=32)",
@@ -70,38 +72,39 @@ class Test_Calibrator(Test):
 
         if self.slow:
             S.set_dispatch_delay(120)
-    
         S.set_Navg(14,7)
+    
 
         ### Main spectral engine
         
         S.set_ana_gain(self.gain)
         for i in range(4):        
             S.set_route(i, None, i)
-                
-        S.set_bitslice(0,10)
+
+        S.set_avg_mode('40bit')        
+        S.set_bitslice_auto(8)
+        
         for i in range(1,4):
             S.set_bitslice(i,19)
         
 
         S.cal_set_avg(self.Nac1,self.Nac2)
-        S.set_notch(self.Nnotch,disable_subtract=False)
+        S.set_notch(self.Nnotch,disable_subtract=False if self.notch_detector else True)
         S.cal_set_drift_step(10)
         S.select_products('auto_only')
 
         S.cal_set_pfb_bin(1522)
-        #S.cal_antenna_enable(0b1110) # disable antenna 0
         S.cal_antenna_enable(self.antenna_mask)
         slicer = [int(x) for x in self.slicer.split('.')]
         assert(len(slicer)==8)
-        S.cal_set_slicer(auto=True, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
+        S.cal_set_slicer(auto=self.auto_slice, powertop=slicer[0], sum1=slicer[1], sum2=slicer[2], prod1=slicer[3], prod2=slicer[4], delta_powerbot=slicer[5], fd_slice=slicer[6], sd2_slice=slicer[7])
 
 
 
         S.cal_weights_load(self.weights_set)
 
         S.cal_set_corrAB(self.corA,self.corB)
-        S.cal_set_drift_guard(120*(self.Nnotch-3)) # (120 at 4, 240, at 5,etc)
+        S.cal_set_drift_guard(120*2**(self.Nnotch-4)) # (120 at 4, 240, at 5,etc)
         S.cal_set_ddrift_guard(1500)
         S.cal_set_gphase_guard(250000)
         S.cal_SNRonff(self.snr_on,self.snr_off)
@@ -111,6 +114,7 @@ class Test_Calibrator(Test):
 
         S.cal_raw11_every(0x0) # always send raw11 data
         S.notch_detector(self.notch_detector)
+        
         if self.mode == "full":
             S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_BIT_SLICER_SETTLE)              
             S.start()
@@ -120,8 +124,7 @@ class Test_Calibrator(Test):
                     
     
         elif self.mode == "run":
-            S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_RUN)
-            S.awg_cal_on(fstart)
+            S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_SNR_SETTLE)
             S.start()
             S.cdi_wait_minutes(self.mins)
             S.stop()
@@ -250,36 +253,42 @@ class Test_Calibrator(Test):
         plt.close() 
 
         fig, ax = plt.subplots(5,2,figsize=(10,10))
-        ax[0,0].plot(C.cd_fd0[50:])
-        ax[1,0].plot(C.cd_fd1[50:])
-        ax[2,0].plot(C.cd_fd2[50:])
-        ax[3,0].plot(C.cd_fd3[50:])
-        ax[4,0].plot(C.cd_fdx[50:])
-        ax[0,1].plot(C.cd_sd0[50:])
-        ax[1,1].plot(C.cd_sd1[50:])
-        ax[2,1].plot(C.cd_sd2[50:])
-        ax[3,1].plot(C.cd_sd3[50:])
-        ax[4,1].plot(C.cd_sdx[50:])
+        try:
+            ax[0,0].plot(C.cd_fd0[50:])
+            ax[1,0].plot(C.cd_fd1[50:])
+            ax[2,0].plot(C.cd_fd2[50:])
+            ax[3,0].plot(C.cd_fd3[50:])
+            ax[4,0].plot(C.cd_fdx[50:])
+            ax[0,1].plot(C.cd_sd0[50:])
+            ax[1,1].plot(C.cd_sd1[50:])
+            ax[2,1].plot(C.cd_sd2[50:])
+            ax[3,1].plot(C.cd_sd3[50:])
+            ax[4,1].plot(C.cd_sdx[50:])
+        except:
+            pass
         fig.suptitle('FD 0123X, SD0123X', fontsize=16)
         plt.savefig(os.path.join(figures_dir,'fd_sd.pdf'))
         plt.close()
 
         
         fig, ax = plt.subplots(4,3,figsize=(13,10))
-        ax[0,0].plot(C.cd_powertop0)
-        ax[1,0].plot(C.cd_powertop1)
-        ax[2,0].plot(C.cd_powertop2)
-        ax[3,0].plot(C.cd_powertop3)
+        try:
+            ax[0,0].plot(C.cd_powertop0)
+            ax[1,0].plot(C.cd_powertop1)
+            ax[2,0].plot(C.cd_powertop2)
+            ax[3,0].plot(C.cd_powertop3)
 
-        ax[0,1].plot(C.cd_powerbot0)
-        ax[1,1].plot(C.cd_powerbot1)
-        ax[2,1].plot(C.cd_powerbot2)
-        ax[3,1].plot(C.cd_powerbot3)
+            ax[0,1].plot(C.cd_powerbot0)
+            ax[1,1].plot(C.cd_powerbot1)
+            ax[2,1].plot(C.cd_powerbot2)
+            ax[3,1].plot(C.cd_powerbot3)
 
-        ax[0,2].plot(C.cd_snr0)
-        ax[1,2].plot(C.cd_snr1)
-        ax[2,2].plot(C.cd_snr2)
-        ax[3,2].plot(C.cd_snr3)
+            ax[0,2].plot(C.cd_snr0)
+            ax[1,2].plot(C.cd_snr1)
+            ax[2,2].plot(C.cd_snr2)
+            ax[3,2].plot(C.cd_snr3)
+        except:
+            pass
 
         fig.suptitle('Power top 0123, Power bot 0123', fontsize=16)
         plt.savefig(os.path.join(figures_dir,'snr.pdf'))
@@ -310,9 +319,12 @@ class Test_Calibrator(Test):
 
         plt.close()
 
-        plt.plot(time, C.cd_have_lock/C.cd_have_lock.max()/2, label='lock')
-        for i in range(4):
-            plt.plot(time, ((C.cd_lock_ant& (1<<i))>0)*0.5+(i+1), label=f'ant {i}')
+        try:
+            plt.plot(time, C.cd_have_lock/C.cd_have_lock.max()/2, label='lock')
+            for i in range(4):
+                plt.plot(time, ((C.cd_lock_ant& (1<<i))>0)*0.5+(i+1), label=f'ant {i}')
+        except:
+            pass
         plt.xlabel('time axis')
         plt.ylabel('lock status')
         plt.legend()

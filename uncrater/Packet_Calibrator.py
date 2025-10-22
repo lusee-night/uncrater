@@ -22,6 +22,7 @@ class Packet_Cal_Metadata(PacketBase):
         self.drift_raw = np.array(self.drift).astype(np.int64)
         self.drift_raw = (self.drift_raw << self.drift_shift)
         self.drift = cordic2rad(np.repeat(self.drift_raw,8))
+        self.from_debug=False
 
     def info(self):
         self._read()
