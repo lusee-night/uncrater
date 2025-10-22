@@ -235,6 +235,8 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
 
         #if self.meta.format == 0:
             # data consists of uint16_t, _blob has type int32_t
+
+        
         Ndata = len(self._blob[8:]) // 2
         try:
             enc_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
@@ -246,3 +248,28 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
         #else:
         #    raise NotImplementedError("Only format 0 is supported")
         self.data = np.array(data, dtype=np.int32)
+        if self.meta is not None:
+            Nbins = (self.meta.base.tr_stop-self.meta.base.tr_start)//(1<<self.meta.base.tr_avg_shift)
+            self.data = self.data.reshape((-1,Nbins))
+
+class Packet_Grimm(PacketBase):
+    @property
+    def desc(self):
+        return "Grimm Select Frequencies"
+
+    def _read(self):
+        if self._is_read:
+            return
+        super()._read()
+        self.unique_packet_id = struct.unpack("<I", self._blob[:4])
+        Ndata = len(self._blob[4:]) // 2
+        data = np.array(struct.unpack(f"<{Ndata}H", self._blob[4: 4 + Ndata * 2]),dtype=np.uint16)
+        self.data = decode_5_into_4(data).reshape((-1,16,4))        
+        self._is_read = True
+
+    def info(self):
+        self._read()
+        desc = ""
+        desc += f"packet_id : {self.unique_packet_id}\n"
+        desc += f"Npoints: {len(self.data)}\n"
+        return desc    

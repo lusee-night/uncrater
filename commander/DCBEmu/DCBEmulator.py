@@ -49,7 +49,7 @@ class DCBEmulator(BackendBase):
 
     def send_command(self, cmd, arg):
         self.ether.cdi_command(cmd, arg)
-        time.sleep(0.03)
+        time.sleep(0.1)
         
     def run(self):
         if self.uart is not None:

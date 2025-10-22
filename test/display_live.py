@@ -111,7 +111,8 @@ def run(args):
 
     while True:
         try:
-            C.refresh(quiet=True)
+        #print ('refreshing')
+            C.refresh(quiet=False)
         except: 
             pass
         if (adc):

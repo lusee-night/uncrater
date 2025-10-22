@@ -3,6 +3,7 @@
 
 # Test data
 session*/
+prod*/
 
 # VScode workspace
 *.code-workspace

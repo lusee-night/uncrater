@@ -37,7 +37,8 @@ class Test_CPTShort(Test):
         'nowave': False,
         'terminated': False, 
         'terminated_set': "",
-        'corr_fact': 1.18
+        'corr_fact': 1.18,
+        'fight_corruption': False
     } ## dictinary of options for the test
     options_help = {
         'channels': 'List of channels used in test. 1234 will loop over channels 1 by 1, all_same will do all the same time, all_robin will round-robin frequncies.',
@@ -52,7 +53,8 @@ class Test_CPTShort(Test):
         'nowave': 'Do not record waveforms to speed up',
         'terminated': 'This is a terminated set, take just the pure noise values',
         'terminated_set': "session directory with the terminated inputs (when AWG is noisy). If non-empty, the noise only sets will be taken from there. Must be run with the same options as the main test.",
-        'corr_fact': "Correction factor to apply. Default is 1.18 which takes into account the suppression in the middle of the PFB response shape."
+        'corr_fact': "Correction factor to apply. Default is 1.18 which takes into account the suppression in the middle of the PFB response shape.",
+        'fight_corruption': "Enable fighting against corruption in the data. Only helps with terminated data sets."
     } ## dictionary of help for the options
     
     ### NOTE TO SELF:
@@ -309,6 +311,44 @@ class Test_CPTShort(Test):
         else: 
             Cterminated = None
 
+        if self.fight_corruption and self.terminated:
+            # first find the actual data where we amplitude is zero.
+            # since everything is zero, we just need the bitslice to be the at the right level
+            print ("Fighting against corruption in the data.")
+            zeros = {}
+            found =0
+            for sp in C.spectra:
+                bslice = self.bitslices[-1]
+                # find which channels do we have
+                for i in range(4):
+                    if i in sp.keys():
+                        cch=i
+                        break
+                if sp['meta'].base.actual_bitslice[cch] == bslice:
+                    # This is our guy
+                    gain = 'LMH'[sp['meta'].base.actual_gain[cch]]
+                    if (gain,cch) in zeros:
+                        zeros[(gain,cch)].append(sp)
+                    else:
+                        zeros[(gain,cch)] = [sp]
+                    print (f"Found zero amplitude spectrum for gain {gain} channel {cch} (# {len(zeros[(gain,cch)])})!")
+                    found+=1
+            if (found!=24):
+                print (f"ERROR: Could not find all zero amplitude spectra. Found {found} out of 24. This might or might not work.")
+                
+            # now plant them
+            while len(C.spectra)<len(self.todo_list):
+                C.spectra.append(C.spectra[-1])
+                print ("Duplicated last spectrum to allow planting...")
+            for i, (gain, ch, freq, ampl, bitslice) in enumerate(self.todo_list):
+                tgt = zeros[(gain,ch)]                
+                if ch not in C.spectra[i] or len(C.spectra[i][ch].data)!=2048:
+                    print (f"Planting gain {gain} channel {ch} (# {len(tgt)}) for spectra {i} ({[gain,ch,freq,ampl,bitslice]})...")
+                    if (bitslice == self.bitslices[-1]) and len(tgt)>0:
+                        plant = tgt.pop(0)
+                    else:
+                        plant = tgt[0]
+                    C.spectra[i]= plant
 
 
         if self.slow:

@@ -34,24 +34,37 @@ class Test_Grimm(Test):
 
         S = Scripter()
         S.reset()
-        if self.slow:
-            S.set_dispatch_delay(120)
-    
-        # full size 64 
-        S.set_Navg(14,6)
 
         ### Main spectral engine
         for i in range(4):        
             S.set_route(i, None, i)
+ 
         S.set_ana_gain('AAAA')
-        S.set_bitslice_auto(8)
-        S.set_avg_mode('float')
+        S.set_bitslice_auto(10)
+        S.set_Navg(14,6)
+        S.set_avg_mode('40bit')
         S.enable_grimm_tales()
-
+        S.cal_set_zoom_ch(1,2)
+        S.cal_set_zoom_navg(7)
+        #S.cal_set_zoom_range(20)
+        #S.cal_set_pfb_bin(574-10)
+        
+        GRIMM_NDX=[574, 835, 1182, 1672]
+        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
+        
+        
         S.start()
-        S.cdi_wait_spectra(10)
+
+        S.loop_start(4)
+        for ndx in GRIMM_NDX:
+            S.cal_set_pfb_bin(ndx-1)
+            S.cdi_wait_minutes(30)
+        S.loop_next()
+
         S.stop()
-        S.request_eos()
+        
+        S.request_eos()        
+
         S.wait_eos()
         return S
 

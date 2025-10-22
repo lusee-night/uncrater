@@ -216,60 +216,72 @@ class Test_Science(Test):
         S.wait(0.5)
         S.seq_begin()        
 
-        S.set_cdi_delay(1)
-        S.set_dispatch_delay(100)
+        #S.set_cdi_delay(1)
+        #S.set_dispatch_delay(100)
+
+
         S.set_alarm_setpoint(self.alarm)     
-        S.enable_watchdogs(0b01111111)   # cdi alarm not there        
+        S.enable_watchdogs(0b01111101)   # cdi alarm not there        
         S.set_notch(4)        
         S.set_Navg(14,6)
-        #S.reject_enable(reject_frac=10, max_bad = 100)          
-        S.set_avg_set_hi(75)
-        S.set_avg_set_mid(150)
-        avg_shift = 6
-        avg = 1<<avg_shift
-        nbins = 25
-        S.set_tr_start_stop(256,256+nbins*avg)
-        S.set_tr_avg_shift(avg_shift)
+        S.reject_enable(reject_frac=3, max_bad = 100)          
+        #S.set_avg_set_hi(75)
+        #S.set_avg_set_mid(150)
+        #avg_shift = 2
+        #avg = 1<<avg_shift
+        #nbins = 25
+        #S.set_tr_start_stop(256,256+nbins*avg)
+        #S.set_tr_avg_shift(avg_shift)
+        
+        S.set_tr_start_stop(0,2048)
+        S.set_tr_avg_shift(5)
+
         S.set_bitslice_auto(12)
         S.set_ana_gain('AAAA')
         
+        #S.set_ana_gain('MMMM')
+        #for i,v in enumerate([11,18,19,16]):
+        #    S.set_bitslice(i,v)
+
         # zoom
 
-        S.cal_set_zoom_ch(2,3)
-        S.cal_set_pfb_bin(1520)
-        S.cal_set_zoom_navg(7)
-        S.cal_set_pfb_bin(436)
-        S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
+        #S.cal_set_zoom_ch(2,3)
+        #S.cal_set_pfb_bin(1520)
+        #S.cal_set_zoom_navg(7)
+        #S.cal_set_pfb_bin(436)
+        #S.cal_enable(enable=True, mode=cl.pystruct.CAL_MODE_ZOOM)
         
         for i in range(4):        
             S.set_route(i, None, i)
 
-        S.waveform(4)
-        S.cdi_wait_seconds(10)
+        #S.waveform(4)
+        #S.cdi_wait_seconds(10)
 
+        #S.set_avg_mode('40bit')        
+        
+        #S.loop_start(0)
+        
         S.set_avg_mode('40bit')        
-        
-        S.loop_start(0)
-        
-        #S.set_avg_mode('int')        
         S.set_spectra_format(ps.OUTPUT_32BIT)                        
         S.start()
-        S.cdi_wait_minutes(10)
+        S.cdi_wait_spectra(128)
         S.stop()
 
         #.set_avg_mode('float')        
-        S.set_spectra_format(ps.OUTPUT_16BIT_10_PLUS_6)                        
-        S.start()
-        S.cdi_wait_minutes(10)
+        #S.set_spectra_format(ps.OUTPUT_16BIT_10_PLUS_6)                        
+        #S.start()
+        #S.cdi_wait_spectra(2)
+        #S.cdi_wait_minutes(10)
         S.stop()
 
         #S.set_avg_mode('40bit')        
-        S.set_spectra_format(ps.OUTPUT_16BIT_4_TO_5)                        
-        S.start()
-        S.cdi_wait_minutes(10)
-        S.stop()
+        #S.set_spectra_format(ps.OUTPUT_16BIT_4_TO_5)                        
+        #S.start()
+        #S.cdi_wait_spectra(2)
+        #S.cdi_wait_minutes(10)
+        #S.stop()
 
-        S.loop_next()
+        #S.loop_next()
         S.request_eos()
         S.seq_end(store_flash=self.store_flash)
         S.wait_eos()

@@ -1,6 +1,6 @@
 from tracemalloc import stop
 from .PacketBase import PacketBase, pystruct
-from .utils import Time2Time, cordic2rad
+from .utils import Time2Time, cordic2rad, rle_decode
 from pycoreloop import appId as id
 import struct, ctypes
 import numpy as np
@@ -22,6 +22,8 @@ class Packet_Cal_Metadata(PacketBase):
         self.drift_raw = np.array(self.drift).astype(np.int64)
         self.drift_raw = (self.drift_raw << self.drift_shift)
         self.drift = cordic2rad(np.repeat(self.drift_raw,8))
+        self.from_debug=False
+
     def info(self):
         self._read()
         desc = " Calibrator Metadata\n"
@@ -177,6 +179,8 @@ class Packet_Cal_RawPFB(PacketBase):
 
 
 
+
+
 class Packet_Cal_Debug(PacketBase):
     @property
     def desc(self):
@@ -192,26 +196,42 @@ class Packet_Cal_Debug(PacketBase):
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
         self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
 
+        payload = self._blob[12:]
+        if len(payload)<3*1024*4:
+            # let's to to RLE decode it
+
+
+            payload = rle_decode(payload, original_size = 3*1024*4)
+            if len(payload)<3*1024*4 or len(payload)>3*1024*4+3:
+                print (f"RLE decode failed, size = {len(payload)}")
+                raise Exception("RLE decode failed")
+                #return
+            payload = payload[:3*1024*4] # trim any extra bytes due to CDI padding
+
 
         self.debug_page = self.appid - id.AppID_Calibrator_Debug
         if (self.debug_page>0) and (self.unique_packet_id != self.expected_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
         
-        if len(self._blob)!=3*1024*4+12:
+        if len(payload)!=3*1024*4:
             print (f"Bad packet size. size = {len(self.blob)} appid = {self.appid:x} page = {self.debug_page}")
             return
 
-        datai = np.array(struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])).reshape(3,1024)
-        datau = np.array(struct.unpack(f"<{len(self._blob[12:])//4}I", self._blob[12:])).reshape(3,1024)
-        dataw = np.array(struct.unpack(f"<{len(self._blob[12:12+2*1024])//2}H", self._blob[12:12+2*1024]))
+        datai = np.array(struct.unpack(f"<{len(payload)//4}i", payload)).reshape(3,1024)
+        datau = np.array(struct.unpack(f"<{len(payload)//4}I", payload)).reshape(3,1024)
+        dataw = np.array(struct.unpack(f"<{len(payload)//2}H", payload)).reshape(6,1024)
 
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
         if self.debug_page == 0:
-            self.have_lock = dataw & 0xFF
-            self.lock_ant = (dataw >> 8) & 0xFF
-            self.errors = pystruct.calibrator_errors.from_buffer_copy(self._blob[12+2*1024:12+2*1024+ctypes.sizeof(pystruct.calibrator_errors)])
+            self.have_lock = dataw[0] & 0xFF
+            self.lock_ant = (dataw[0] >> 8) & 0xFF
+            ## the actual metadata packet that would come is hidden in here
+            self.metadata = pystruct.calibrator_metadata.from_buffer_copy(payload[2*1024:2*1024+ctypes.sizeof(pystruct.calibrator_metadata)])
+            self.metadata.unique_packet_id = self.unique_packet_id
+            self.metadata.time = Time2Time(self.metadata.time_32, self.metadata.time_16)
+            self.metadata._from_debug = True
             self.drift = cordic2rad(datau[1])
             self.powertop0 = datau[2]
         elif self.debug_page == 1:
@@ -262,28 +282,30 @@ class Packet_Cal_ZoomSpectra(PacketBase):
 
         fft_size = 64
         # ch1 autocorr + ch2 autocorr + ch12 corr real/imaginary parts = 4 arrays in total
-        total_entries = fft_size * 4
+        total_entries = fft_size * 4  ## 6 bytes for header
         use_float = True
-
-        if len(self._blob) == total_entries * 4:
+        self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
+        self.pfb_bin = struct.unpack("<H", self._blob[4:6])[0]
+        blob = self._blob[6:-2]  # last 2 bytes are padding to make it multiple of 4 bytes
+        if len(blob) == total_entries * 4:
             if use_float:
-                data = struct.unpack(f"<{total_entries}f", self._blob)
+                data = struct.unpack(f"<{total_entries}f", blob)
                 dtype = np.float32
             else:
-                data = struct.unpack(f"<{total_entries}i", self._blob)
+                data = struct.unpack(f"<{total_entries}i", blob)
                 dtype = np.int32
 
             # we always use float32 in NumPy, dtype is just for conversion from raw byte array
-            self.ch1_autocorr = np.array(data[0:fft_size], dtype=dtype).astype(np.float32)
-            self.ch2_autocorr = np.array(data[fft_size:2*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
-            self.ch1_2_corr_real = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
-            self.ch1_2_corr_imag = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.AA = np.array(data[0:fft_size], dtype=dtype).astype(np.float32)
+            self.BB = np.array(data[fft_size:2*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.ABR = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
+            self.ABI = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
         else:
-            print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(self._blob)} bytes.")
-            self.ch1_autocorr = np.zeros(fft_size, dtype=np.float32)
-            self.ch2_autocorr = np.zeros(fft_size, dtype=np.float32)
-            self.ch1_2_corr_real = np.zeros(fft_size, dtype=np.float32)
-            self.ch1_2_corr_imag = np.zeros(fft_size, dtype=np.float32)
+            print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(blob)} bytes.")
+            self.AA = np.zeros(fft_size, dtype=np.float32)
+            self.BB = np.zeros(fft_size, dtype=np.float32)
+            self.ABR = np.zeros(fft_size, dtype=np.float32)
+            self.ABI = np.zeros(fft_size, dtype=np.float32)
 
         self._is_read = True
 

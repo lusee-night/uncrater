@@ -24,7 +24,7 @@ class Test_Live(Test):
     default_options = {
         "mode": "adc",
         "gain": "MMMM",
-        "slicer": 25,
+        "slicer": -4,
         "Navg2" : 3,
         "cdi_delay": 1,
         "slow": True,
@@ -33,7 +33,7 @@ class Test_Live(Test):
     options_help = {
         "mode": "adc = for adc stats, spectra for live spectra",
         "gain": "Gain settings",
-        "slicer": "spectral bitslicer (0-31)",
+        "slicer": "spectral bitslicer (0-31) or negative number for auto (will take abs for keep bits)",
         "Navg2": "Number of averages for spectra (default 3)",
         "cdi_delay": "Delay in units of 1.26ms for the CDI to space packets by (0=225ns)",
         "slow": "Snail mode for SSL",
@@ -53,12 +53,20 @@ class Test_Live(Test):
         ## this is the real wait
         S.wait(3)
 
+        for i in range(4):        
+            S.set_route(i, None, i)
+
         S.set_cdi_delay(int(self.cdi_delay))
         S.set_dispatch_delay(100 if self.slow else 6)
         S.set_ana_gain(self.gain)
         S.set_Navg(14,self.Navg2)
         S.select_products('auto_only')
-        S.set_bitslice('all', self.slicer)
+        S.set_avg_mode('40bit')        
+
+        if self.slicer>0:
+            S.set_bitslice('all', self.slicer)
+        else:
+            S.set_bitslice_auto(-self.slicer)
 
         if self.mode == 'adc':
             for i in range(3600):

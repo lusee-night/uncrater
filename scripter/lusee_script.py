@@ -268,6 +268,22 @@ class Scripter:
         self.command(bl.CMD_REG_LSB, val & 0xFFFF)
         self.command(bl.CMD_REG_MSB_NEXT, val >> 16)
 
+    @lusee_command
+    def write_register_uC(self, reg, val):
+        val0 = val & 0xFF
+        val1 = (val & 0xFF00) >> 8
+        val2 = (val & 0xFF0000) >> 16
+        val3 = (val & 0xFF000000) >> 24
+        reg0 = reg & 0xFF
+        reg1 = (reg & 0xFF00) >> 8
+        self.spectrometer_command(lc.RFS_SET_WR_ADR_LSB, reg0)
+        self.spectrometer_command(lc.RFS_SET_WR_ADR_MSB, reg1)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_0, val0)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_1, val1)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_2, val2)
+        self.spectrometer_command(lc.RFS_SET_WR_VAL_3, val3)
+        
+
 
 
 
@@ -552,18 +568,13 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_CAL_AVG, avg)
 
     @lusee_command
-    def cal_set_zoom_ch(self, ch1=0, ch2=1, mode='all'):
-        assert mode in ['auto00', 'auto_both', 'all']
-        assert (ch1>=0 & ch1<4)
-        assert (ch2>=0 & ch2<4)
+    def cal_set_zoom_ch(self, chA=0, chB=1, chA_minus=2, chB_minus=3):
+        assert (chA>=0 & chA<4)
+        assert (chB>=0 & chB<4)
+        assert (chA_minus>=0 & chA_minus<4)
+        assert (chB_minus>=0 & chB_minus<4)
 
-        if mode == 'auto00':
-            mode_val = 0
-        elif mode == 'auto_both':
-            mode_val = 1
-        else:
-            mode_val = 2
-        arg = (mode_val << 6) + (ch2 << 3) + ch1
+        arg = (chB_minus << 6) + (chA_minus<<4) + (chB << 2) + chA
         self.spectrometer_command(lc.RFS_SET_ZOOM_CH, arg)
 
     @lusee_command
@@ -571,25 +582,48 @@ class Scripter:
         self.spectrometer_command(lc.RFS_SET_ZOOM_NAVG, avg)
 
     @lusee_command
-    def cal_set_single_weight(self,bin,weight,zero_first=False):
+    def cal_set_zoom_range(self, range):
+        if range==0:
+            arg = 0
+        else:
+            arg = int(16*(math.sqrt(1+range/8)-1))
+            if arg+arg*arg//32<range:
+                arg+=1
+            actual = arg+arg*arg//32
+            if (actual != range):
+                print(f"Warning: can't set exact range of {range}, setting to {actual} (arg={arg})")
+        self.spectrometer_command(lc.RFS_SET_ZOOM_RANGE, arg)
+        
+    @lusee_command
+    def cal_set_zoom_diff(self, diff_A=True, diff_B=True):
+        arg = 0
+        if diff_A:
+            arg+=1
+        if diff_B:
+            arg+=2
+        self.spectrometer_command(lc.RFS_SET_ZOOM_DIFF, arg)
+
+
+    @lusee_command
+    def cal_set_single_weight(self,bin,weight,zero_first=False,raw=False):
         if zero_first:
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         if (bin<256):
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,bin)
         else:
             self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_HI,bin-256)
-        self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL,weight)
+        self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, weight if raw else int(round(weight * 255)))
 
 
     @lusee_command
-    def cal_set_weights(self,weights):
+    def cal_set_weights(self,weights, raw=False):
         assert len(weights) == 512
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_ZERO,0x0)
         self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_NDX_LO,90)
         for i,w in enumerate(weights[90:]):
             #self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, (i+90)%256)
 
-            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, int(round(w * 255)))
+            self.spectrometer_command(lc.RFS_SET_CAL_WEIGHT_VAL, w if raw else int(round(w * 255)))
 
     @lusee_command
     def cal_antenna_enable(self,mask):
@@ -745,3 +779,39 @@ class Scripter:
     @lusee_command
     def enable_grimm_tales(self, enable=True):
         self.spectrometer_command(lc.RFS_SET_GRIMMS_TALES, int(enable))
+
+    @lusee_command
+    def grimm_tales_weight (self, ndx, val):
+        assert (ndx<32)
+        assert (val>=0) and (val<=255)
+        self.spectrometer_command(lc.RFS_SET_GRIMM_W_NDX, ndx)
+        self.spectrometer_command(lc.RFS_SET_GRIMM_W_VAL, val)
+        
+
+    @lusee_command
+    def region_info (self):
+        self.spectrometer_command(lc.RFS_SET_REGION_INFO,0);
+
+    @lusee_command
+    def region_unlock(self, unlock=True):
+        if unlock:
+            arg = 0xAB
+        else:
+            arg = 0;
+        self.spectrometer_command(lc.RFS_SET_REGION_UNLOCK,arg);
+
+    @lusee_command
+    def region_cpy (self, src, tgt):
+        assert (src>=1) and (src<=6)
+        assert (tgt>=1) and (tgt<=6)
+        self.spectrometer_command(lc.RFS_SET_REGION_CPY, (tgt<<4)+src);
+
+    @lusee_command
+    def region_enable(self, region):
+        assert (region>=1) and (region<=6)
+        self.spectrometer_command(lc.RFS_SET_REGION_ENABLE, region)
+
+    @lusee_command
+    def region_disable(self, region):
+        assert (region>=1) and (region<=6)
+        self.spectrometer_command(lc.RFS_SET_REGION_DISABLE, region)
