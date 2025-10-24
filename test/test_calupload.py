@@ -56,7 +56,7 @@ class Test_CalUpload(Test):
             weights[500:] = 0  # zero the last 11 weights
             weights = weights.astype(np.uint32)
             checksum = (weights[::2]<<16).sum()+weights[1::2].sum()
-            csum = checksum & 0xFFFFFFFF
+            csum = int(checksum) & 0xFFFFFFFF
             print(f"Slot {s}: Checksum = {csum:08x}")
             res.append( (s, weights, csum) )
         return res
@@ -72,7 +72,7 @@ class Test_CalUpload(Test):
         if self.cmd == "copy":
             for (slot, weights, _) in todo:
                 print(f"Uploading weights to slot {slot}")
-                print (weights)
+                #print (weights)
                 S.cal_set_weights(weights,raw=True)
                 S.cal_weights_save(slot)
                 S.wait(1)
