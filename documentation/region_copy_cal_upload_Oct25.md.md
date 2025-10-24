@@ -108,7 +108,7 @@ You can look at the report in `session_copy_1_2/report.pdf`
 python test/cli_driver.py -b DCB -r calupload -o "cmd=copy,src_dir=../blobs/cal_weights/251022" -w session_calupload_copy
 ```
 
-It should run about 2.5 mins and issue a pass/fail
+It should run a few minutes and issue a pass/fail
 
 You can look at the report in `session_calupload_copy/report.pdf`
 
