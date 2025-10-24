@@ -24,11 +24,13 @@ class Test_CalUpload(Test):
     instructions = """ No need to connect anything"""
     default_options = {
         "cmd": "check",
+        "slow": True,
         "slots": "0.1.2.3.4.5.6.7.8",
         "src_dir": "cal_weights/"
     } ## dictinary of options for the test
     options_help = {
         "cmd" : r" What to do. check = load weights and checks their CRCs. copy = copy weights (and then check)",
+        "slow" : r" Whether to use slow mode (for SSL)",
         "slots" : r" Dot separated list of weight slots to consider",
         "src_dir" : r" Directory containing the calibration weights files"
     } ## dictionary of help for the options
@@ -69,6 +71,8 @@ class Test_CalUpload(Test):
         S.wait(1)
         S.reset()
         S.wait(1)
+        if self.slow:
+            S.set_dispatch_delay(120)
         if self.cmd == "copy":
             for (slot, weights, _) in todo:
                 print(f"Uploading weights to slot {slot}")

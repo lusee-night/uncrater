@@ -32,11 +32,13 @@ class Test_Region(Test):
     instructions = """ No need to connect anything"""
     default_options = {
         "cmd": "check",
+        "slow": True,
         "src": 0,
         "tgt": 0
     } ## dictinary of options for the test
     options_help = {
         "cmd" : r""" What to do. check = check the status of regions; copy = copy from src to tgt; enable = enable the tgt region; disable = disable the tgt region""",
+        "slow" : r" Whether to use slow mode (for SSL)",
         "src" : r""" Source region for copy command""",
         "tgt" : r""" Target region for copy, enable, disable commands"""    
     } ## dictionary of help for the options
@@ -58,6 +60,9 @@ class Test_Region(Test):
         S.wait(1)
         S.reset()
         S.wait(1)
+        if self.slow:
+            S.set_dispatch_delay(120)
+
         S.region_unlock()
 
         if self.cmd=='check':
