@@ -52,7 +52,7 @@
  * We will delete region 1 and write this blob into region 1:
 
      ```
-    python test/cli_driver.py -b DCB -r bootload -o "cmd=reboot; delete 1; delete 1; write 1 ../blobs/SW/LuSEE_FS_307.hex"
+    python test/cli_driver.py -b DCB -r bootload -o "cmd=reboot; delete 1; write 1 ../blobs/SW/LuSEE_FS_307.hex"
     ```
 
  * check that the software has loaded by 
@@ -75,14 +75,14 @@
     python test/cli_driver.py -b DCB -r bootload -o "cmd=reboot_only; wait 30"
     ```
 
-You will get a lot of good stuff:
+You will get something like :
 
 ```
 Packet 1: SWS hello
 Hello Packet
-SW_Version : 0x307
+SW_Version : 0x307     <--- this needs to match
 FW_Version : 0x406
-FW_ID      : 0x24d
+FW_ID      : 0x24d     <--- this will be 0x508 for TMRed FW
 FW_Date    : 0x20250822
 FW_Time    : 0x113019
 packet_id : 0x237384
