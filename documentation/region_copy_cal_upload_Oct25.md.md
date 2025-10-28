@@ -92,12 +92,13 @@ time_sec : 35.4521484375
 
 ## Test copying region 1 into region 2 
 
+**NB: Copy region functionality temporarily disables heartbeat functionality -- hearbeat might not appear for up to 90 second**
 
 ```
 python test/cli_driver.py -b DCB -r region -o "cmd=copy,src=1, tgt=2" -w session_copy_1_2
 ```
-
 It should run for about a minute and issue a pass/fail.
+
 
 You can look at the report in `session_copy_1_2/report.pdf`
 
