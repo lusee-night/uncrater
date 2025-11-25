@@ -17,7 +17,7 @@ from collections import defaultdict
 class Test_Transit(Test):
 
     name = "transit"
-    version = 0.1
+    version = 0.2
     description = """ Script to be run during transit, derived alive 0.1"""
     instructions = """ """
     default_options = {
@@ -59,34 +59,36 @@ class Test_Transit(Test):
         # next some spectra with automatic gain and everything
         S.set_Navg(14,6)
         S.set_ana_gain('AAAA')
+        S.set_avg_mode('40bit')        
         S.adc_range()
         S.set_bitslice_auto(12)        
         S.start()        
-        S.cdi_wait_seconds(90)
+        S.cdi_wait_spectra(5)
         S.stop()
-        S.cdi_wait_seconds(20)
+        S.set_notch(4)
+        S.start()        
+        S.cdi_wait_spectra(5)
+        S.stop()
+        S.set_notch(6)
+        S.start()        
+        S.cdi_wait_spectra(5)
+        S.stop()
+        S.reject_enable(reject_frac=10, max_bad = 100) 
+        S.start()        
+        S.cdi_wait_spectra(5)
+        S.stop()
 
+    
         # check stored calibrator weights CRCs
-        S.cal_weights_load(0)
-        S.house_keeping(3)
-        S.cdi_wait_seconds(1)
-
-        S.cal_weights_load(1)
-        S.house_keeping(3)
-        S.cdi_wait_seconds(1)
-
-        S.cal_weights_load(2)
-        S.house_keeping(3)
-        S.cdi_wait_seconds(1)
-
-        S.cal_weights_load(3)
-        S.house_keeping(3)
-        S.cdi_wait_seconds(1)
-
-        S.cal_weights_load(4)
-        S.house_keeping(3)
-        S.cdi_wait_seconds(1)
-        
+        for i in range(9):
+            S.cal_weights_load(i)
+            S.house_keeping(3)
+            S.cdi_wait_seconds(1)
+    
+        S.region_unlock()
+        S.region_info()
+        S.region_unlock(False)
+        # take region info 
         # general HK
         S.house_keeping(0)
         S.request_eos()
