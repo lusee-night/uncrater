@@ -110,9 +110,9 @@ def default_user():
 
 
 def try_to_type(val):
-    if val == "True":
+    if val in  ["True", "true"]:
         return True
-    if val == "False":
+    if val in ["False", "false"]:
         return False
     try:
         return int(val)
@@ -138,9 +138,23 @@ def opt2dict(optin, default_options=None):
             print("Bad options format: ", opt)
             sys.exit(1)        
         if (default_options is not None) and (key in default_options):
-            val = try_to_type(val.strip())
-            options[key] = type(default_options[key])(val)
+            opt_type = type(default_options[key])
+            if opt_type == bool:
+                if val in ["True", "true", "1"]:
+                    options[key] = True
+                elif val in ["False", "false", "0"]:
+                    options[key] = False
+                else:
+                    print("Bad boolean value for option ", key)
+                    sys.exit(1)
+            else: 
+                try:
+                    options[key] = type(default_options[key])(val)
+                except:
+                    print ("Cannot convert option", key, "to type", opt_type)
+                    sys.exit(1)
         else:
+            print ("Warning: option", key, "not in default options.")
             options[key] = try_to_type(val)
     return options
 
