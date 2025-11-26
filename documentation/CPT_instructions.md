@@ -106,6 +106,17 @@ ADC MAX: [ -14 3420 2981 1466]
 Writing report...
 ```
 
+## Transit runs
+
+Transit runs are meant to be used at Firefly during their quick check-out tests. They are run simply by specifying transit as test name
+```
+python test/cpt.py /path/to/some/tvac/storage transit
+```
+
+The test takes some 17 minutes to run.
+
+
+
 ## Science runs
 
 Every time when possible, please run science-style data acquisition so that we can get as much data as possible.
