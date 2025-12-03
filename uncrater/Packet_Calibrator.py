@@ -1,4 +1,3 @@
-from tracemalloc import stop
 from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time, cordic2rad
 from pycoreloop import appId as id
@@ -14,8 +13,8 @@ class Packet_Cal_Metadata(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()        
-        temp = pystruct.calibrator_metadata.from_buffer_copy(self._blob)               
+        super()._read()
+        temp = pystruct.calibrator_metadata.from_buffer_copy(self._blob)
         self.copy_attrs(temp)
         self.time = Time2Time(self.time_32, self.time_16)
         self._is_read = True
@@ -42,9 +41,9 @@ class Packet_Cal_RegisterDump(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()        
+        super()._read()
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])        
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])
         self.registers = struct.unpack("<498I", self._blob[12:12+498*4])
         self.reset = self.registers[0x00]
         self.Nac1 = self.registers[0x01]
@@ -117,7 +116,7 @@ class Packet_Cal_Data(PacketBase):
             return
         super()._read()
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])
         self.data_page = self.appid - id.AppID_Calibrator_Data
         if (self.data_page>0) and (self.expected_id != self.unique_packet_id):
             print("Packet ID mismatch!!")
@@ -127,7 +126,7 @@ class Packet_Cal_Data(PacketBase):
         data = struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])
         if self.data_page < 2:
             assert(len(data) == 2048)
-            
+
             self.data = np.array(data).reshape(4,512)
         else:
             self.gNacc = data[0]
@@ -159,7 +158,7 @@ class Packet_Cal_RawPFB(PacketBase):
         self.channel = (self.appid-id.AppID_Calibrator_RawPFB)//2
         self.part = (self.appid-id.AppID_Calibrator_RawPFB)%2
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])
 
         if (self.appid-id.AppID_Calibrator_RawPFB>0) and (self.expected_id != self.unique_packet_id):
             print("Packet ID mismatch!!")
@@ -190,14 +189,14 @@ class Packet_Cal_Debug(PacketBase):
             return
         super()._read()
         self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
+        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])
 
 
         self.debug_page = self.appid - id.AppID_Calibrator_Debug
         if (self.debug_page>0) and (self.unique_packet_id != self.expected_id):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
-        
+
         if len(self._blob)!=3*1024*4+12:
             print (f"Bad packet size. size = {len(self.blob)} appid = {self.appid:x} page = {self.debug_page}")
             return
@@ -263,14 +262,21 @@ class Packet_Cal_ZoomSpectra(PacketBase):
         fft_size = 64
         # ch1 autocorr + ch2 autocorr + ch12 corr real/imaginary parts = 4 arrays in total
         total_entries = fft_size * 4
+        # we only use floats in coreloop now
         use_float = True
+        # NB: we send 4 bytes UID + 2 bytes pfb index + data,
+        # but firmware rounds it up (must be multiple of 4 byts), last 2 bytes are garbage
+        # expected_len is how many bytes we actually receive
+        expected_len = total_entries * 4 + 8
 
-        if len(self._blob) == total_entries * 4:
+        if len(self._blob) == expected_len:
+            self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
+            self.pfb_index = struct.unpack("<H", self._blob[4:6])[0]
             if use_float:
-                data = struct.unpack(f"<{total_entries}f", self._blob)
+                data = struct.unpack(f"<{total_entries}f", self._blob[6:-2])
                 dtype = np.float32
             else:
-                data = struct.unpack(f"<{total_entries}i", self._blob)
+                data = struct.unpack(f"<{total_entries}i", self._blob[6:-2])
                 dtype = np.int32
 
             # we always use float32 in NumPy, dtype is just for conversion from raw byte array
@@ -279,7 +285,7 @@ class Packet_Cal_ZoomSpectra(PacketBase):
             self.ch1_2_corr_real = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
             self.ch1_2_corr_imag = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
         else:
-            print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(self._blob)} bytes.")
+            print(f"ERROR in ZoomSpectrum packet size: expected {expected_len} bytes, got {len(self._blob)} bytes.")
             self.ch1_autocorr = np.zeros(fft_size, dtype=np.float32)
             self.ch2_autocorr = np.zeros(fft_size, dtype=np.float32)
             self.ch1_2_corr_real = np.zeros(fft_size, dtype=np.float32)
