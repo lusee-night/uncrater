@@ -4,6 +4,11 @@ from .Packet import appId_from_value
 
 import numpy as np
 
+NPRODUCTS = 16          # number of spectral products
+NCHANNELS = 2048        # number of channels in each spectral product
+N_WF_PACKETS = 4        # number of waveform packets (raw ADC)
+N_CAL_DEBUG_MODES = 8   # number of calibrator debug modes
+
 
 def Time2Time(time1, time2):
     """Converts the the two time values to a single time expressed in seconds.
@@ -12,11 +17,43 @@ def Time2Time(time1, time2):
     time = ((((time2 & 0xFFFF) << 32)+time1)>>4)*1/4096
     return time
 
-def appid_is_spectrum(appid):
-    return ((appid>=id.AppID_SpectraHigh) and (appid<id.AppID_SpectraLow+16))
 
-def appid_is_metadata(appid):
-    return (appid==id.AppID_MetaData)
+def appid_is_spectrum(appid):
+    return appid >= id.AppID_SpectraHigh and appid < id.AppID_SpectraLow+NPRODUCTS
+
+
+def appid_is_metadata(appid: int):
+    return appid == id.AppID_MetaData
+
+
+def appid_is_tr_spectrum(appid: int):
+    if id.AppID_SpectraTRHigh <= appid < id.AppID_SpectraTRHigh + NPRODUCTS:
+        return True
+    if id.AppID_SpectraTRMed <= appid < id.AppID_SpectraTRMed + NPRODUCTS:
+        return True
+    if id.AppID_SpectraTRLow <= appid < id.AppID_SpectraTRLow + NPRODUCTS:
+        return True
+    return False
+
+
+def appid_is_zoom_spectrum(appid: int):
+    return id.AppID_ZoomSpectra <= appid < id.AppID_ZoomSpectra + NPRODUCTS
+
+
+def appid_is_grimm_spectrum(appid: int):
+    return id.AppID_SpectraGrimm == appid
+
+
+# Waveform packet
+def appid_is_raw_adc(appid):
+    return id.AppID_RawADC <= appid < id.AppID_RawADC + N_WF_PACKETS
+
+
+# we have 8 different calibrator debug modes,
+# according to lusee_appids
+def appid_is_cal_debug(appid: int) -> bool:
+    return id.AppID_Calibrator_Debug <= appid < id.AppID_Calibrator_Debug + N_CAL_DEBUG_MODES
+
 
 def appid_to_str(appid):
     if appid == 0x4f0:

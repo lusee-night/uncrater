@@ -1,13 +1,10 @@
-import os, sys
 import glob
 import numpy as np
-
-
 from datetime import datetime
 
 from .Packet import *
-
 from .error_utils import *
+from .utils import NPRODUCTS
 
 
 class Collection:
@@ -64,6 +61,10 @@ class Collection:
             
             packet = Packet(appid, blob_fn=fn)
 
+            # Extract packet index from filename
+            packet_index = int(os.path.basename(fn).split('_')[0])
+            packet.packet_index = packet_index
+
             # spectral/TR spectral packets must be read only after we set their metadata packet
             # all other packets: read immediately
             if not (appid_is_spectrum(appid) or appid_is_tr_spectrum(appid) or appid_is_cal_any(appid)):
@@ -78,6 +79,7 @@ class Collection:
                 tr_spectra.append({"meta": packet})
 
             if appid_is_spectrum(appid):
+                # print(f"Spec appid = {appid}, from file {fn},  {fn.replace(".bin", "").split("_")[-1]}")
                 if meta_packet is not None:
                     packet.set_meta(meta_packet)
                     packet.read()
@@ -314,7 +316,7 @@ class Collection:
     # return 1, if all 16 products are present
     def has_all_products(self) -> int:
         for s, prods in enumerate(self.spectra):
-            for i in range(16):
+            for i in range(NPRODUCTS):
                 if i not in prods:
                     print(f"Product {i} missing in spectra {s}.")
                     return 0
@@ -323,7 +325,7 @@ class Collection:
     # return 1, if all 16 time-resolved packets are present
     def has_all_tr_products(self) -> int:
         for s, trs in enumerate(self.tr_spectra):
-            for i in range(16):
+            for i in range(NPRODUCTS):
                 if i not in trs:
                     print(f"Product {i} missing in TR spectra {s}.")
                     return 0
@@ -332,7 +334,7 @@ class Collection:
     # return 1, if all spectra packets have correct CRC
     def all_spectra_crc_ok(self) -> int:
         for i, prods in enumerate(self.spectra):
-            for k in range(16):
+            for k in range(NPRODUCTS):
                 if k in prods and prods[k].error_crc_mismatch:
                     print(f"Bad CRC in product {k} in spectra {i}.")
                     return 0
@@ -341,7 +343,7 @@ class Collection:
     # return 1, if all time-resolved spectra packets have correct CRC
     def all_tr_spectra_crc_ok(self) -> int:
         for i, trs in enumerate(self.tr_spectra):
-            for k in range(16):
+            for k in range(NPRODUCTS):
                 if k in trs and trs[k].error_crc_mismatch:
                     print(
                         f"Bad CRC in product {k} in TR spectra {i}, incorrect CRC: {trs[k].crc}."
@@ -374,11 +376,11 @@ class Collection:
         """
 
         if (ndx is None) and (channel is None):        
-            return np.array([[S[ch].data for ch in range(16)] for S in self.spectra])
+            return np.array([[S[ch].data for ch in range(NPRODUCTS)] for S in self.spectra])
         
         if (ndx is not None) and (channel is None):
             S = self.spectra[ndx]
-            return np.array([S[ch].data for ch in range(16)])   
+            return np.array([S[ch].data for ch in range(NPRODUCTS)])
         
         if (ndx is None) and (channel is not None):
             return np.array([S[channel].data for S in self.spectra])
