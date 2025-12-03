@@ -2,8 +2,6 @@ import argparse
 from pathlib import Path
 import h5py
 from typing import List, Dict, Any, Optional
-import uncrater as unc
-from uncrater.utils import *
 import ctypes
 import enum
 import os
@@ -13,6 +11,14 @@ import sys
 import time
 from datetime import datetime
 from icecream import ic
+
+# before uncrater import: get the parent directory of the current file's directory
+# and add it to sys.path
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+import uncrater as unc
+from uncrater.utils import *
 
 if os.environ.get("CORELOOP_DIR") is not None:
     sys.path.append(os.environ.get("CORELOOP_DIR"))
@@ -311,8 +317,6 @@ def write_sessions(base_path: str, sessions: List[List[CollatedPacket]], check_e
         # Write packets
         for i, p in enumerate(session_packets):
             fname = os.path.join(session_dir, fmt_str.format(i, p.app_id))
-            if p.app_id in [appId.AppID_SpectraHigh, appId.AppID_ZoomSpectra]:
-                ic(p.unique_packet_id)
             if os.path.exists(fname) and check_existing:
                 existing_hash = md5_file(fname)
                 new_hash = hashlib.md5(p.blob).hexdigest()
@@ -658,7 +662,7 @@ class HDF5Writer:
 
 
     def _assign_zoom_timestamps(self):
-        """Assign timestamps to zoom spectrum packets efficiently."""
+        """Assign timestamps to zoom spectrum packets."""
         if not self.coll.zoom_spectra_packets:
             return
 
@@ -808,7 +812,7 @@ if __name__ == "__main__":
         # Get session ID from directory name
         session_id = session_dir.split('_')[-1]
 
-        # Create output filename with session number and ID
+        # Create output filename with session and ID
         # Convert Unix timestamp to readable date if possible
         try:
             timestamp = int(session_id)
