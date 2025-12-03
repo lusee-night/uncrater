@@ -1,5 +1,5 @@
 from .PacketBase import PacketBase, pystruct
-from .utils import Time2Time, process_ADC_stats, process_telemetry
+from .utils import Time2Time, process_ADC_stats, process_telemetry, NPRODUCTS, NCHANNELS
 from .c_utils import decode_10plus6, decode_5_into_4
 import os, sys
 import struct
@@ -59,11 +59,11 @@ class Packet_Metadata(PacketBase):
     def frequency(self):
         Navgf = self.base.Navgf
         if Navgf == 1:
-            return np.arange(2048) * 0.025
+            return np.arange(NCHANNELS) * 0.025
         elif Navgf == 2:
-            return np.arange(1024) * 0.05
+            return np.arange(NCHANNELS // 2) * 0.05
         else:
-            return np.arange(512) * 0.1
+            return np.arange(NCHANNELS // 4) * 0.1
 
 
 class Packet_SpectrumBase(PacketBase):
@@ -117,12 +117,13 @@ class Packet_SpectrumBase(PacketBase):
             self.packed_id_mismatch = True
 
         if self.meta.unique_packet_id != self.unique_packet_id:
-            print("Packet ID mismatch!!")
+            print(f"Packet ID mismatch, {self.meta.unique_packet_id=}, {self.unique_packet_id=}!!")
             self.packed_id_mismatch = True
+            raise RuntimeError("ALARM")
 
-        if self.meta.format == 0 and len(self._blob[8:]) // 4 > 2048:
+        if self.meta.format == 0 and len(self._blob[8:]) // 4 > NCHANNELS:
             print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + 2048 * 4]
+            self._blob = self._blob[:8 + NCHANNELS * 4]
 
         self.parse_spectra()
         self.check_crc()
@@ -148,27 +149,27 @@ class Packet_Spectrum(Packet_SpectrumBase):
     def set_priority(self):
         if (
             self.appid >= id.AppID_SpectraHigh
-            and self.appid < id.AppID_SpectraHigh + 16
+            and self.appid < id.AppID_SpectraHigh + NPRODUCTS
         ):
             self.priority = 1
             self.product = self.appid - id.AppID_SpectraHigh
         elif (
-            self.appid >= id.AppID_SpectraMed and self.appid < id.AppID_SpectraMed + 16
+            self.appid >= id.AppID_SpectraMed and self.appid < id.AppID_SpectraMed + NPRODUCTS
         ):
             self.priority = 2
             self.product = self.appid - id.AppID_SpectraMed
         else:
             assert (
                 self.appid >= id.AppID_SpectraLow
-                and self.appid < id.AppID_SpectraLow + 16
+                and self.appid < id.AppID_SpectraLow + NPRODUCTS
             )
             self.priority = 3
             self.product = self.appid - id.AppID_SpectraLow
 
     def parse_spectra(self):
-        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[8:]) // 4 > 2048:
+        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[8:]) // 4 > NCHANNELS:
             print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + 2048 * 4]
+            self._blob = self._blob[:8 + NCHANNELS * 4]
 
         fmt, ptype = self.get_fmt_and_ptype()
 
@@ -228,21 +229,32 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
             self.product = self.appid - id.AppID_SpectraTRLow
 
     def parse_spectra(self):
-        # TODO: check length?
-        # if self.meta.format==0 and len(self._blob[8:])//4>2048:
-        #     print ("Spurious data, trimming!!!")
-        #     self._blob = self._blob[:8 + 2048 * 4]
-
-        #if self.meta.format == 0:
-            # data consists of uint16_t, _blob has type int32_t
+        # Data consists of uint16_t encoded values
         Ndata = len(self._blob[8:]) // 2
+
+        # Calculate expected dimensions
+        tr_length = self.meta.base.tr_stop - self.meta.base.tr_start
+        if self.meta.base.tr_avg_shift > 0:
+            tr_length = tr_length // (1 << self.meta.base.tr_avg_shift)
+
+        # Get Navg2 (number of averaging iterations)
+        Navg2 = 1 << self.meta.base.Navg2_shift  # Navg2 = 2^Navg2_shift
+
         try:
             enc_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
             enc_data = np.array(enc_data, dtype=np.uint16)
             data = decode_10plus6(enc_data)
-        except:
+
+            # Reshape to (Navg2, tr_length) - C order since chunks are sequential
+            if len(data) == Navg2 * tr_length:
+                data = data.reshape(Navg2, tr_length, order='C')
+            else:
+                print(f"Warning: TR data size mismatch. Expected {Navg2 * tr_length}, got {len(data)}")
+                # Keep data as 1D if reshape fails
+
+        except Exception as e:
+            print(f"Error parsing TR spectra: {e}")
             self.error_data_read = True
-            data = np.zeros(Ndata, dtype=np.int32)
-        #else:
-        #    raise NotImplementedError("Only format 0 is supported")
-        self.data = np.array(data, dtype=np.int32)
+            data = np.zeros((Navg2, tr_length), dtype=np.float32)
+
+        self.data = np.array(data, dtype=np.float32)
