@@ -12,7 +12,7 @@ import time
 from datetime import datetime
 from icecream import ic
 
-# before uncrater import: get the parent directory of the current file's directory
+# before uncrater import: get the parent directory of the current file"s directory
 # and add it to sys.path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
@@ -26,7 +26,7 @@ if os.environ.get("CORELOOP_DIR") is not None:
 try:
     import pycoreloop
 except ImportError:
-    print("Can't import pycoreloop\n")
+    print("Cannot import pycoreloop\n")
     print("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
     sys.exit(1)
 
@@ -38,13 +38,13 @@ def decode_ccsds_header(pkt) -> dict:
     """Decode CCSDS packet header."""
     formatted_data = struct.unpack_from(f">3H", pkt[:6])
     header = {}
-    header['version'] = (formatted_data[0] >> 13)
-    header['packet_type'] = ((formatted_data[0] >> 12) & 0x1)
-    header['secheaderflag'] = ((formatted_data[0] >> 11) & 0x1)
-    header['appid'] = (formatted_data[0] & 0x7FF)
-    header['groupflags'] = (formatted_data[1] >> 14)
-    header['sequence_cnt'] = (formatted_data[1] & 0x3FFF)
-    header['packetlen'] = (formatted_data[2])
+    header["version"] = (formatted_data[0] >> 13)
+    header["packet_type"] = ((formatted_data[0] >> 12) & 0x1)
+    header["secheaderflag"] = ((formatted_data[0] >> 11) & 0x1)
+    header["appid"] = (formatted_data[0] & 0x7FF)
+    header["groupflags"] = (formatted_data[1] >> 14)
+    header["sequence_cnt"] = (formatted_data[1] & 0x3FFF)
+    header["packetlen"] = (formatted_data[2])
     # print(header)
     return header
 
@@ -99,16 +99,16 @@ def L0_to_ccsds(data) -> list:
                 if len(pkt_head) == 6:
                     state = PState.READING_DATA
                     header = decode_ccsds_header(pkt_head)
-                    pllen = header['packetlen']
-                    sequence_cnt = header['sequence_cnt']
-                    # print ('apid=', hex(header['appid']), 'seq=', sequence_cnt, 'len=', pllen)
+                    pllen = header["packetlen"]
+                    sequence_cnt = header["sequence_cnt"]
+                    # print ("apid=", hex(header["appid"]), "seq=", sequence_cnt, "len=", pllen)
                     continue
 
             case PState.READING_DATA:
                 pkt_body.append(v)
                 if len(pkt_body) >= pllen + 3:
                     # Check CRC
-                    pktcrc = struct.unpack('>H', pkt_body[-2:])[0]
+                    pktcrc = struct.unpack(">H", pkt_body[-2:])[0]
                     compcrc = crc16_ccitt(pkt_head + pkt_body[:-2])
 
                     if pktcrc != compcrc:
@@ -151,11 +151,11 @@ def collate_packets(pkts) -> List[CollatedPacket]:
         seq, head, body = p
         pkt += reorder(body)
         header = decode_ccsds_header(head)
-        cur_apid = header['appid']
-        # print (f"Seq={seq} APID={hex(cur_apid)} GF={header['groupflags']} Len={len(body)} TotalLen={len(pkt)}")
+        cur_apid = header["appid"]
+        # print (f"Seq={seq} APID={hex(cur_apid)} GF={header["groupflags"]} Len={len(body)} TotalLen={len(pkt)}")
         if last_apid is not None and last_apid != cur_apid:
             print(f"Warning: APID changed from {hex(last_apid)} to {hex(cur_apid)} in sequence {seq}")
-        if header['groupflags'] == 3:
+        if header["groupflags"] == 3:
             # end of multi-packet
             if single_packet:
                 start_seq = seq
@@ -191,7 +191,7 @@ def assign_uids(pkts: List[CollatedPacket]):
 
 def decode_directory(path):
     begin = time.time()
-    files = [path + f'/b0{i}/FFFFFFFE' for i in [5, 6, 7, 8, 9]]
+    files = [path + f"/b0{i}/FFFFFFFE" for i in [5, 6, 7, 8, 9]]
     allpkts = []
     # uncomment file_to_seq lines to plot seq in the order it is read
     # file_to_seq = dict()
@@ -200,7 +200,7 @@ def decode_directory(path):
             print(f"WARNING: file {f} not found, skipping")
             continue
         print(f"Decoding file {f}")
-        data = open(f, 'rb').read()
+        data = open(f, "rb").read()
         pkts = L0_to_ccsds(data)
         # file_to_seq[f] = [ p[0] for p in pkts]
         collated = collate_packets(pkts)
@@ -208,10 +208,10 @@ def decode_directory(path):
 
     # for f, seq_nums in file_to_seq.items():
     #     plt.figure()
-    #     plt.plot(seq_nums, marker='o', linestyle='-', markersize=4)
+    #     plt.plot(seq_nums, marker="o", linestyle="-", markersize=4)
     #     plt.title(os.path.basename(f))  # Just the filename without any directory
-    #     plt.xlabel('Packet Index')
-    #     plt.ylabel('Sequence Number')
+    #     plt.xlabel("Packet Index")
+    #     plt.ylabel("Sequence Number")
     #     plt.grid()
     #     plt.show()  # Or plt.savefig(f"{os.path.basename(f)}_plot.png") to save the plo
 
@@ -324,7 +324,7 @@ def write_sessions(base_path: str, sessions: List[List[CollatedPacket]], check_e
                     raise ValueError(f"File {fname} exists but content is different.")
                 else:
                     continue
-            with open(fname, 'wb') as f:
+            with open(fname, "wb") as f:
                 f.write(p.blob)
 
     return session_dirs
@@ -342,10 +342,10 @@ def split_into_sessions(pkts: List[CollatedPacket]) -> List[List[CollatedPacket]
     for i, pkt in enumerate(pkts):
         if pkt.app_id == appId.AppID_uC_Start:
             # Check if this is part of a sequence of uC_Start packets
-            # or if it's a new start after other packets
+            # or if it"s a new start after other packets
             if current_session and current_session[-1].app_id != appId.AppID_uC_Start:
-                # We have a non-empty session and the last packet wasn't uC_Start
-                # This means we're starting a new session
+                # We have a non-empty session and the last packet wasn"t uC_Start
+                # This means we"re starting a new session
                 sessions.append(current_session)
                 current_session = [pkt]
             else:
@@ -377,32 +377,32 @@ class HDF5Writer:
 
         self._assign_zoom_timestamps()
 
-        with h5py.File(self.output_file, 'w') as f:
+        with h5py.File(self.output_file, "w") as f:
             # Store session-level info
-            f.attrs['cdi_directory'] = self.cdi_dir
+            f.attrs["cdi_directory"] = self.cdi_dir
 
             # Track metadata changes
             metadata_groups = self._group_by_metadata()
 
             # Write each metadata group to HDF5
             for group_idx, group in enumerate(metadata_groups):
-                group_name = f'group_{group_idx:03d}'
+                group_name = f"group_{group_idx:03d}"
                 h5_group = f.create_group(group_name)
 
                 # Store metadata as attributes
-                for key, value in group['metadata_dict'].items():
+                for key, value in group["metadata_dict"].items():
                     h5_group.attrs[key] = value
 
                 # Write different data types
-                self._write_waveforms(h5_group, group['waveform'])
-                self._write_spectra(h5_group, group['spectra'])
-                self._write_tr_spectra(h5_group, group['tr_spectra'])
-                self._write_housekeeping(h5_group, group['housekeeping'])
-                self._write_zoom_spectra(h5_group, group['zoom_spectra'])
-                self._write_calibrator_data(h5_group, group['calibrator_data'])
+                self._write_waveforms(h5_group, group["waveform"])
+                self._write_spectra(h5_group, group["spectra"], group["expanded_metadata"])
+                self._write_tr_spectra(h5_group, group["tr_spectra"])
+                self._write_housekeeping(h5_group, group["housekeeping"])
+                self._write_zoom_spectra(h5_group, group["zoom_spectra"])
+                self._write_calibrator_data(h5_group, group["calibrator_data"])
 
             # Add summary information
-            f.attrs['n_groups'] = len(metadata_groups)
+            f.attrs["n_groups"] = len(metadata_groups)
 
     def _group_by_metadata(self) -> List[Dict]:
         """Group data by metadata configuration."""
@@ -411,36 +411,36 @@ class HDF5Writer:
 
         # Group data by metadata configuration
         for sp_dict in self.coll.spectra:
-            meta_pkt = sp_dict['meta']
+            meta_pkt = sp_dict["meta"]
             meta_dict = metadata_to_dict(meta_pkt)
 
             if current_metadata_dict != meta_dict:
                 # New metadata configuration
                 current_metadata_dict = meta_dict
                 metadata_groups.append({
-                    'metadata': meta_pkt,
-                    'metadata_dict': meta_dict,
-                    'spectra': [],
-                    'tr_spectra': [],
-                    'housekeeping': [],
-                    'waveform': [],
-                    'zoom_spectra': [],
-                    'calibrator_data': [],
-                    'calibrator_debug': []
+                    "metadata": meta_pkt,
+                    "metadata_dict": meta_dict,
+                    "spectra": [],
+                    "tr_spectra": [],
+                    "housekeeping": [],
+                    "waveform": [],
+                    "zoom_spectra": [],
+                    "calibrator_data": [],
+                    "calibrator_debug": []
                 })
 
             # Add this spectrum set to current group
-            metadata_groups[-1]['spectra'].append(sp_dict)
+            metadata_groups[-1]["spectra"].append(sp_dict)
 
         # Match TR spectra to metadata groups
         for trs_dict in self.coll.tr_spectra:
-            meta_pkt = trs_dict['meta']
+            meta_pkt = trs_dict["meta"]
             meta_dict = metadata_to_dict(meta_pkt)
 
             # Find matching metadata group
             for group in metadata_groups:
-                if group['metadata_dict'] == meta_dict:
-                    group['tr_spectra'].append(trs_dict)
+                if group["metadata_dict"] == meta_dict:
+                    group["tr_spectra"].append(trs_dict)
                     break
             else:
                 print(f"Warning: TR spectrum with unmatched metadata")
@@ -448,14 +448,17 @@ class HDF5Writer:
         # Assign other packets to groups
         if metadata_groups:
             last_group = metadata_groups[-1]
-            last_group['housekeeping'].extend(self.coll.housekeeping_packets)
-            last_group['waveform'].extend(self.coll.waveform_packets)
-            last_group['zoom_spectra'].extend(self.coll.zoom_spectra_packets)
-            if hasattr(self.coll, 'calib_data') and len(self.coll.calib_data) > 0:
-                last_group['calibrator_data'].extend(self.coll.calib_data)
-            if hasattr(self.coll, 'calib_debug') and len(self.coll.calib_debug) > 0:
-                last_group['calibrator_debug'].extend(self.coll.calib_debug)
+            last_group["housekeeping"].extend(self.coll.housekeeping_packets)
+            last_group["waveform"].extend(self.coll.waveform_packets)
+            last_group["zoom_spectra"].extend(self.coll.zoom_spectra_packets)
+            if hasattr(self.coll, "calib_data") and len(self.coll.calib_data) > 0:
+                last_group["calibrator_data"].extend(self.coll.calib_data)
+            if hasattr(self.coll, "calib_debug") and len(self.coll.calib_debug) > 0:
+                last_group["calibrator_debug"].extend(self.coll.calib_debug)
 
+        for md_group in metadata_groups:
+            arr_meta_dict = expand_metadata_to_arrays(n_spectra=len(md_group["spectra"]), meta=md_group["metadata"])
+            md_group["expanded_metadata"] = arr_meta_dict
         return metadata_groups
 
     def _write_waveforms(self, h5_group, waveform_packets):
@@ -463,7 +466,7 @@ class HDF5Writer:
         if not waveform_packets:
             return
 
-        wf_group = h5_group.create_group('waveform')
+        wf_group = h5_group.create_group("waveform")
 
         # Group waveforms by channel
         waveforms_by_channel = {}
@@ -473,9 +476,9 @@ class HDF5Writer:
                 waveforms_by_channel[wf_pkt.ch] = []
             waveforms_by_channel[wf_pkt.ch].append(wf_pkt)
 
-        # Write each channel's waveforms
+        # Write each channel"s waveforms
         for ch, wf_list in waveforms_by_channel.items():
-            ch_group = wf_group.create_group(f'channel_{ch}')
+            ch_group = wf_group.create_group(f"channel_{ch}")
 
             n_waveforms = len(wf_list)
             waveform_array = np.zeros((n_waveforms, 16384), dtype=np.int16)
@@ -485,15 +488,15 @@ class HDF5Writer:
                 waveform_array[i] = wf_pkt.waveform
                 timestamps.append(wf_pkt.timestamp)
 
-            ch_group.create_dataset('waveforms', data=waveform_array, compression='gzip')
-            ch_group.create_dataset('timestamps', data=timestamps)
-            ch_group.attrs['count'] = n_waveforms
-            ch_group.attrs['channel'] = ch
+            ch_group.create_dataset("waveforms", data=waveform_array, compression="gzip")
+            ch_group.create_dataset("timestamps", data=timestamps)
+            ch_group.attrs["count"] = n_waveforms
+            ch_group.attrs["channel"] = ch
 
-        wf_group.attrs['total_count'] = len(waveform_packets)
-        wf_group.attrs['channels'] = list(waveforms_by_channel.keys())
+        wf_group.attrs["total_count"] = len(waveform_packets)
+        wf_group.attrs["channels"] = list(waveforms_by_channel.keys())
 
-    def _write_spectra(self, h5_group, spectra_dicts):
+    def _write_spectra(self, h5_group, spectra_dicts, expanded_md):
         """Write spectra to HDF5."""
         if not spectra_dicts:
             return
@@ -504,16 +507,21 @@ class HDF5Writer:
         spectra_uids = []
 
         for t_idx, sp_dict in enumerate(spectra_dicts):
-            spectra_uids.append(sp_dict['meta'].unique_packet_id)
+            spectra_uids.append(sp_dict["meta"].unique_packet_id)
 
             for prod_idx in range(NPRODUCTS):
                 if prod_idx in sp_dict:
                     spectrum = sp_dict[prod_idx].data
                     spectra_array[t_idx, prod_idx, :len(spectrum)] = spectrum
 
-        h5_group.create_dataset('spectra/data', data=spectra_array, compression='gzip')
-        h5_group.create_dataset('spectra/unique_ids', data=spectra_uids)
-        h5_group.attrs['spectra_count'] = n_time
+        h5_group.create_dataset("spectra/data", data=spectra_array, compression="gzip")
+        h5_group.create_dataset("spectra/unique_ids", data=spectra_uids)
+        h5_group.attrs["spectra_count"] = n_time
+
+        for metadata_key, metadata_arr in expanded_md.items():
+            h5_group.create_dataset(f"spectra/metadata/{metadata_key}", data=metadata_arr, compression="gzip")
+
+
 
     def _write_tr_spectra(self, h5_group, tr_spectra_dicts):
         """Write time-resolved spectra to HDF5."""
@@ -524,7 +532,7 @@ class HDF5Writer:
 
         # Get dimensions from first packet
         first_trs = tr_spectra_dicts[0]
-        meta = first_trs['meta']
+        meta = first_trs["meta"]
 
         tr_length = meta.base.tr_stop - meta.base.tr_start
         if meta.base.tr_avg_shift > 0:
@@ -536,7 +544,7 @@ class HDF5Writer:
         tr_uids = []
 
         for t_idx, trs_dict in enumerate(tr_spectra_dicts):
-            tr_uids.append(trs_dict['meta'].unique_packet_id)
+            tr_uids.append(trs_dict["meta"].unique_packet_id)
 
             for prod_idx in range(NPRODUCTS):
                 if prod_idx in trs_dict:
@@ -548,64 +556,64 @@ class HDF5Writer:
                         flat_len = min(len(tr_spectrum), Navg2 * tr_length)
                         tr_array[t_idx, prod_idx].flat[:flat_len] = tr_spectrum.flat[:flat_len]
 
-        h5_group.create_dataset('tr_spectra/data', data=tr_array, compression='gzip')
-        h5_group.create_dataset('tr_spectra/unique_ids', data=tr_uids)
-        h5_group.attrs['tr_spectra_count'] = n_time
-        h5_group.attrs['tr_spectra_Navg2'] = Navg2
-        h5_group.attrs['tr_spectra_tr_length'] = tr_length
+        h5_group.create_dataset("tr_spectra/data", data=tr_array, compression="gzip")
+        h5_group.create_dataset("tr_spectra/unique_ids", data=tr_uids)
+        h5_group.attrs["tr_spectra_count"] = n_time
+        h5_group.attrs["tr_spectra_Navg2"] = Navg2
+        h5_group.attrs["tr_spectra_tr_length"] = tr_length
 
     def _write_housekeeping(self, h5_group, housekeeping_packets):
         """Write housekeeping packets to HDF5."""
         if not housekeeping_packets:
             return
 
-        hk_group = h5_group.create_group('housekeeping')
+        hk_group = h5_group.create_group("housekeeping")
 
         for i, hk_pkt in enumerate(housekeeping_packets):
             hk_pkt._read()
 
-            pkt_group = hk_group.create_group(f'packet_{i}')
-            pkt_group.attrs['hk_type'] = hk_pkt.hk_type
-            pkt_group.attrs['version'] = hk_pkt.version
-            pkt_group.attrs['unique_packet_id'] = hk_pkt.unique_packet_id
-            pkt_group.attrs['errors'] = hk_pkt.errors
+            pkt_group = hk_group.create_group(f"packet_{i}")
+            pkt_group.attrs["hk_type"] = hk_pkt.hk_type
+            pkt_group.attrs["version"] = hk_pkt.version
+            pkt_group.attrs["unique_packet_id"] = hk_pkt.unique_packet_id
+            pkt_group.attrs["errors"] = hk_pkt.errors
 
             if hk_pkt.hk_type == 0:
-                if hasattr(hk_pkt, 'time'):
-                    pkt_group.attrs['time'] = hk_pkt.time
+                if hasattr(hk_pkt, "time"):
+                    pkt_group.attrs["time"] = hk_pkt.time
             elif hk_pkt.hk_type == 1:
-                if hasattr(hk_pkt, 'min'):
-                    pkt_group.attrs['adc_min'] = hk_pkt.min
-                if hasattr(hk_pkt, 'max'):
-                    pkt_group.attrs['adc_max'] = hk_pkt.max
-                if hasattr(hk_pkt, 'mean'):
-                    pkt_group.attrs['adc_mean'] = hk_pkt.mean
-                if hasattr(hk_pkt, 'rms'):
-                    pkt_group.attrs['adc_rms'] = hk_pkt.rms
-                if hasattr(hk_pkt, 'actual_gain'):
-                    pkt_group.attrs['actual_gain'] = ''.join(hk_pkt.actual_gain)
+                if hasattr(hk_pkt, "min"):
+                    pkt_group.attrs["adc_min"] = hk_pkt.min
+                if hasattr(hk_pkt, "max"):
+                    pkt_group.attrs["adc_max"] = hk_pkt.max
+                if hasattr(hk_pkt, "mean"):
+                    pkt_group.attrs["adc_mean"] = hk_pkt.mean
+                if hasattr(hk_pkt, "rms"):
+                    pkt_group.attrs["adc_rms"] = hk_pkt.rms
+                if hasattr(hk_pkt, "actual_gain"):
+                    pkt_group.attrs["actual_gain"] = "".join(hk_pkt.actual_gain)
             elif hk_pkt.hk_type == 2:
-                if hasattr(hk_pkt, 'time'):
-                    pkt_group.attrs['time'] = hk_pkt.time
-                if hasattr(hk_pkt, 'ok'):
-                    pkt_group.attrs['ok'] = hk_pkt.ok
-                if hasattr(hk_pkt, 'telemetry'):
+                if hasattr(hk_pkt, "time"):
+                    pkt_group.attrs["time"] = hk_pkt.time
+                if hasattr(hk_pkt, "ok"):
+                    pkt_group.attrs["ok"] = hk_pkt.ok
+                if hasattr(hk_pkt, "telemetry"):
                     for k, v in hk_pkt.telemetry.items():
-                        pkt_group.attrs[f'telemetry_{k}'] = v
+                        pkt_group.attrs[f"telemetry_{k}"] = v
             elif hk_pkt.hk_type == 3:
-                if hasattr(hk_pkt, 'checksum'):
-                    pkt_group.attrs['checksum'] = hk_pkt.checksum
-                if hasattr(hk_pkt, 'weight_ndx'):
-                    pkt_group.attrs['weight_ndx'] = hk_pkt.weight_ndx
+                if hasattr(hk_pkt, "checksum"):
+                    pkt_group.attrs["checksum"] = hk_pkt.checksum
+                if hasattr(hk_pkt, "weight_ndx"):
+                    pkt_group.attrs["weight_ndx"] = hk_pkt.weight_ndx
 
-        hk_group.attrs['count'] = len(housekeeping_packets)
+        hk_group.attrs["count"] = len(housekeeping_packets)
 
     def _write_zoom_spectra(self, h5_group, zoom_packets):
         """Write zoom spectra as concatenated arrays."""
         if not zoom_packets:
             return
 
-        zoom_group = h5_group.create_group('calibrator/zoom_spectra')
+        zoom_group = h5_group.create_group("calibrator/zoom_spectra")
 
         n_packets = len(zoom_packets)
         fft_size = 64
@@ -634,31 +642,31 @@ class HDF5Writer:
             pfb_indices.append(pfb_idx)
 
             # Use the assigned timestamp
-            timestamps.append(zoom_pkt.zoom_timestamp if hasattr(zoom_pkt, 'zoom_timestamp') else 0.0)
+            timestamps.append(zoom_pkt.zoom_timestamp if hasattr(zoom_pkt, "zoom_timestamp") else 0.0)
 
         # Store as datasets
-        zoom_group.create_dataset('ch1_autocorr', data=ch1_autocorr_all, compression='gzip')
-        zoom_group.create_dataset('ch2_autocorr', data=ch2_autocorr_all, compression='gzip')
-        zoom_group.create_dataset('ch1_2_corr_real', data=ch1_2_corr_real_all, compression='gzip')
-        zoom_group.create_dataset('ch1_2_corr_imag', data=ch1_2_corr_imag_all, compression='gzip')
-        zoom_group.create_dataset('unique_ids', data=unique_ids)
-        zoom_group.create_dataset('pfb_indices', data=pfb_indices)
-        zoom_group.create_dataset('timestamps', data=timestamps)
-        zoom_group.attrs['count'] = n_packets
+        zoom_group.create_dataset("ch1_autocorr", data=ch1_autocorr_all, compression="gzip")
+        zoom_group.create_dataset("ch2_autocorr", data=ch2_autocorr_all, compression="gzip")
+        zoom_group.create_dataset("ch1_2_corr_real", data=ch1_2_corr_real_all, compression="gzip")
+        zoom_group.create_dataset("ch1_2_corr_imag", data=ch1_2_corr_imag_all, compression="gzip")
+        zoom_group.create_dataset("unique_ids", data=unique_ids)
+        zoom_group.create_dataset("pfb_indices", data=pfb_indices)
+        zoom_group.create_dataset("timestamps", data=timestamps)
+        zoom_group.attrs["count"] = n_packets
 
     def _write_calibrator_data(self, h5_group, calibrator_data):
         """Write calibrator data to HDF5."""
         if not calibrator_data:
             return
 
-        cal_data_group = h5_group.create_group('calibrator/data')
+        cal_data_group = h5_group.create_group("calibrator/data")
 
         for i, cal_data in enumerate(calibrator_data):
             for ch_idx, ch_data in enumerate(cal_data):
                 if ch_data is not None:
-                    cal_data_group.create_dataset(f'packet_{i}_ch_{ch_idx}',
-                                                 data=ch_data, compression='gzip')
-        cal_data_group.attrs['count'] = len(calibrator_data)
+                    cal_data_group.create_dataset(f"packet_{i}_ch_{ch_idx}",
+                                                 data=ch_data, compression="gzip")
+        cal_data_group.attrs["count"] = len(calibrator_data)
 
 
     def _assign_zoom_timestamps(self):
@@ -682,13 +690,13 @@ class HDF5Writer:
             # Move forward through spectra until we pass the zoom packet index
             while spectra_idx < len(self.coll.spectra):
                 spectra_dict = self.coll.spectra[spectra_idx]
-                meta_pkt = spectra_dict['meta']
+                meta_pkt = spectra_dict["meta"]
 
                 # Check if metadata packet index is past zoom packet
                 if meta_pkt.packet_index > zoom_packet_index:
                     # Use the previous metadata if available
                     if spectra_idx > 0:
-                        prev_meta = self.coll.spectra[spectra_idx - 1]['meta']
+                        prev_meta = self.coll.spectra[spectra_idx - 1]["meta"]
                         meta_time = prev_meta.time
                     break
 
@@ -713,32 +721,94 @@ def save_to_hdf5(cdi_dir: str, output_file: str):
 
 def metadata_to_dict(meta: unc.Packet_Metadata) -> Dict[str, Any]:
     """Convert metadata packet to dictionary for comparison and storage."""
-    meta._read()  # Ensure packet is read
-    return {
-        'Navgf': meta.base.Navgf,
-        'Navg1_shift': meta.base.Navg1_shift,
-        'Navg2_shift': meta.base.Navg2_shift,
-        'notch': meta.base.notch,
-        'format': meta.base.format,
-        'corr_products_mask': meta.base.corr_products_mask,
-        'tr_start': meta.base.tr_start,
-        'tr_stop': meta.base.tr_stop,
-        'tr_avg_shift': meta.base.tr_avg_shift,
-        'grimm_enable': meta.base.grimm_enable,
-        'averaging_mode': meta.base.averaging_mode,
-        'reject_ratio': meta.base.reject_ratio,
-        'reject_maxbad': meta.base.reject_maxbad,
-        'bitslice_keep_bits': meta.base.bitslice_keep_bits,
-        'weight': meta.base.weight,
-        'weight_current': meta.base.weight_current,
-        # Include gain settings for all 4 inputs
-        'gain': [meta.base.gain[i] for i in range(4)],
-        'actual_gain': [meta.base.actual_gain[i] for i in range(4)],
-        # Include bitslice settings for all 16 spectra
-        'bitslice': [meta.base.bitslice[i] for i in range(NPRODUCTS)],
-        'actual_bitslice': [meta.base.actual_bitslice[i] for i in range(NPRODUCTS)],
-    }
+    result = dict()
 
+    for attr_name in meta.base.__slots__:
+        # Skip time fields - handled specially after the loop
+        if attr_name in ["time_32", "time_16"]:
+            continue
+
+        attr_value = getattr(meta.base, attr_name)
+
+        if isinstance(attr_value, int):
+            # Simple integer: store as-is
+            result[attr_name] = attr_value
+        else:
+            # Try to treat it as an array-like object
+            try:
+                first_elem = attr_value[0]
+            except (TypeError, IndexError) as e:
+                raise RuntimeError(f"Unexpected attribute type: {attr_name}, type={type(attr_value)}, error: {e}")
+
+            if isinstance(first_elem, int):
+                # Array of ints
+                result[attr_name] = [attr_value[i] for i in range(len(attr_value))]
+            elif hasattr(first_elem, "__slots__"):
+                # Array of structs: store each field separately
+                for field_name in first_elem.__slots__:
+                    # Collect all values for this field across all struct elements
+                    dict_key = f"{attr_name}_{field_name}"
+                    result[dict_key] = [getattr(elem, field_name) for elem in attr_value]
+            else:
+                raise RuntimeError(f"Unexpected element type in array {attr_name}: element type={type(first_elem)}")
+
+    # Special handling for time fields: combine and use int64
+    time_combined = Time2Time(meta.base.time_32, meta.base.time_16)
+    result["time"] = time_combined
+
+    return result
+
+
+def expand_helper(xs, n_repeats):
+    n = len(xs)
+    xs = np.array([xs[i] for i in range(n)], dtype=np.int64)
+    xs = np.repeat(xs, repeats=n_repeats, axis=None)
+    xs = xs.reshape(n, n_repeats).T
+    return xs
+
+
+def expand_metadata_to_arrays(n_spectra, meta: unc.Packet_Metadata):
+    """Broadcast metadata numerical data to match the shape of spectra."""
+
+    result = dict()
+    ones = np.ones(n_spectra, dtype=np.int64)
+
+    for attr_name in meta.base.__slots__:
+        # Skip time fields - handled specially after the loop
+        if attr_name in ["time_32", "time_16"]:
+            continue
+
+        attr_value = getattr(meta.base, attr_name)
+
+        if isinstance(attr_value, int):
+            # Simple integer: replicate n_spectra times
+            result[attr_name] = attr_value * ones
+        else:
+            # Try to treat it as an array-like object
+            try:
+                length, first_elem  = len(attr_value), attr_value[0]
+            except (TypeError, IndexError) as e:
+                raise RuntimeError(f"Unexpected attribute type: {attr_name}, type={type(attr_value)}, error: {e}")
+
+            if isinstance(first_elem, int):
+                # Array of ints: expand directly
+                result[attr_name] = expand_helper(attr_value, n_spectra)
+            elif hasattr(first_elem, "__slots__"):
+                # Array of structs: expand each field separately
+                for field_name in first_elem.__slots__:
+                    # Collect all values for this field across all struct elements
+                    field_values = [getattr(elem, field_name) for elem in attr_value]
+                    dict_key = f"{attr_name}_{field_name}"
+                    result[dict_key] = expand_helper(field_values, n_spectra)
+            else:
+                raise RuntimeError(f"Unexpected element type in array {attr_name}: element type={type(first_elem)}")
+
+    # Special handling for time fields: combine time_32, time_16
+    time_combined = Time2Time(meta.base.time_32, meta.base.time_16)
+    time_combined = time_combined * np.ones(n_spectra, dtype=np.int64)
+    result["time"] = time_combined
+
+    return result
 
 def app_id_category(curr_app_id):
     if appid_is_spectrum(curr_app_id):
@@ -779,10 +849,10 @@ def print_packet_categories(pkts):
 
 if __name__ == "__main__":
     verbose = True
-    parser = argparse.ArgumentParser(description='Save sessions to HDF5')
-    parser.add_argument('input_dir', type=str, help='Input directory containing telemetry data')
-    parser.add_argument('output_dir', type=str, nargs='?', default='.',
-                        help='Output directory for session files (default: current directory)')
+    parser = argparse.ArgumentParser(description="Save sessions to HDF5")
+    parser.add_argument("input_dir", type=str, help="Input directory containing telemetry data")
+    parser.add_argument("output_dir", type=str, nargs="?", default=".",
+                        help="Output directory for session files (default: current directory)")
 
     args = parser.parse_args()
 
@@ -790,33 +860,38 @@ if __name__ == "__main__":
     output_path = Path(args.output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Decode packets from input directory
-    pkts = decode_directory(args.input_dir)
-    if verbose:
-        print(len(pkts), " collated packets found")
+    rewrite_cdi_dirs = True
 
-    if verbose:
-        print_packet_categories(pkts)
+    if rewrite_cdi_dirs:
+        # Decode packets from input directory
+        pkts = decode_directory(args.input_dir)
+        if verbose:
+            print(len(pkts), " collated packets found")
 
-    # Split into sessions
-    sessions = split_into_sessions(pkts)
-    if verbose:
-        print(f"Found {len(sessions)} sessions")
+        if verbose:
+            print_packet_categories(pkts)
 
-    # Write sessions to directories
-    base_output = str(output_path / "sessions")
-    session_dirs = write_sessions(base_output, sessions)
+        # Split into sessions
+        sessions = split_into_sessions(pkts)
+        if verbose:
+            print(f"Found {len(sessions)} sessions")
+
+        # Write sessions to directories
+        base_output = str(output_path / "sessions")
+        session_dirs = write_sessions(base_output, sessions)
+    else:
+        session_dirs = ["sessions/cdi_output_1762371304", "sessions/cdi_output_1762373104" ]
 
     # Save each session to HDF5
     for i, session_dir in enumerate(session_dirs):
         # Get session ID from directory name
-        session_id = session_dir.split('_')[-1]
+        session_id = session_dir.split("_")[-1]
 
         # Create output filename with session and ID
         # Convert Unix timestamp to readable date if possible
         try:
             timestamp = int(session_id)
-            date_str = datetime.fromtimestamp(timestamp).strftime('%Y%m%d_%H%M%S')
+            date_str = datetime.fromtimestamp(timestamp).strftime("%Y%m%d_%H%M%S")
             output_file = str(output_path / f"session_{date_str}.h5")
         except:
             output_file = str(output_path / f"session_{i:03d}_{session_id}.h5")
