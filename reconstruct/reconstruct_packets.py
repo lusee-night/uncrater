@@ -837,14 +837,14 @@ def print_packet_categories(pkts):
         curr_app_id = app_id_category(p.app_id)
         if prev_app_id is None or curr_app_id != prev_app_id:
             if prev_app_id is not None:
-                print(f"{prev_app_id.ljust(25, " ")}: {cat_count} packets")
+                print(f"{prev_app_id.ljust(25, ' ')}: {cat_count} packets")
             cat_count = 1  # Start with 1 for the current packet
             prev_app_id = curr_app_id
         else:
             cat_count += 1
     # the last group
     if prev_app_id is not None:
-        print(f"{prev_app_id.ljust(25, " ")}:\t {cat_count} packets")
+        print(f"{prev_app_id.ljust(25, ' ')}:\t {cat_count} packets")
 
 
 if __name__ == "__main__":
