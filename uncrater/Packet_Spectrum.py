@@ -1,24 +1,14 @@
 from .PacketBase import PacketBase, pystruct
 from .utils import Time2Time, process_ADC_stats, process_telemetry
 from .c_utils import decode_10plus6, decode_5_into_4
-import os, sys
+from .coreloop import pycoreloop
 import struct
 import numpy as np
 import binascii
 from typing import Tuple
 
-
-if os.environ.get("CORELOOP_DIR") is not None:
-    sys.path.append(os.environ.get("CORELOOP_DIR"))
-
-# now try to import pycoreloop
-try:
-    from pycoreloop import appId as id
-    from pycoreloop import pystruct as cl
-except ImportError:
-    print("Can't import pycoreloop\n")
-    print("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
-    sys.exit(1)
+id = pycoreloop.appId
+cl = pycoreloop.pystruct
 
 
 class Packet_Metadata(PacketBase):

@@ -1,15 +1,8 @@
-import os, sys
 from typing import List
 
-if os.environ.get("CORELOOP_DIR") is not None:
-    sys.path.append(os.environ.get("CORELOOP_DIR"))
+from .coreloop import pycoreloop
 
-try:
-    from pycoreloop import core_loop_errors as errs
-except ImportError:
-    print("Can't import pycoreloop\n")
-    print( "Install the package or setup CORELOOP_DIR to point at CORELOOP repo." )
-    sys.exit(1)
+errs = pycoreloop.core_loop_errors
 
 error_prefixes = ("ANALOG_", "CDI_", "DF_SPECTRA_DROPPED", "FLASH_CRC_FAIL")
 

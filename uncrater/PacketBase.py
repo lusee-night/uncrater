@@ -1,17 +1,8 @@
 import os, sys
 import hexdump
+from .coreloop import pycoreloop 
+pystruct = pycoreloop.pystruct
 
-
-if os.environ.get('CORELOOP_DIR') is not None:
-    sys.path.append(os.environ.get('CORELOOP_DIR'))
-
-# now try to import pycoreloop
-try:
-    from pycoreloop import pystruct
-except ImportError:
-    print ("Can't import pycoreloop\n")
-    print ("Please install the package or setup CORELOOP_DIR to point at CORELOOP repo.")
-    sys.exit(1)
 
 
 class PacketBase:
