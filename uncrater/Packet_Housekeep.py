@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase, pystruct
+from .PacketBase import PacketBase, pystruct, pystruct_203, pystruct_305, pystruct_307
 from .utils import Time2Time, process_ADC_stats, process_telemetry
 import struct
 import numpy as np
@@ -19,13 +19,24 @@ class Packet_Housekeep(PacketBase):
         # fmt = "<H I I H"
         # cs,ce = 0,struct.calcsize(fmt)
         # self.version, self.unique_packet_id, self.errors, self.housekeeping_type = struct.unpack(fmt, self.blob[cs:ce])
-        temp = pystruct.housekeeping_data_base.from_buffer_copy(self._blob)
+        
+        # Select the appropriate pystruct based on version
+        if self._version==0x203:
+            ps = pystruct_203
+        elif self._version==0x305:
+            ps = pystruct_305
+        elif self._version==0x307:
+            ps = pystruct_307
+        else:
+            ps = pystruct
+            
+        temp = ps.housekeeping_data_base.from_buffer_copy(self._blob)
         self.time = 0
         self.hk_type = temp.housekeeping_type
         self.version = temp.version
         self.unique_packet_id = temp.unique_packet_id
         self.errors = temp.errors
-        if self.version != pystruct.VERSION_ID:
+        if self.version != ps.VERSION_ID:
             print("WARNING: Version ID mismatch")
 
         if temp.housekeeping_type not in self.valid_types:
@@ -34,7 +45,7 @@ class Packet_Housekeep(PacketBase):
 
 
         if temp.housekeeping_type == 0:
-            self.copy_attrs(pystruct.housekeeping_data_0.from_buffer_copy(self._blob))
+            self.copy_attrs(ps.housekeeping_data_0.from_buffer_copy(self._blob))
             self.time = Time2Time(
                 self.core_state.base.time_32, self.core_state.base.time_16
             )
@@ -45,24 +56,24 @@ class Packet_Housekeep(PacketBase):
             for k, v in telemetry.items():
                 setattr(self, "telemetry_" + k, v)
         elif temp.housekeeping_type == 1:
-            self.copy_attrs(pystruct.housekeeping_data_1.from_buffer_copy(self._blob))
+            self.copy_attrs(ps.housekeeping_data_1.from_buffer_copy(self._blob))
             adc = process_ADC_stats(self.ADC_stat)
             for k, v in adc.items():
                 setattr(self, k, v)
             self.actual_gain = ["LMH"[i] for i in self.actual_gain]
         elif temp.housekeeping_type == 2:
-            self.copy_attrs(pystruct.housekeeping_data_2.from_buffer_copy(self._blob))
+            self.copy_attrs(ps.housekeeping_data_2.from_buffer_copy(self._blob))
             self.ok = (self.heartbeat.magic == b'BRNMRL')
             self.time = Time2Time(self.heartbeat.time_32, self.heartbeat.time_16)
             self.telemetry = process_telemetry(self.heartbeat.TVS_sensors)
 
         elif temp.housekeeping_type == 3:
-            self.copy_attrs(pystruct.housekeeping_data_3.from_buffer_copy(self._blob))
+            self.copy_attrs(ps.housekeeping_data_3.from_buffer_copy(self._blob))
 
         elif temp.housekeeping_type == 100:
-            self.copy_attrs(pystruct.housekeeping_data_100.from_buffer_copy(self._blob))
+            self.copy_attrs(ps.housekeeping_data_100.from_buffer_copy(self._blob))
         elif temp.housekeeping_type == 101:
-            self.copy_attrs(pystruct.housekeeping_data_101.from_buffer_copy(self._blob))
+            self.copy_attrs(ps.housekeeping_data_101.from_buffer_copy(self._blob))
         
         self._is_read = True
 

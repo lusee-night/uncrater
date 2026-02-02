@@ -1,19 +1,10 @@
 import os, sys
 
-if os.environ.get("CORELOOP_DIR") is not None:
-    sys.path.append(os.environ.get("CORELOOP_DIR"))
-
-# now try to import pycoreloop
-try:
-    from pycoreloop import appId as id
-    from pycoreloop import appId_from_value, value_from_appId
-except ImportError:
-    print("Can't import pycoreloop\n")
-    print(
-        "Please install the package or setup CORELOOP_DIR to point at CORELOOP repo. [Collection.py]"
-    )
-    sys.exit(1)
-
+from .coreloop import pycoreloop 
+id = pycoreloop.appId
+appId_from_value = pycoreloop.appId_from_value
+value_from_appId = pycoreloop.value_from_appId
+    
 
 from .PacketBase import PacketBase
 from .Packet_Hello import Packet_Hello
