@@ -1,7 +1,6 @@
 import os, sys
-import pycoreloop
 
-from .coreloop import pycoreloop
+from .coreloop import pycoreloop 
 id = pycoreloop.appId
 appId_from_value = pycoreloop.appId_from_value
 value_from_appId = pycoreloop.value_from_appId

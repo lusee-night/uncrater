@@ -17,6 +17,7 @@ class Collection:
         self.dir = dir
         self.cut_to_hello = cut_to_hello
         self.refresh()
+
     def refresh(self, quiet=False):
         self.cont = []
         self.time = []
@@ -50,11 +51,19 @@ class Collection:
                 if appid_is_hello(appids[i]):
                     flist = flist[i:]
                     break
-
+        version=None
         for i, fn in enumerate(flist):
             if self.verbose:
                 print ("Reading ",fn)
             appid = fn2appid(fn)
+            
+            if appid_is_hello(appid):
+                hello = Packet(appid, blob_fn=fn)
+                hello._read()
+                version = hello.SW_version
+                if self.verbose:
+                    print (f"Detected FW version: {version:X}")
+
 
             ## sometimes there is initial garbage to throw out
             if appid_is_spectrum(appid) and meta_packet is None:
@@ -62,7 +71,7 @@ class Collection:
             if appid_is_tr_spectrum(appid) and meta_packet is None:
                 continue
             
-            packet = Packet(appid, blob_fn=fn)
+            packet = Packet(appid, blob_fn=fn, version=version)
 
             # spectral/TR spectral packets must be read only after we set their metadata packet
             # all other packets: read immediately

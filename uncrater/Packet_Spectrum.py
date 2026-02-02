@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase, pystruct
+from .PacketBase import PacketBase, pystruct, pystruct_203, pystruct_305, pystruct_307
 from .utils import Time2Time, process_ADC_stats, process_telemetry
 from .c_utils import decode_10plus6, decode_5_into_4
 from .coreloop import pycoreloop
@@ -20,8 +20,19 @@ class Packet_Metadata(PacketBase):
         if self._is_read:
             return
         super()._read()
-        # TODO: check if this actually works
-        self.copy_attrs(pystruct.meta_data.from_buffer_copy(self._blob))
+        
+        if self._version==0x203:
+            attrs = pystruct_203.meta_data.from_buffer_copy(self._blob)
+        elif self._version==0x305:
+            attrs = pystruct_305.meta_data.from_buffer_copy(self._blob)
+        elif self._version==0x307:
+            attrs = pystruct_307.meta_data.from_buffer_copy(self._blob)
+        else:
+            attrs = pystruct.meta_data.from_buffer_copy(self._blob)
+            
+        self.copy_attrs(attrs)
+        self.weight = self.base.weight_previous if hasattr(self.base, 'weight_previous') else self.base.weight
+        #print (self.base.weight_current, self.base.weight_previous,'X')
         self.format = self.base.format
         self.time = Time2Time(self.base.time_32, self.base.time_16)
         self.errormask = self.base.errors
@@ -191,7 +202,7 @@ class Packet_Spectrum(Packet_SpectrumBase):
         else:
             raise NotImplementedError(f"Format {self.meta.format} is not supported")
 
-        self.data = np.array(data, dtype=ptype).astype(np.float64)/self.meta.base.weight*(1<<self.meta.base.Navg2_shift)
+        self.data = np.array(data, dtype=ptype).astype(np.float64)/self.meta.weight*(1<<self.meta.base.Navg2_shift)
         
 
 

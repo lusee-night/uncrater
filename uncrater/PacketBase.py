@@ -1,17 +1,20 @@
 import os, sys
 import hexdump
-from .coreloop import pycoreloop 
+from .coreloop import pycoreloop,pycoreloop_203,pycoreloop_305,pycoreloop_307
 pystruct = pycoreloop.pystruct
-
+pystruct_203 = pycoreloop_203.pystruct
+pystruct_305 = pycoreloop_305.pystruct
+pystruct_307 = pycoreloop_307.pystruct
 
 
 class PacketBase:
-    def __init__ (self, appid, blob = None, blob_fn = None, **kwargs):
+    def __init__ (self, appid, blob = None, blob_fn = None, version=None, **kwargs):
         if (blob is None) and (blob_fn is None):
             raise ValueError
         self.appid = appid
         self._blob = blob
         self._blob_fn = blob_fn
+        self._version = version
         self._is_read = False
         for key, value in kwargs.items():
             setattr(self, key, value)
