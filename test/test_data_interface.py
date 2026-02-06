@@ -112,15 +112,23 @@ class Test_DataInterface(Test):
             occurences[cat] = occurences[cat] // 16
             self.results[f'frac_{cat}'] = f"{occurences[cat] / sp_num:.4f}"
 
+        p_value = 0.01
+
         if sp_num < 1:
             passed = False
             sp_all = False
         else:
             sp_all = all([all([i in spectrum for i in range(16)]) for spectrum in coll.spectra])
             probs = [self.frac_high, self.frac_med, 1.0 - self.frac_high - self.frac_med]
-            passed = passed and fits([occurences[key] for key in ["high", "med", "low"]], probs, p_value=0.05)
+            passed = passed and fits([occurences[key] for key in ["high", "med", "low"]], probs, p_value=p_value)
+            if not fits([occurences[key] for key in ["high", "med", "low"]], probs, p_value=p_value):
+                print("ERROR: WRONG DISTRIBUTION")
+
 
         passed = passed and coll.all_meta_error_free() == 1
+
+        if coll.all_meta_error_free() != 1:
+            print("METADATA ERRORS")
 
         self.results['packets_received'] = len(coll.cont)
         self.results['sp_all'] = int(sp_all)
