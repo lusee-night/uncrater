@@ -65,7 +65,7 @@ jobs:
         CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
 
     - name: Run Python tests with pytest
-      run: pytest test/standalone/
+      run: python -m pytest test/standalone/
       env:
         CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
 
