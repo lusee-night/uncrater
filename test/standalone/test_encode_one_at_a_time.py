@@ -1,31 +1,18 @@
-import os
-import ctypes
-
 import numpy as np
 import pytest
 import random
 
 from bit_utils import *
+from uncrater.c_utils import decode_10plus6, encode_10plus6
 
 
 @pytest.fixture
 def utils_lib():
     np.random.seed(42)
     random.seed(42)
-    utils_lib_path = os.path.join(os.environ["CORELOOP_DIR"], "build", "libcl_utils.so")
-    lib = ctypes.CDLL(utils_lib_path)
-
-    encode_10plus6_signed = lib.encode_10plus6
-    encode_10plus6_signed.argtypes = [ctypes.c_int32]
-    encode_10plus6_signed.restype = ctypes.c_uint16
-
-    decode_10plus6_signed = lib.decode_10plus6
-    decode_10plus6_signed.argtypes = [ctypes.c_uint16]
-    decode_10plus6_signed.restype = ctypes.c_int32
-
     return {
-        "encode_10plus6_signed": encode_10plus6_signed,
-        "decode_10plus6_signed": decode_10plus6_signed,
+        "encode_10plus6_signed": encode_10plus6,
+        "decode_10plus6_signed": decode_10plus6,
     }
 
 
