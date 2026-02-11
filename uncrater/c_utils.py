@@ -9,7 +9,7 @@ def _safe_abs_int32(val: int) -> int:
     if val >= 0:
         return val
     if val == INT32_MIN:
-        return INT32_MAX
+        return -INT32_MIN
     return -val
 
 
