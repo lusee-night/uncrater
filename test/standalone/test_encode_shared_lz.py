@@ -1,124 +1,46 @@
-import os
-import ctypes
-
 import numpy as np
 import pytest
 import random
 
 from bit_utils import *
+from uncrater.c_utils import (
+    decode_shared_lz_positive,
+    decode_shared_lz_signed,
+    encode_shared_lz_positive,
+    encode_shared_lz_signed,
+)
 
 
 @pytest.fixture
 def utils_lib():
     np.random.seed(42)
     random.seed(42)
-    utils_lib_path = os.path.join(os.environ["CORELOOP_DIR"], "build", "libcl_utils.so")
-    lib = ctypes.CDLL(utils_lib_path)
-
-    encode_pos_func = lib.encode_shared_lz_positive
-    encode_pos_func.argtypes = [
-        ctypes.POINTER(ctypes.c_uint32),
-        ctypes.POINTER(ctypes.c_ubyte),
-        ctypes.c_int32,
-    ]
-    encode_pos_func.restype = int
-
-    decode_pos_func = lib.decode_shared_lz_positive
-    decode_pos_func.argtypes = [
-        ctypes.POINTER(ctypes.c_ubyte),
-        ctypes.POINTER(ctypes.c_uint32),
-        ctypes.c_int32,
-    ]
-    decode_pos_func.restype = None
-
-    encode_signed_func = lib.encode_shared_lz_signed
-    encode_signed_func.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_ubyte),
-        ctypes.c_int32,
-    ]
-    encode_signed_func.restype = int
-
-    decode_signed_func = lib.decode_shared_lz_signed
-    decode_signed_func.argtypes = [
-        ctypes.POINTER(ctypes.c_ubyte),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.c_int32,
-    ]
-    decode_signed_func.restype = None
-
     return {
-        "encode_pos_func": encode_pos_func,
-        "decode_pos_func": decode_pos_func,
-        "encode_signed_func": encode_signed_func,
-        "decode_signed_func": decode_signed_func,
+        "encode_pos_func": encode_shared_lz_positive,
+        "decode_pos_func": decode_shared_lz_positive,
+        "encode_signed_func": encode_shared_lz_signed,
+        "decode_signed_func": decode_shared_lz_signed,
     }
 
 
 def encode_array_pos(spectra: np.ndarray, utils_lib):
     spectra = np.ascontiguousarray(spectra, dtype=np.uint32)
     assert spectra.ndim == 1
-    array_size = spectra.shape[0]
-
-    compressed_data = np.ascontiguousarray(
-        np.zeros(array_size * 4, dtype=np.uint8), dtype=np.uint8
-    )
-
-    num_bytes_written = utils_lib["encode_pos_func"](
-        spectra.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
-        compressed_data.ctypes.data_as(ctypes.POINTER(ctypes.c_ubyte)),
-        array_size,
-    )
-
-    compressed_data = compressed_data[:num_bytes_written]
-
-    return compressed_data
+    return utils_lib["encode_pos_func"](spectra)
 
 
 def encode_array_signed(spectra, utils_lib):
     spectra = np.ascontiguousarray(spectra, dtype=np.int32)
     assert spectra.ndim == 1
-    array_size = spectra.shape[0]
-
-    compressed_data = np.ascontiguousarray(
-        np.zeros(array_size * 4, dtype=np.uint8), dtype=np.uint8
-    )
-
-    num_bytes_written = utils_lib["encode_signed_func"](
-        spectra.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-        compressed_data.ctypes.data_as(ctypes.POINTER(ctypes.c_ubyte)),
-        array_size,
-    )
-
-    compressed_data = compressed_data[:num_bytes_written]
-
-    return compressed_data
+    return utils_lib["encode_signed_func"](spectra)
 
 
 def decode_array_pos(compressed_data: np.ndarray, array_size: int, utils_lib):
-    decompressed_array = np.zeros(array_size, dtype=np.uint32)
-    decompressed_array = np.ascontiguousarray(decompressed_array, dtype=np.uint32)
-
-    utils_lib["decode_pos_func"](
-        compressed_data.ctypes.data_as(ctypes.POINTER(ctypes.c_ubyte)),
-        decompressed_array.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
-        array_size,
-    )
-
-    return decompressed_array
+    return utils_lib["decode_pos_func"](compressed_data, array_size)
 
 
 def decode_array_signed(compressed_data: np.ndarray, array_size: int, utils_lib):
-    decompressed_array = np.zeros(array_size, dtype=np.int32)
-    decompressed_array = np.ascontiguousarray(decompressed_array, dtype=np.int32)
-
-    utils_lib["decode_signed_func"](
-        compressed_data.ctypes.data_as(ctypes.POINTER(ctypes.c_ubyte)),
-        decompressed_array.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-        array_size,
-    )
-
-    return decompressed_array
+    return utils_lib["decode_signed_func"](compressed_data, array_size)
 
 
 def helper_test_const(constant, array_size: int, is_signed: bool, utils_lib):

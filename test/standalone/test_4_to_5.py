@@ -1,6 +1,3 @@
-import os
-import ctypes
-
 import itertools
 
 import numpy as np
@@ -13,62 +10,27 @@ except:
     print ("Sorry, no ice cream.")
 
 from bit_utils import *
+from uncrater.c_utils import decode_5_into_4, encode_4_into_5
 
 
 @pytest.fixture
 def utils_lib():
     np.random.seed(42)
     random.seed(42)
-    utils_lib_path = os.path.join(os.environ["CORELOOP_DIR"], "build", "libcl_utils.so")
-    lib = ctypes.CDLL(utils_lib_path)
-
-    encode_signed_func = lib.encode_4_into_5
-    encode_signed_func.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_uint16),
-    ]
-    encode_signed_func.restype = None
-
-    decode_signed_func = lib.decode_5_into_4
-    decode_signed_func.argtypes = [
-        ctypes.POINTER(ctypes.c_uint16),
-        ctypes.POINTER(ctypes.c_int32),
-    ]
-    decode_signed_func.restype = None
-
     return {
-        "encode_func": encode_signed_func,
-        "decode_func": decode_signed_func,
+        "encode_func": encode_4_into_5,
+        "decode_func": decode_5_into_4,
     }
 
 
 def encode_array(spectra, utils_lib):
     assert spectra.ndim == 1 and spectra.shape[0] == 4
     spectra = np.ascontiguousarray(spectra, dtype=np.int32)
-    array_size = spectra.shape[0]
-
-    compressed_data = np.ascontiguousarray(np.zeros(array_size + 1, dtype=np.uint16), dtype=np.uint16)
-
-    utils_lib["encode_func"](
-        spectra.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-        compressed_data.ctypes.data_as(ctypes.POINTER(ctypes.c_uint16)),
-    )
-
-    return compressed_data
+    return utils_lib["encode_func"](spectra)
 
 
 def decode_array(compressed_data: np.ndarray, utils_lib):
-    array_size = compressed_data.shape[0] - 1
-    assert array_size == 4
-    decompressed_array = np.zeros(array_size, dtype=np.int32)
-    decompressed_array = np.ascontiguousarray(decompressed_array, dtype=np.int32)
-
-    utils_lib["decode_func"](
-        compressed_data.ctypes.data_as(ctypes.POINTER(ctypes.c_uint16)),
-        decompressed_array.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-    )
-
-    return decompressed_array
+    return utils_lib["decode_func"](compressed_data)
 
 
 def helper_test_const(constant, is_signed: bool, utils_lib):
