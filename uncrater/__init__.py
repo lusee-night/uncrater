@@ -9,3 +9,4 @@ from .Packet_Spectrum import Packet_Spectrum, Packet_TR_Spectrum, Packet_Metadat
 from .Packet_Waveform import Packet_Waveform
 from .Packet_Watchdog import Packet_Watchdog
 from .utils import *
+from .constants import NCHANNELS, NPRODUCTS

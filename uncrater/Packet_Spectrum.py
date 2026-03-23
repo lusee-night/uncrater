@@ -6,6 +6,7 @@ import struct
 import numpy as np
 import binascii
 from typing import Tuple
+from .constants import NCHANNELS, NPRODUCTS
 
 id = pycoreloop.appId
 cl = pycoreloop.pystruct
@@ -60,11 +61,11 @@ class Packet_Metadata(PacketBase):
     def frequency(self):
         Navgf = self.base.Navgf
         if Navgf == 1:
-            return np.arange(2048) * 0.025
+            return np.arange(NCHANNELS) * 0.025
         elif Navgf == 2:
-            return np.arange(1024) * 0.05
+            return np.arange(NCHANNELS // 2) * 0.05
         else:
-            return np.arange(512) * 0.1
+            return np.arange(NCHANNELS // 4) * 0.1
 
 
 class Packet_SpectrumBase(PacketBase):
@@ -121,9 +122,9 @@ class Packet_SpectrumBase(PacketBase):
             print("Packet ID mismatch!!")
             self.packed_id_mismatch = True
 
-        if self.meta.format == 0 and len(self._blob[8:]) // 4 > 2048:
+        if self.meta.format == 0 and len(self._blob[8:]) // 4 > NCHANNELS:
             print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + 2048 * 4]
+            self._blob = self._blob[: 8 + NCHANNELS * 4]
 
         self.parse_spectra()
         self.check_crc()
@@ -149,27 +150,27 @@ class Packet_Spectrum(Packet_SpectrumBase):
     def set_priority(self):
         if (
             self.appid >= id.AppID_SpectraHigh
-            and self.appid < id.AppID_SpectraHigh + 16
+            and self.appid < id.AppID_SpectraHigh + NPRODUCTS
         ):
             self.priority = 1
             self.product = self.appid - id.AppID_SpectraHigh
         elif (
-            self.appid >= id.AppID_SpectraMed and self.appid < id.AppID_SpectraMed + 16
+            self.appid >= id.AppID_SpectraMed and self.appid < id.AppID_SpectraMed + NPRODUCTS
         ):
             self.priority = 2
             self.product = self.appid - id.AppID_SpectraMed
         else:
             assert (
                 self.appid >= id.AppID_SpectraLow
-                and self.appid < id.AppID_SpectraLow + 16
+                and self.appid < id.AppID_SpectraLow + NPRODUCTS
             )
             self.priority = 3
             self.product = self.appid - id.AppID_SpectraLow
 
     def parse_spectra(self):
-        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[8:]) // 4 > 2048:
+        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[8:]) // 4 > NCHANNELS:
             print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + 2048 * 4]
+            self._blob = self._blob[: 8 + NCHANNELS * 4]
 
         fmt, ptype = self.get_fmt_and_ptype()
 
@@ -210,29 +211,29 @@ class Packet_TR_Spectrum(Packet_SpectrumBase):
     def set_priority(self):
         if (
             self.appid >= id.AppID_SpectraTRHigh
-            and self.appid < id.AppID_SpectraTRHigh + 16
+            and self.appid < id.AppID_SpectraTRHigh + NPRODUCTS
         ):
             self.priority = 1
             self.product = self.appid - id.AppID_SpectraTRHigh
         elif (
             self.appid >= id.AppID_SpectraTRMed
-            and self.appid < id.AppID_SpectraTRMed + 16
+            and self.appid < id.AppID_SpectraTRMed + NPRODUCTS
         ):
             self.priority = 2
             self.product = self.appid - id.AppID_SpectraTRMed
         else:
             assert (
                 self.appid >= id.AppID_SpectraTRLow
-                and self.appid < id.AppID_SpectraTRLow + 16
+                and self.appid < id.AppID_SpectraTRLow + NPRODUCTS
             )
             self.priority = 3
             self.product = self.appid - id.AppID_SpectraTRLow
 
     def parse_spectra(self):
         # TODO: check length?
-        # if self.meta.format==0 and len(self._blob[8:])//4>2048:
+        # if self.meta.format==0 and len(self._blob[8:])//4>NCHANNELS:
         #     print ("Spurious data, trimming!!!")
-        #     self._blob = self._blob[:8 + 2048 * 4]
+        #     self._blob = self._blob[:8 + NCHANNELS * 4]
 
         #if self.meta.format == 0:
             # data consists of uint16_t, _blob has type int32_t
@@ -265,7 +266,7 @@ class Packet_Grimm(PacketBase):
         self.unique_packet_id = struct.unpack("<I", self._blob[:4])
         Ndata = len(self._blob[4:]) // 2
         data = np.array(struct.unpack(f"<{Ndata}H", self._blob[4: 4 + Ndata * 2]),dtype=np.uint16)
-        self.data = decode_5_into_4(data).reshape((-1,16,4))        
+        self.data = decode_5_into_4(data).reshape((-1, NPRODUCTS, 4))
         self._is_read = True
 
     def info(self):
