@@ -1,6 +1,7 @@
 import os, sys
 import glob
 import numpy as np
+from typing import Optional
 
 
 from datetime import datetime
@@ -8,6 +9,7 @@ from datetime import datetime
 from .Packet import *
 
 from .error_utils import *
+from .constants import NPRODUCTS, NCHANNELS
 
 
 class Collection:
@@ -72,6 +74,11 @@ class Collection:
                 continue
             
             packet = Packet(appid, blob_fn=fn, version=version)
+
+            # Extract packet index from filename
+
+            packet_index = int(os.path.basename(fn).split('_')[0])
+            packet.packet_index = packet_index
 
             # spectral/TR spectral packets must be read only after we set their metadata packet
             # all other packets: read immediately
@@ -328,7 +335,7 @@ class Collection:
     # return 1, if all 16 products are present
     def has_all_products(self) -> int:
         for s, prods in enumerate(self.spectra):
-            for i in range(16):
+            for i in range(NPRODUCTS):
                 if i not in prods:
                     print(f"Product {i} missing in spectra {s}.")
                     return 0
@@ -337,7 +344,7 @@ class Collection:
     # return 1, if all 16 time-resolved packets are present
     def has_all_tr_products(self) -> int:
         for s, trs in enumerate(self.tr_spectra):
-            for i in range(16):
+            for i in range(NPRODUCTS):
                 if i not in trs:
                     print(f"Product {i} missing in TR spectra {s}.")
                     return 0
@@ -346,7 +353,7 @@ class Collection:
     # return 1, if all spectra packets have correct CRC
     def all_spectra_crc_ok(self) -> int:
         for i, prods in enumerate(self.spectra):
-            for k in range(16):
+            for k in range(NPRODUCTS):
                 if k in prods and prods[k].error_crc_mismatch:
                     print(f"Bad CRC in product {k} in spectra {i}.")
                     return 0
@@ -355,7 +362,7 @@ class Collection:
     # return 1, if all time-resolved spectra packets have correct CRC
     def all_tr_spectra_crc_ok(self) -> int:
         for i, trs in enumerate(self.tr_spectra):
-            for k in range(16):
+            for k in range(NPRODUCTS):
                 if k in trs and trs[k].error_crc_mismatch:
                     print(
                         f"Bad CRC in product {k} in TR spectra {i}, incorrect CRC: {trs[k].crc}."
@@ -388,11 +395,11 @@ class Collection:
         """
 
         if (ndx is None) and (channel is None):        
-            return np.array([[S[ch].data for ch in range(16)] for S in self.spectra])
+            return np.array([[S[ch].data for ch in range(NPRODUCTS)] for S in self.spectra])
         
         if (ndx is not None) and (channel is None):
             S = self.spectra[ndx]
-            return np.array([S[ch].data for ch in range(16)])   
+            return np.array([S[ch].data for ch in range(NPRODUCTS)])
         
         if (ndx is None) and (channel is not None):
             return np.array([S[channel].data for S in self.spectra])
@@ -403,27 +410,27 @@ class Collection:
         
         assert(False), "Should not reach here"
 
-    def np_tr_spectra(self, ndx=None, channel=None):
+    def np_tr_spectra(self, ndx=None, product: Optional[int]=None):
         """ Returns a numpy array of the spectra data.
             If ndx is not None, returns only the spectra at that time.
-            If channel is not None, returns only the spectra for that channel.
+            If product is not None, returns only the spectra for that channel.
         """
 
         if len(self.tr_spectra)==0:
             return np.array([])
 
-        if (ndx is None) and (channel is None):        
-            return np.vstack([[S[ch].data for ch in range(16)] for S in self.tr_spectra])
+        if (ndx is None) and (product is None):
+            return np.vstack([[S[prod].data for prod in range(NPRODUCTS)] for S in self.tr_spectra])
         
-        if (ndx is not None) and (channel is None):
+        if (ndx is not None) and (product is None):
             S = self.tr_spectra[ndx]
-            return np.array([S[ch].data for ch in range(16)])   
+            return np.array([S[prod].data for prod in range(NPRODUCTS)])
         
-        if (ndx is None) and (channel is not None):
-            return np.vstack([S[channel].data for S in self.tr_spectra])
+        if (ndx is None) and (product is not None):
+            return np.vstack([S[product].data for S in self.tr_spectra])
 
-        if (ndx is not None) and (channel is not None):
+        if (ndx is not None) and (product is not None):
             S = self.tr_spectra[ndx]
-            return S[channel].data
+            return S[product].data
         
         assert(False), "Should not reach here"

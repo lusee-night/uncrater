@@ -1,6 +1,7 @@
 import os, sys
 
-from .coreloop import pycoreloop 
+from .constants import NPRODUCTS
+from .coreloop import pycoreloop
 id = pycoreloop.appId
 appId_from_value = pycoreloop.appId_from_value
 value_from_appId = pycoreloop.value_from_appId
@@ -34,12 +35,12 @@ PacketDict = {
     id.AppID_RawADC_Meta: Packet_Waveform_Meta,
 }
 
-for i in range(16):
+for i in range(NPRODUCTS):
     PacketDict[id.AppID_SpectraHigh + i] = Packet_Spectrum
     PacketDict[id.AppID_SpectraMed + i] = Packet_Spectrum
     PacketDict[id.AppID_SpectraLow + i] = Packet_Spectrum
 
-for i in range(16):
+for i in range(NPRODUCTS):
     PacketDict[id.AppID_SpectraTRHigh + i] = Packet_TR_Spectrum
     PacketDict[id.AppID_SpectraTRMed + i] = Packet_TR_Spectrum
     PacketDict[id.AppID_SpectraTRLow + i] = Packet_TR_Spectrum
@@ -53,62 +54,85 @@ for i in range(8):
 
 PacketDict[id.AppID_uC_Bootloader] = Packet_Bootloader
 
+
 def Packet(appid, blob=None, blob_fn=None, **kwargs):
     if (blob is None) and (blob_fn is None):
         raise ValueError
     PacketType = PacketDict.get(appid, PacketBase)
     return PacketType(appid, blob=blob, blob_fn=blob_fn, **kwargs)
 
+
 def appid_is_hello(appid):
     return appid == id.AppID_uC_Start
 
+
 def appid_is_spectrum(appid):
     return (
-        (appid >= id.AppID_SpectraHigh and appid < id.AppID_SpectraHigh + 16)
-        or (appid >= id.AppID_SpectraMed and appid < id.AppID_SpectraMed + 16)
-        or (appid >= id.AppID_SpectraLow and appid < id.AppID_SpectraLow + 16)
+          id.AppID_SpectraHigh <= appid < id.AppID_SpectraHigh + NPRODUCTS
+        or id.AppID_SpectraMed <= appid < id.AppID_SpectraMed + NPRODUCTS
+        or id.AppID_SpectraLow <= appid < id.AppID_SpectraLow + NPRODUCTS
     )
 
 
 def appid_is_tr_spectrum(appid):
     return (
-        (appid >= id.AppID_SpectraTRHigh and appid < id.AppID_SpectraTRHigh + 16)
-        or (appid >= id.AppID_SpectraTRMed and appid < id.AppID_SpectraTRMed + 16)
-        or (appid >= id.AppID_SpectraTRLow and appid < id.AppID_SpectraTRLow + 16)
+          id.AppID_SpectraTRHigh <= appid < id.AppID_SpectraTRHigh + NPRODUCTS
+        or id.AppID_SpectraTRMed <= appid < id.AppID_SpectraTRMed + NPRODUCTS
+        or id.AppID_SpectraTRLow <= appid < id.AppID_SpectraTRLow + NPRODUCTS
     )
 
+
+def appid_is_raw_adc(appid: int) -> bool:
+    return id.appId.AppID_RawADC <= appid < id.appId.AppID_RawADC + 4
+
+
+def appid_is_zoom_spectrum(appid: int) -> bool:
+    return appid == id.appId.AppID_ZoomSpectra
+
+
+def appid_is_grimm_spectrum(appid: int) -> bool:
+    return appid == id.appId.AppID_SpectraGrimm
+
+
 def appid_is_cal_any(appid):
-    return (appid >= id.AppID_Calibrator_Data) and (appid < id.AppID_Calibrator_Data + 20)
+    return id.AppID_Calibrator_Data <=  appid < id.AppID_Calibrator_Data + 20
+
 
 def appid_is_cal_data(appid):
-    return (appid >= id.AppID_Calibrator_Data) and (appid < id.AppID_Calibrator_Data + 3)
+    return id.AppID_Calibrator_Data <= appid < id.AppID_Calibrator_Data + 3
+
 
 def appid_is_cal_data_start(appid):
-    return (appid == id.AppID_Calibrator_Data) 
+    return appid == id.AppID_Calibrator_Data
 
 
 def  appid_is_rawPFB(appid):
-    return (appid >= id.AppID_Calibrator_RawPFB) and (appid < id.AppID_Calibrator_RawPFB + 8)
+    return id.AppID_Calibrator_RawPFB <= appid < id.AppID_Calibrator_RawPFB + 8
+
 
 def  appid_is_rawPFB_start(appid):
-    return (appid == id.AppID_Calibrator_RawPFB)
+    return appid == id.AppID_Calibrator_RawPFB
+
 
 def appid_is_cal_zoom(appid):
     return appid == id.AppID_ZoomSpectra
 
+
 def appid_is_cal_debug(appid):
-    return (appid >= id.AppID_Calibrator_Debug) and (appid < id.AppID_Calibrator_Debug + 8)
+    return id.AppID_Calibrator_Debug <= appid < id.AppID_Calibrator_Debug + 8
+
 
 def appid_is_cal_debug_start(appid):
-    return (appid == id.AppID_Calibrator_Debug)
-
+    return appid == id.AppID_Calibrator_Debug
 
 
 def appid_is_metadata(appid):
     return appid == id.AppID_MetaData
 
+
 def appid_is_watchdog(appid):
     return appid == id.AppID_Watchdog
+
 
 def appid_is_heartbeat(appid):
     return appid == id.AppID_uC_Heartbeat
@@ -117,8 +141,10 @@ def appid_is_heartbeat(appid):
 def appid_is_housekeeping(appid):
     return appid == id.AppID_uC_Housekeeping
 
+
 def appid_is_waveform(appid):
     return appid == id.AppId
+
 
 def appid_to_str(appid):
     if appid == 0x4F0:

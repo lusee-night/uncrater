@@ -1,7 +1,4 @@
 # Various utils
-from .Packet import id
-from .Packet import appId_from_value
-
 import numpy as np
 
 
@@ -11,19 +8,6 @@ def Time2Time(time1, time2):
     """
     time = ((((time2 & 0xFFFF) << 32)+time1)>>4)*1/4096
     return time
-
-def appid_is_spectrum(appid):
-    return ((appid>=id.AppID_SpectraHigh) and (appid<id.AppID_SpectraLow+16))
-
-def appid_is_metadata(appid):
-    return (appid==id.AppID_MetaData)
-
-def appid_to_str(appid):
-    if appid == 0x4f0:
-        appid = 0x2f0
-    if appid>0x210:
-        appid = (appid & 0xFFF0)
-    return appId_from_value[appid]
 
 
 def process_ADC_stats(ADC_stat):

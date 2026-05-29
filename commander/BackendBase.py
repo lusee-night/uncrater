@@ -28,7 +28,7 @@ class BackendBase:
             P = uc.Packet(appid, blob = blob)
             print (P.info())
             if P.appid == uc.id.AppID_End_Of_Sequence:
-                self.eos_flag = True;
+                self.eos_flag = True
 
     def save_ccsds(self,data):
             def order (data):
