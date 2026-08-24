@@ -113,12 +113,14 @@ class Test_BinResponse(Test):
 
             fig, ax = plt.subplots(2,1, figsize=(10, 6))
             ffreqs = np.hstack ((freqs - 2*0.025, freqs - 0.025, freqs, freqs + 0.025, freqs + 2*0.025))
+            sffreqs = sorted(ffreqs)
             output = []
             for i,n in enumerate(notch):
                 v = values[:,i,:].flatten()
+                sortedv = sorted(v, key=lambda x: ffreqs[list(v).index(x)])
 
-                ax[0].plot(ffreqs,v,label='Notch '+ ('off' if n==0 else "Nnotch = "+str(2**n))+'')
-                ax[1].plot(ffreqs,v)
+                ax[0].plot(sffreqs, sortedv, label='Notch '+ ('off' if n==0 else "Nnotch = "+str(2**n))+'')
+                ax[1].plot(sffreqs, sortedv)
                 output.append(v)
 
             ax[0].legend()
