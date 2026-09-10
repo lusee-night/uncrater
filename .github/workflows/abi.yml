@@ -1,0 +1,55 @@
+name: Coreloop ABI parity
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  abi-parity:
+    name: ABI and compression parity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Checkout exact coreloop history
+        uses: actions/checkout@v4
+        with:
+          repository: lusee-night/coreloop
+          ref: 38770b94bd20dfdbf52d1d8b872a716537b851f3
+          # Vendoring archives every supported historical pin from this checkout
+          fetch-depth: 0
+          path: coreloop
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ABI and test dependencies
+        run: python -m pip install ".[test,vendor]"
+
+      - name: Build pinned coreloop compression library
+        run: |
+          cmake -S coreloop -B coreloop/build
+          cmake --build coreloop/build --target cl_utils --parallel
+
+      - name: Verify vendored schemas, C ABI, and compression parity
+        env:
+          CORELOOP_DIR: ${{ github.workspace }}/coreloop
+        run: |
+          python scripts/vendor_coreloop.py --coreloop coreloop --check
+          python -m pytest -q tests/test_abi.py test/standalone/test_coreloop_parity.py

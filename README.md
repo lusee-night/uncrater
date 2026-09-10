@@ -3,14 +3,157 @@
 ![Automated tests now](https://github.com/lusee-night/uncrater/actions/workflows/tests.yml/badge.svg)
 
 # uncrater
-LuSEE Night binary blob unpackager
 
-## Dependencies
-### Python environment
-To install Python dependencies, run
+Uncrater is a decoder and diagnostic toolkit for coreloop CDI output,
+an intermediate one-logical-packet-per-file format used for testing
+and as input to luseepy’s analysis pipeline.
+
+## Installation
+
+Install the runtime package with pip or uv:
+
 ```bash
-pip install -r requirements.txt
+python3 -m pip install .
 ```
+
+```bash
+uv pip install .
+```
+
+The runtime package includes the frozen coreloop schema bindings needed for
+decoding. Importing and decoding do not require `CORELOOP_DIR`, a sibling
+coreloop checkout, or a separately installed `pycoreloop` module.
+
+Optional dependency groups keep development-only tools out of the decoder's
+runtime environment:
+
+```bash
+python3 -m pip install ".[test]"
+python3 -m pip install ".[vendor]"
+python3 -m pip install ".[plot,report]"
+python3 -m pip install ".[lab]"
+```
+
+The `vendor` extra is only needed when regenerating frozen bindings from a
+pinned coreloop source checkout. The hardware commander/test harness may use
+an explicitly configured coreloop checkout; this is separate from runtime
+packet decoding.
+
+## Decoder behavior
+
+Packets are dispatched using both their AppID and selected wire schema. The
+package contains frozen bindings for `0x203`, `0x305`, the verified early and
+final `0x306` layouts, and the latest shipped `0x307` layout. Known but
+unverified schemas (`0x300`, `0x302`, `0x308`, and `0x309`) fail closed.
+Because `0x306` names two different ABIs, it requires discriminating packet
+evidence. An explicit variant must agree with that evidence:
+
+```python
+from uncrater.schema_registry import SchemaEvidence, binding_for_wire_version
+
+binding = binding_for_wire_version(
+    0x306,
+    evidence=SchemaEvidence(
+        appid=0x206,
+        payload_length=2571,
+        housekeeping_type=0,
+    ),
+)
+```
+
+`resolve_packet_stream()` accepts `(AppID, bytes)` pairs and resolves one
+immutable schema selection before typed packet decoding. It rejects mixed
+reported versions and contradictory structural evidence. Pass the result as
+`Collection(..., schema_resolution=resolution)` when decoding a subset of that
+input. The subset may lack discriminating housekeeping, but its version
+prefixes and any structural evidence must agree with the inherited selection.
+The inherited proof also appears as `input_schema` in the canonical report.
+
+Use `schema_resolution_record()` and `schema_resolution_from_record()` to
+persist and restore the selection. Restoration re-runs the resolver and checks
+the binding fingerprint. Individual `Packet` reads use both
+`schema=resolution.binding` and `evidence=resolution.evidence`, including
+housekeeping subtypes that cannot distinguish the two 306 layouts on their own.
+
+If a collection has no usable version evidence, decoding uses the latest binding
+and records that the schema was assumed. `Collection` is non-strict by default:
+it warns on stderr, records machine-readable issues in `decode_status`, and skips
+invalid products without discarding the rest of the session. Pass `strict=True`
+to raise `PacketDecodeError` on the first fatal issue.
+
+`Collection` orders packet files deterministically and uses the first Hello to
+select one schema for the entire directory. When there is no Hello, it falls
+back to the first fixed packet-version prefix. The 0x306 layouts still require
+structural housekeeping or calibrator evidence because both report the same
+version. RawADC is intentionally different from normal spectra: coreloop emits
+waveform metadata after the waveform group, so Collection associates that
+metadata with the preceding waveforms. Delayed metadata may complete several
+captures in stream order, independently of where metadata arrives between
+waveform packets. Firmware emits either one selected channel or all four in
+order 0,1,2,3. The complete interval determines the possible capture groupings;
+only associations shared by every grouping are published. Unexplained counts
+and ambiguous partial captures remain unresolved. Corrupt packets keep
+their place in this accounting, and valid waveform channels remain available
+even when metadata is absent. Hello and EOS in the same source stream delimit
+independent intervals; duplicate metadata UIDs or backward mission times make
+an interval ambiguous.
+
+`Collection.unresolved_waveforms` and the canonical report retain unresolved
+packet associations, including the values of unmatched valid metadata.
+Re-reading all accumulated input recomputes the associations, so a later
+metadata packet can complete an earlier incomplete capture. Optional
+`waveform_packet_context` supplies original order within each source bank.
+CCSDS spans are retained as provenance; they do not imply per-APID counters.
+Cross-bank Hello/EOS placement cannot be recovered from bank concatenation.
+An explicit `metadata_packet_index` (or null) in every context entry replays a
+complete-input association without rematching session subsets. Referenced
+packets, source banks, and channel uniqueness are validated again.
+
+Without reliable transport-loss evidence, some losses fit another capture
+grouping: four singleton channels with three lost metadata packets resemble
+one intact quartet. The decoder cannot distinguish those inputs. No time or
+metadata interpolation is performed.
+
+## Decoder tests
+
+The public test suite creates packet bytes synthetically and never uses the
+private CDI corpus:
+
+```bash
+python3 -m pip install ".[test]"
+python3 -m pytest -m "not real_data"
+```
+
+ABI, vendoring, and compression-parity checks additionally require the
+`vendor` extra and a coreloop Git checkout containing the pinned commits:
+
+```bash
+python3 -m pip install ".[test,vendor]"
+CORELOOP_DIR=/path/to/coreloop python3 scripts/vendor_coreloop.py --coreloop /path/to/coreloop --check
+cmake -S /path/to/coreloop -B /path/to/coreloop/build
+cmake --build /path/to/coreloop/build --target cl_utils --parallel
+CORELOOP_DIR=/path/to/coreloop python3 -m pytest tests/test_abi.py test/standalone/test_coreloop_parity.py
+```
+
+Private real-CDI tests read only the root named by `UNCRATER_CDI_CORPUS`; they
+never discover or populate a corpus. With that variable unset they skip, and
+`--require-cdi-corpus` turns the missing corpus into an error. Release
+qualification selects the full tier and fails if any expectation is still
+uncurated:
+
+```bash
+UNCRATER_CDI_CORPUS=/private/cdi-corpus python3 -m pytest tests/real_data --cdi-tier full --require-cdi-corpus
+```
+
+All 127 policies in the current private corpus are still uncurated, so this
+full qualification command is expected to fail until their expectations have
+been reviewed independently of uncrater.
+
+The emulator integration workflow is separate from public tests and runs only
+when started explicitly with GitHub Actions `workflow_dispatch`.
+
+## Development and hardware dependencies
+
 ### Linux packages
 Install latex
 ```bash
@@ -20,12 +163,6 @@ sudo apt-get install texlive-full
 > messages hanging at some portions of the download at "This may take some time..." &mdash; simply click enter a few
 > times and it should continue running.
 
-
-## Coreloop dependency
-
-The python module `pycoreloop` that contains definitions of AppIDs and Spectrometer commands has to be imported.
-You can specify `CORELOOP_DIR` to specify the directory of the [coreloop](https://github.com/lusee-night/coreloop/) branch.
-In most setups `export CORELOOP_DIR=..` will do the job.
 
 ## Testing suite
 

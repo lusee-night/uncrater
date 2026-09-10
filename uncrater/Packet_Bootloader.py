@@ -7,13 +7,14 @@ import numpy as np
 class Packet_Bootloader(PacketBase):
     @property
     def desc(self):
-        return  "Raw Waveform"
+        return  "Bootloader"
 
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        self.header = struct.unpack("8I", self._blob[:32])
+        if not self._validate_min_length(32):
+            return
+        self.header = struct.unpack_from("<8I", self._blob, 0)
         msg_type = ["BL_STARTUP", "BL_JumpTo_FLT_SW", "BL_PRGM_CHKSUM", "BL_PRGM_VERIFY", "BL_ERROR"]
         self.msg_type = self.header[0]
         if (self.msg_type<5):
@@ -26,10 +27,14 @@ class Packet_Bootloader(PacketBase):
         self.compilation_time = self.header[5]
         self.payload_len = self.header[6]
         self.magic = (self.header[7]==0xfeedface)
-        try:
-            self.payload = np.array(struct.unpack(f"{self.payload_len}I", self._blob[32:32+self.payload_len*4]))
-        except:
-            self.payload = None
+        if not self.magic:
+            self._issue("invalid_magic", "bootloader magic does not match 0xFEEDFACE")
+        expected_size = 32 + self.payload_len*4
+        if not self._validate_length(expected_size, allow_cdi_padding=False):
+            return
+        payload = struct.unpack_from(f"<{self.payload_len}I", self._blob, 32)
+        self.payload = np.array(payload, dtype=np.uint32)
+        self._is_read = True
 
 
                 

@@ -1,4 +1,4 @@
-name: Run standalone Python Tests
+name: Public decoder tests
 
 on:
   pull_request:
@@ -8,64 +8,30 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  synthetic:
+    name: Synthetic tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
 
-    - name: Install packages
-      run: pip install -r requirements.txt
+      - name: Install decoder and test dependencies
+        run: python -m pip install ".[test]"
 
-    - name: Clone coreloop repo
-      uses: GuillaumeFalourd/clone-github-repo-action@v2.3
-      with:
-        owner: 'lusee-night'
-        repository: 'coreloop'
-
-    - name: Compile coreloop and generate pycoreloop
-      run: |
-        cd coreloop
-        cd pycoreloop
-        make clean
-        make -j
-        cd ..
-        mkdir build
-        cd build
-        cmake ..
-        make -j
-        cd ../..
-
-    - name: Set CORELOOP_DIR environment variable
-      run: echo "CORELOOP_DIR=$GITHUB_WORKSPACE/coreloop" >> $GITHUB_ENV
-
-    - name: Run test alive
-      run: |
-        python test/cli_driver.py -r alive -b coreloop --skip-report
-      env:
-        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
-
-    - name: Run test time_resolved
-      run: |
-        python test/cli_driver.py -r time_resolved -b coreloop --skip-report
-      env:
-        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
-
-    - name: Run test data_interface
-      run: |
-        python test/cli_driver.py -r data_interface -b coreloop --skip-report
-      env:
-        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
-
-    - name: Run Python tests with pytest
-      run: python -m pytest test/standalone/
-      env:
-        CORELOOP_DIR: ${{ env.CORELOOP_DIR }}
-
+      - name: Run public synthetic tests
+        run: python -m pytest -m "not real_data"

@@ -1,4 +1,3 @@
-from .PacketBase import PacketBase, pystruct
 from .PacketBase import PacketBase
 from .utils import Time2Time, process_telemetry
 
@@ -11,19 +10,13 @@ class Packet_Heartbeat(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-                
-        try:
-            temp = pystruct.heartbeat.from_buffer_copy(self._blob)       
-        except:
-            print (f"Failed to read heartbeat packet {self._blob}")
-            self.ok = False
-            self.time = 0
-            self.telemetry = {}
-            self._is_read = True
+        temp = self._decode_struct(self.schema.pystruct.heartbeat)
+        if temp is None:
             return
         self.copy_attrs(temp)
         self.ok = (self.magic == b'BRNMRL')
+        if not self.ok:
+            self._issue("invalid_magic", "heartbeat magic does not match BRNMRL")
         self.time = Time2Time(self.time_32, self.time_16)
         self.telemetry = process_telemetry(self.TVS_sensors)
         self._is_read = True

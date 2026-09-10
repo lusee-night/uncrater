@@ -1,0 +1,330 @@
+{
+  "bindings": {
+    "203": {
+      "abi": {
+        "sha256": "717719885fafcd8b40e610c707ebec69b0c416d13f3db796429c4d9f45e41c3d"
+      },
+      "accepted_reported_versions": [
+        515
+      ],
+      "canonical_schema_id": 515,
+      "generated_files": {
+        "__init__.py": "49d91aef5ab6e15b7df723e7dde1ff8d6efe4db58a775faa88a0585f0c49f6e4",
+        "core_loop.py": "da65f823d6b29edb982f9c2a35b3e13e836aac84785be4724c57147cbb803243",
+        "core_loop_errors.py": "a2f16a139fb64f81874c647730c0344c6f3808188d6c8af33d5d224bbd5b6b02",
+        "lusee_appIds.py": "8e3f403410685333ce1761f11ea38171eb5fcb8652a5f607a68235f1be1c073d",
+        "lusee_commands.py": "ac71f1c7d3de37177c21aa0707ffe02a59ed8b655e7d0f03ee3b96da32b59cd8"
+      },
+      "generated_source_files": {
+        "coreloop/lusee_appIds.h": "97f6fb093e8d59bf2805df7ab0398edb07e661f49a115b73792a3dcfae81f1cf",
+        "coreloop/lusee_commands.h": "5699c7f3cc6c14df8b2c3bcfed812fcc15344888028ba6b98e25c484f5ea3eaa",
+        "pycoreloop/lusee_appIds.py": "8e3f403410685333ce1761f11ea38171eb5fcb8652a5f607a68235f1be1c073d",
+        "pycoreloop/lusee_commands.py": "ac71f1c7d3de37177c21aa0707ffe02a59ed8b655e7d0f03ee3b96da32b59cd8"
+      },
+      "generation": {
+        "ctypesgen_command": [
+          "ctypesgen",
+          "coreloop/core_loop.h",
+          "coreloop/calibrator.h"
+        ],
+        "ctypesgen_error_command": [
+          "ctypesgen",
+          "coreloop/core_loop_errors.h"
+        ],
+        "ctypesgen_version": "1.1.1",
+        "vendor_script": "scripts/vendor_coreloop.py"
+      },
+      "semantic_fingerprints": {
+        "appids": "6994c85b31f986a33b09634685d976cf5fa84012f54b7a9064220c8811d9b1f3",
+        "commands": "41ea3ff47453d2cc001128419824f05e2f3783aa2b7e2d4197efd9e0aa595a37",
+        "core_constants": "360781b37330b821bac61d1907783e862738eebe6d0f110b21278d6fe76967d2",
+        "errors": "50b2cb73ad560e55cb0688fd79a5558e5c9ada728acc5cab6c30018f24c31b0f",
+        "output_formats": "60c46574f4b225c1c92a266fc4073b830fb8fadc3939b267c27c2213939e0b5f"
+      },
+      "signatures": [],
+      "source_commit": "798da926b6c4af0ea410ddf0c4191cb15fbcf9e3",
+      "source_files": {
+        "coreloop/calibrator.h": "c15c6256e0620f89416b0574460a41ca14da8466921dc00395a4a5af0077fd7e",
+        "coreloop/core_loop.h": "1b5a2b49b6a32f130df7b81bfe877dc57e5251e0fa0d0e67ef705d26e02ecf8e",
+        "coreloop/core_loop_errors.h": "dde4d9c1424de9c4c86602743870aa2403673b53318f00a7bb18bf6051426df7",
+        "coreloop/flash_interface.h": "0852ba7b9bf21bebc916458a7665fcede58abe0617243bee7370dc54c383f9aa",
+        "coreloop/spectrometer_interface.h": "a6868eb73facde409239f4d46fd472cebe59f694cd9db00532da6eb819bd43d7",
+        "documentation/lusee_appIds.md": "bacb3c16a21175a4b2c89f9c21b5e0417d0a2f75b6eebc178eb1415623f88ca3",
+        "documentation/lusee_commands.md": "7bd1b00372cf2efd26bf58094d46ec565edcfea7c1587bcd0688dcb6bdad103b",
+        "documentation/toplevel_commands.md": "4728ba8de12cc635861de1b8b1c450094b33c32cddb1247afb5a8a1e9ca3834b",
+        "pycoreloop/Makefile": "68d5a04a28704fd093b644e1d2298c46add03577f5b9bc7e584cc1ef73f77a27",
+        "scripts/create_appid_include.py": "265325e2a885a734e19399883608c6c475f90018f7f6bad02fe47051e57b8ef2",
+        "scripts/create_cmd_include.py": "ee64535447f4f30e2844de7345e88c3d6fdda68b188679d69e536d4f40e08e18"
+      },
+      "source_release": "2r03",
+      "variant": null
+    },
+    "305": {
+      "abi": {
+        "sha256": "487c43f6d18d30e068618ae246c1a053f8a858e7181405dd58f54412bae09061"
+      },
+      "accepted_reported_versions": [
+        773
+      ],
+      "canonical_schema_id": 773,
+      "generated_files": {
+        "__init__.py": "49d91aef5ab6e15b7df723e7dde1ff8d6efe4db58a775faa88a0585f0c49f6e4",
+        "core_loop.py": "04a764e20da98e276fb9909f632eb23e4f2ae648b6a22a14912417c6af242527",
+        "core_loop_errors.py": "2bba0c205901fd4cbcafa417aee73ae24a5b546aea7e41567006f41f735b3822",
+        "lusee_appIds.py": "6a17d6d277d74e14ada11bdc6976c552f2e27d6cca298e841fd547b2854c9c2c",
+        "lusee_commands.py": "0e64d42cb5e41bb46e732944c2a2c3235eccd813f910071c3cdf47272fd6685a"
+      },
+      "generated_source_files": {
+        "coreloop/lusee_appIds.h": "bd947d7a8a15116a3ff4c5719a392e4b82a87bb5465f11ec6d99b7d44e80461e",
+        "coreloop/lusee_commands.h": "2535526b9ebb55686359fec316eccbd585b3a862c7ca22e8c736a676092d63c8",
+        "pycoreloop/lusee_appIds.py": "6a17d6d277d74e14ada11bdc6976c552f2e27d6cca298e841fd547b2854c9c2c",
+        "pycoreloop/lusee_commands.py": "0e64d42cb5e41bb46e732944c2a2c3235eccd813f910071c3cdf47272fd6685a"
+      },
+      "generation": {
+        "ctypesgen_command": [
+          "ctypesgen",
+          "coreloop/core_loop.h",
+          "coreloop/calibrator.h"
+        ],
+        "ctypesgen_error_command": [
+          "ctypesgen",
+          "coreloop/core_loop_errors.h"
+        ],
+        "ctypesgen_version": "1.1.1",
+        "vendor_script": "scripts/vendor_coreloop.py"
+      },
+      "semantic_fingerprints": {
+        "appids": "e392a4d4a23e5191202e34228e1bca122ee8c08c6a11c7a4ab1f37e59757c9d4",
+        "commands": "ca4a0182a65580ac98273bf524bd32ddf8f4fb5066ad47fc1b1c25a7540296ae",
+        "core_constants": "15d7e3cd391312a8366e09a30abb07f235ebfd0928199d3dda30d56131a46bb0",
+        "errors": "b0645d24778ff3445200d60cb0c9f22fea6b945f63e3c7d0b47c98f0a7eaacd9",
+        "output_formats": "60c46574f4b225c1c92a266fc4073b830fb8fadc3939b267c27c2213939e0b5f"
+      },
+      "signatures": [],
+      "source_commit": "9355df3c89055cee84b6fee69dbfcd199487e0aa",
+      "source_files": {
+        "coreloop/calibrator.h": "9bf8255e584569e342b4a8ae0a26cdf94ad82d123f80889b63bd4959c03908e0",
+        "coreloop/core_loop.h": "d466431b565e027e55e9a6432bc7ca08f56a69f7f77e0824c2bbbb21a1414d8e",
+        "coreloop/core_loop_errors.h": "9007f12bebb7d09dc71bba330bd5885109b2d29ce97b60bcf3cd63cce1a65804",
+        "coreloop/flash_interface.h": "9c21a4db0ada7c435fbd76468a4d678dbad32003093737f0e3f70c1cc090275b",
+        "coreloop/spectrometer_interface.h": "d1b52ed9f07ef368b4ffaa44400c29cf9259765dcee5056b0e1f2f7c66c92029",
+        "documentation/lusee_appIds.md": "b2b8eada78c8f526a62d91919f758e96c724ec3cabb1d324e2c118092a22d960",
+        "documentation/lusee_commands.md": "4adfc323afcc6ab3e77b8bca2e1c41c66205258f71d481b80f0dcc172147e226",
+        "documentation/toplevel_commands.md": "4728ba8de12cc635861de1b8b1c450094b33c32cddb1247afb5a8a1e9ca3834b",
+        "pycoreloop/Makefile": "68d5a04a28704fd093b644e1d2298c46add03577f5b9bc7e584cc1ef73f77a27",
+        "scripts/create_appid_include.py": "265325e2a885a734e19399883608c6c475f90018f7f6bad02fe47051e57b8ef2",
+        "scripts/create_cmd_include.py": "ee64535447f4f30e2844de7345e88c3d6fdda68b188679d69e536d4f40e08e18"
+      },
+      "source_release": "3r05",
+      "variant": null
+    },
+    "306-early": {
+      "abi": {
+        "sha256": "487c43f6d18d30e068618ae246c1a053f8a858e7181405dd58f54412bae09061"
+      },
+      "accepted_reported_versions": [
+        774
+      ],
+      "canonical_schema_id": 774,
+      "generated_files": {
+        "__init__.py": "f65e7412206adea3d435d8a9a67561d36f6ada87ffae81c453851acbaf8b5b1d",
+        "core_loop.py": "0f0efc0b0e82b284592ea817db1bd27e0b57ea9ab8c1b50a4376e198fce538b8",
+        "core_loop_errors.py": "8bfffdb7c127efee281b9b613878bd05a47b717363892e65faccc639ef147654",
+        "lusee_appIds.py": "5d0b203109d4f9d743b222609b0803646b5c65f1524c273a2c3e14fa675db949",
+        "lusee_commands.py": "28374cd92fb20b63395464d39aad400608f5628116f0e7fcaa8ac77f33b232ed"
+      },
+      "generated_source_files": {
+        "coreloop/lusee_appIds.h": "bd947d7a8a15116a3ff4c5719a392e4b82a87bb5465f11ec6d99b7d44e80461e",
+        "coreloop/lusee_commands.h": "2535526b9ebb55686359fec316eccbd585b3a862c7ca22e8c736a676092d63c8",
+        "pycoreloop/lusee_appIds.py": "6a17d6d277d74e14ada11bdc6976c552f2e27d6cca298e841fd547b2854c9c2c",
+        "pycoreloop/lusee_commands.py": "0e64d42cb5e41bb46e732944c2a2c3235eccd813f910071c3cdf47272fd6685a"
+      },
+      "generation": {
+        "ctypesgen_command": [
+          "ctypesgen",
+          "coreloop/core_loop.h",
+          "coreloop/calibrator.h"
+        ],
+        "ctypesgen_error_command": [
+          "ctypesgen",
+          "coreloop/core_loop_errors.h"
+        ],
+        "ctypesgen_version": "1.1.1",
+        "vendor_script": "scripts/vendor_coreloop.py"
+      },
+      "semantic_fingerprints": {
+        "appids": "e392a4d4a23e5191202e34228e1bca122ee8c08c6a11c7a4ab1f37e59757c9d4",
+        "commands": "ca4a0182a65580ac98273bf524bd32ddf8f4fb5066ad47fc1b1c25a7540296ae",
+        "core_constants": "5e7692dfb8cbc2701aa349ae3cd77788c0c977bfa63081766ad8e175b9b9e3ad",
+        "errors": "b0645d24778ff3445200d60cb0c9f22fea6b945f63e3c7d0b47c98f0a7eaacd9",
+        "output_formats": "60c46574f4b225c1c92a266fc4073b830fb8fadc3939b267c27c2213939e0b5f"
+      },
+      "signatures": [
+        {
+          "appid": 518,
+          "housekeeping_type": 0,
+          "payload_length": 2571
+        },
+        {
+          "appid": 640,
+          "payload_length": 590
+        }
+      ],
+      "source_commit": "9e8db56c0e723968d2c01c26f32bf727a1a7a014",
+      "source_files": {
+        "coreloop/calibrator.h": "9bf8255e584569e342b4a8ae0a26cdf94ad82d123f80889b63bd4959c03908e0",
+        "coreloop/core_loop.h": "c10f17f4c3b975f4dbf76d1cd7b70456765fd049fd97c68f46e0bb13adabe3fe",
+        "coreloop/core_loop_errors.h": "9007f12bebb7d09dc71bba330bd5885109b2d29ce97b60bcf3cd63cce1a65804",
+        "coreloop/flash_interface.h": "9c21a4db0ada7c435fbd76468a4d678dbad32003093737f0e3f70c1cc090275b",
+        "coreloop/spectrometer_interface.h": "d1b52ed9f07ef368b4ffaa44400c29cf9259765dcee5056b0e1f2f7c66c92029",
+        "documentation/lusee_appIds.md": "b2b8eada78c8f526a62d91919f758e96c724ec3cabb1d324e2c118092a22d960",
+        "documentation/lusee_commands.md": "4adfc323afcc6ab3e77b8bca2e1c41c66205258f71d481b80f0dcc172147e226",
+        "documentation/toplevel_commands.md": "4728ba8de12cc635861de1b8b1c450094b33c32cddb1247afb5a8a1e9ca3834b",
+        "pycoreloop/Makefile": "68d5a04a28704fd093b644e1d2298c46add03577f5b9bc7e584cc1ef73f77a27",
+        "scripts/create_appid_include.py": "265325e2a885a734e19399883608c6c475f90018f7f6bad02fe47051e57b8ef2",
+        "scripts/create_cmd_include.py": "ee64535447f4f30e2844de7345e88c3d6fdda68b188679d69e536d4f40e08e18"
+      },
+      "source_release": "3r06-early",
+      "variant": "early"
+    },
+    "306-final": {
+      "abi": {
+        "sha256": "23509698f27914dc881af7da335997aed308a45710ca8a9e6c5ace224a949f7e"
+      },
+      "accepted_reported_versions": [
+        774
+      ],
+      "canonical_schema_id": 774,
+      "generated_files": {
+        "__init__.py": "f65e7412206adea3d435d8a9a67561d36f6ada87ffae81c453851acbaf8b5b1d",
+        "core_loop.py": "2b00efca00a2255ec3bbd4faecbe4336e0603abb8b0c6f15587df6951bcb392d",
+        "core_loop_errors.py": "8bfffdb7c127efee281b9b613878bd05a47b717363892e65faccc639ef147654",
+        "lusee_appIds.py": "6ae3a35e107a1047998e972ac53f3872437eb677c791fcf2d2da69489e53f105",
+        "lusee_commands.py": "bb341bfb68013be0c574d16ce1f30b49fd4c47d332058151a9720c4e21c0a2d7"
+      },
+      "generated_source_files": {
+        "coreloop/lusee_appIds.h": "e0c3caac7e9f8572d2e1dd33e396deaa30feb6996b269448e2773e57c9b82ef6",
+        "coreloop/lusee_commands.h": "c02565c9a57946537d2be193e68ae39bbb5b571e6247e43a68c3c3e0a48a6b3c",
+        "pycoreloop/lusee_appIds.py": "7579e20960d2b5fef073a122669fdff5c807669a92874bbbd14b644186c62fca",
+        "pycoreloop/lusee_commands.py": "8df64806a8b99f530a9c04611374b9ed8914691805f19b0f9bd583664273affd"
+      },
+      "generation": {
+        "ctypesgen_command": [
+          "ctypesgen",
+          "coreloop/core_loop.h",
+          "coreloop/calibrator.h"
+        ],
+        "ctypesgen_error_command": [
+          "ctypesgen",
+          "coreloop/core_loop_errors.h"
+        ],
+        "ctypesgen_version": "1.1.1",
+        "vendor_script": "scripts/vendor_coreloop.py"
+      },
+      "semantic_fingerprints": {
+        "appids": "ed6a585189c49f21b193c63a1d8a0210fd8d0dcc43a61be8289559130d92e8df",
+        "commands": "ed7c19ce9fbe741ca8f1a8e0e4d09abd7ab170d01947ac0d6f5336c22e856342",
+        "core_constants": "793f57016fbfa3a88dc3d7c12b24ae4442dd0898c85842f3e7ab38e3b88a7d96",
+        "errors": "b0645d24778ff3445200d60cb0c9f22fea6b945f63e3c7d0b47c98f0a7eaacd9",
+        "output_formats": "60c46574f4b225c1c92a266fc4073b830fb8fadc3939b267c27c2213939e0b5f"
+      },
+      "signatures": [
+        {
+          "appid": 518,
+          "housekeeping_type": 0,
+          "payload_length": 2692
+        },
+        {
+          "appid": 518,
+          "housekeeping_type": 100,
+          "payload_length": 90
+        },
+        {
+          "appid": 518,
+          "housekeeping_type": 101,
+          "payload_length": 48
+        },
+        {
+          "appid": 640,
+          "payload_length": 597
+        }
+      ],
+      "source_commit": "bb016489adb1d209e36fec814d928e38454aa5d4",
+      "source_files": {
+        "coreloop/calibrator.h": "abe141e08de1e1aacabd4511d2d94633daa249fea0ed384aca7a82df21eb8b35",
+        "coreloop/core_loop.h": "5223ea8fee26c8337ff1b2c7e58a1e4a1b8c3e91c1b97a8ac4013bca8a77a40a",
+        "coreloop/core_loop_errors.h": "9007f12bebb7d09dc71bba330bd5885109b2d29ce97b60bcf3cd63cce1a65804",
+        "coreloop/flash_interface.h": "caf8de3a2fc98b939c5bf126c6f48ab98914ddc5b30aea32be2f52130542e16c",
+        "coreloop/spectrometer_interface.h": "d1b52ed9f07ef368b4ffaa44400c29cf9259765dcee5056b0e1f2f7c66c92029",
+        "documentation/lusee_appIds.md": "11d87d139ab845af3caf21fd55b9cc54f5a922ffc38988ab7f14d56ae866da1a",
+        "documentation/lusee_commands.md": "bc9007948352db93d814dbd602e8aeb9d79ed2fe07c7d8ca3065f5b366e722f1",
+        "documentation/toplevel_commands.md": "4728ba8de12cc635861de1b8b1c450094b33c32cddb1247afb5a8a1e9ca3834b",
+        "pycoreloop/Makefile": "68d5a04a28704fd093b644e1d2298c46add03577f5b9bc7e584cc1ef73f77a27",
+        "scripts/create_appid_include.py": "265325e2a885a734e19399883608c6c475f90018f7f6bad02fe47051e57b8ef2",
+        "scripts/create_cmd_include.py": "ee64535447f4f30e2844de7345e88c3d6fdda68b188679d69e536d4f40e08e18"
+      },
+      "source_release": "3r06-final",
+      "variant": "final"
+    },
+    "307": {
+      "abi": {
+        "sha256": "23509698f27914dc881af7da335997aed308a45710ca8a9e6c5ace224a949f7e"
+      },
+      "accepted_reported_versions": [
+        775
+      ],
+      "canonical_schema_id": 775,
+      "generated_files": {
+        "__init__.py": "49d91aef5ab6e15b7df723e7dde1ff8d6efe4db58a775faa88a0585f0c49f6e4",
+        "core_loop.py": "2fa1c7e1059eecabd667f122635d393e1f3677fc04da8bb1fc695df49d828476",
+        "core_loop_errors.py": "2bba0c205901fd4cbcafa417aee73ae24a5b546aea7e41567006f41f735b3822",
+        "lusee_appIds.py": "7579e20960d2b5fef073a122669fdff5c807669a92874bbbd14b644186c62fca",
+        "lusee_commands.py": "8df64806a8b99f530a9c04611374b9ed8914691805f19b0f9bd583664273affd"
+      },
+      "generated_source_files": {
+        "coreloop/lusee_appIds.h": "e0c3caac7e9f8572d2e1dd33e396deaa30feb6996b269448e2773e57c9b82ef6",
+        "coreloop/lusee_commands.h": "c02565c9a57946537d2be193e68ae39bbb5b571e6247e43a68c3c3e0a48a6b3c",
+        "pycoreloop/lusee_appIds.py": "7579e20960d2b5fef073a122669fdff5c807669a92874bbbd14b644186c62fca",
+        "pycoreloop/lusee_commands.py": "8df64806a8b99f530a9c04611374b9ed8914691805f19b0f9bd583664273affd"
+      },
+      "generation": {
+        "ctypesgen_command": [
+          "ctypesgen",
+          "coreloop/core_loop.h",
+          "coreloop/calibrator.h"
+        ],
+        "ctypesgen_error_command": [
+          "ctypesgen",
+          "coreloop/core_loop_errors.h"
+        ],
+        "ctypesgen_version": "1.1.1",
+        "vendor_script": "scripts/vendor_coreloop.py"
+      },
+      "semantic_fingerprints": {
+        "appids": "ed6a585189c49f21b193c63a1d8a0210fd8d0dcc43a61be8289559130d92e8df",
+        "commands": "ed7c19ce9fbe741ca8f1a8e0e4d09abd7ab170d01947ac0d6f5336c22e856342",
+        "core_constants": "7bf9857fb7bb51b37d147af726d8000670c694803f055b3f82d9e8660b029eb5",
+        "errors": "b0645d24778ff3445200d60cb0c9f22fea6b945f63e3c7d0b47c98f0a7eaacd9",
+        "output_formats": "60c46574f4b225c1c92a266fc4073b830fb8fadc3939b267c27c2213939e0b5f"
+      },
+      "signatures": [],
+      "source_commit": "38770b94bd20dfdbf52d1d8b872a716537b851f3",
+      "source_files": {
+        "coreloop/calibrator.h": "abe141e08de1e1aacabd4511d2d94633daa249fea0ed384aca7a82df21eb8b35",
+        "coreloop/core_loop.h": "cc207096e067dbe50f10b681760237aee27721cb07c09de4479ef721b710c001",
+        "coreloop/core_loop_errors.h": "9007f12bebb7d09dc71bba330bd5885109b2d29ce97b60bcf3cd63cce1a65804",
+        "coreloop/flash_interface.h": "caf8de3a2fc98b939c5bf126c6f48ab98914ddc5b30aea32be2f52130542e16c",
+        "coreloop/spectrometer_interface.h": "d9f4a551a1a7cbaeacc789053fd946983a2e440c423fe11471fb3746ccca2ff1",
+        "documentation/lusee_appIds.md": "11d87d139ab845af3caf21fd55b9cc54f5a922ffc38988ab7f14d56ae866da1a",
+        "documentation/lusee_commands.md": "bc9007948352db93d814dbd602e8aeb9d79ed2fe07c7d8ca3065f5b366e722f1",
+        "documentation/toplevel_commands.md": "4728ba8de12cc635861de1b8b1c450094b33c32cddb1247afb5a8a1e9ca3834b",
+        "pycoreloop/Makefile": "68d5a04a28704fd093b644e1d2298c46add03577f5b9bc7e584cc1ef73f77a27",
+        "scripts/create_appid_include.py": "265325e2a885a734e19399883608c6c475f90018f7f6bad02fe47051e57b8ef2",
+        "scripts/create_cmd_include.py": "ee64535447f4f30e2844de7345e88c3d6fdda68b188679d69e536d4f40e08e18"
+      },
+      "source_release": "3r09",
+      "variant": null
+    }
+  },
+  "format_version": 1
+}

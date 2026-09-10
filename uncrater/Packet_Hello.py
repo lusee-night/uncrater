@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase, pystruct
+from .PacketBase import PacketBase
 from .utils import Time2Time
 import struct
 
@@ -10,8 +10,12 @@ class Packet_Hello(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        self.copy_attrs(pystruct.startup_hello.from_buffer_copy(self._blob))
+        attrs = self._decode_struct(self.schema.pystruct.startup_hello)
+        if attrs is None:
+            return
+        if not self._check_declared_version(attrs.SW_version):
+            return
+        self.copy_attrs(attrs)
         self.time = Time2Time(self.time_32, self.time_16)
         self._is_read = True
         

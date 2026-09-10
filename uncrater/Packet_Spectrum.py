@@ -1,15 +1,22 @@
-from .PacketBase import PacketBase, pystruct, pystruct_203, pystruct_305, pystruct_307
+from .PacketBase import PacketBase
 from .utils import Time2Time, process_ADC_stats, process_telemetry
 from .c_utils import decode_10plus6, decode_5_into_4
-from .coreloop import pycoreloop
 import struct
 import numpy as np
 import binascii
 from typing import Tuple
 from .constants import NCHANNELS, NPRODUCTS
 
-id = pycoreloop.appId
-cl = pycoreloop.pystruct
+
+def frequency_averaging_factor(value):
+    if value == 1:
+        return 1
+    if value == 2:
+        return 2
+    if value in (3, 4):
+        # Both historical wire values select the four-channel averaging mode
+        return 4
+    raise ValueError(f"invalid Navgf value {value}")
 
 
 class Packet_Metadata(PacketBase):
@@ -20,20 +27,27 @@ class Packet_Metadata(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        
-        if self._version==0x203:
-            attrs = pystruct_203.meta_data.from_buffer_copy(self._blob)
-        elif self._version==0x305:
-            attrs = pystruct_305.meta_data.from_buffer_copy(self._blob)
-        elif self._version==0x307:
-            attrs = pystruct_307.meta_data.from_buffer_copy(self._blob)
-        else:
-            attrs = pystruct.meta_data.from_buffer_copy(self._blob)
-            
+        attrs = self._decode_struct(self.schema.pystruct.meta_data)
+        if attrs is None:
+            return
+        if not self._check_declared_version(attrs.version):
+            return
+        try:
+            frequency_averaging_factor(attrs.base.Navgf)
+        except ValueError as exc:
+            self._fail("unsupported_format", str(exc))
+            return
+        navg2_shift = attrs.base.Navg2_shift
+        if not 0 <= navg2_shift <= 15:
+            self._fail(
+                "unsupported_format",
+                f"invalid Navg2_shift value {navg2_shift}",
+            )
+            return
+
         self.copy_attrs(attrs)
+        # Schema 203 calls the completed weight "previous"; later schemas use "weight"
         self.weight = self.base.weight_previous if hasattr(self.base, 'weight_previous') else self.base.weight
-        #print (self.base.weight_current, self.base.weight_previous,'X')
         self.format = self.base.format
         self.time = Time2Time(self.base.time_32, self.base.time_16)
         self.errormask = self.base.errors
@@ -53,19 +67,20 @@ class Packet_Metadata(PacketBase):
         desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"Errormask: {self.errormask}\n"
         desc += f"Time: {self.time}\n"
-        desc += f"Current weight: {self.base.weight_current}\n"
-        desc += f"Previous weight: {self.base.weight}\n"
+        if hasattr(self.base, "weight_current"):
+            desc += f"Current weight: {self.base.weight_current}\n"
+        desc += f"Previous weight: {self.weight}\n"
         return desc
 
     @property
     def frequency(self):
-        Navgf = self.base.Navgf
-        if Navgf == 1:
-            return np.arange(NCHANNELS) * 0.025
-        elif Navgf == 2:
-            return np.arange(NCHANNELS // 2) * 0.05
-        else:
-            return np.arange(NCHANNELS // 4) * 0.1
+        factor = frequency_averaging_factor(self.base.Navgf)
+        return np.arange(NCHANNELS // factor) * (0.025 * factor)
+
+    @property
+    def expected_frequency_count(self):
+        factor = frequency_averaging_factor(self.base.Navgf)
+        return NCHANNELS // factor
 
 
 class Packet_SpectrumBase(PacketBase):
@@ -77,10 +92,10 @@ class Packet_SpectrumBase(PacketBase):
     def set_meta(self, meta):
         self.meta = meta
 
-    def set_priority(self):
+    def set_priority(self) -> None:
         raise RuntimeError("Packet_SpectrumBase is abstract, do not instantiate")
 
-    def parse_spectra(self):
+    def parse_spectra(self) -> bool:
         raise RuntimeError("Packet_SpectrumBase is abstract, do not instantiate")
 
     def get_fmt_and_ptype(self) -> Tuple[str, np.number]:
@@ -90,43 +105,49 @@ class Packet_SpectrumBase(PacketBase):
             return "i", np.int32
 
     def check_crc(self):
-        calculated_crc = binascii.crc32(self._blob[8:]) & 0xFFFFFFFF
-        self.error_crc_mismatch = not (self.crc == calculated_crc)
-        if self.error_crc_mismatch:
-            print(f"CRC: {self.crc:x} {calculated_crc:x}")
-            print("WARNING CRC mismatch!!!!!")
-            try:
-                Ndata = len(self._blob[8:]) // 4
-                data = struct.unpack(f"<{Ndata}{self.get_fmt_and_ptype()[0]}", self._blob[8:])
-                print(data, Ndata)
-            except:
-                pass
+        # The CRC covers encoded science words, excluding any final CDI padding
+        payload_size = self._crc_payload_size
+        calculated_crc = binascii.crc32(self._blob[8 : 8 + payload_size]) & 0xFFFFFFFF
+        if self.crc != calculated_crc:
+            self._issue(
+                "crc_mismatch",
+                f"stored CRC 0x{self.crc:08X} does not match 0x{calculated_crc:08X}",
+                details={"calculated_crc": calculated_crc, "stored_crc": self.crc},
+            )
 
     def _read(self):
         if self._is_read:
             return
-
-        self.error_packed_id_mismatch = False
-        self.error_data_read = False
-        self.error_crc_mismatch = False
-
         self.set_priority()
-        super()._read()
-        self.unique_packet_id, self.crc = struct.unpack("<II", self._blob[:8])
+        if not self._validate_min_length(8):
+            return
+        metadata = getattr(self, "meta", None)
+        if metadata is None or any(
+                issue.fatal for issue in metadata.decode_status.issues):
+            self._fail("missing_metadata", "spectrum packet requires science metadata")
+            return
+        metadata_uid = metadata.unique_packet_id
+        metadata_binding_key = metadata.schema.binding_key
+        if metadata_binding_key != self.schema.binding_key:
+            self._fail(
+                "declared_version_mismatch",
+                f"spectrum binding {self.schema.binding_key} does not match metadata binding {metadata_binding_key}",
+            )
+            return
 
-        if not hasattr(self, "meta"):
-            print("Loading packet without metadata!")
-            self.packed_id_mismatch = True
+        self.unique_packet_id, self.crc = struct.unpack_from("<II", self._blob, 0)
+        if metadata_uid != self.unique_packet_id:
+            self._issue(
+                "unique_packet_id_mismatch",
+                f"packet UID {self.unique_packet_id} does not match metadata UID {metadata_uid}",
+                details={
+                    "metadata_uid": metadata_uid,
+                    "packet_uid": self.unique_packet_id,
+                },
+            )
 
-        if self.meta.unique_packet_id != self.unique_packet_id:
-            print("Packet ID mismatch!!")
-            self.packed_id_mismatch = True
-
-        if self.meta.format == 0 and len(self._blob[8:]) // 4 > NCHANNELS:
-            print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + NCHANNELS * 4]
-
-        self.parse_spectra()
+        if not self.parse_spectra():
+            return
         self.check_crc()
 
         self._is_read = True
@@ -148,111 +169,121 @@ class Packet_SpectrumBase(PacketBase):
 class Packet_Spectrum(Packet_SpectrumBase):
 
     def set_priority(self):
-        if (
-            self.appid >= id.AppID_SpectraHigh
-            and self.appid < id.AppID_SpectraHigh + NPRODUCTS
-        ):
-            self.priority = 1
-            self.product = self.appid - id.AppID_SpectraHigh
-        elif (
-            self.appid >= id.AppID_SpectraMed and self.appid < id.AppID_SpectraMed + NPRODUCTS
-        ):
-            self.priority = 2
-            self.product = self.appid - id.AppID_SpectraMed
-        else:
-            assert (
-                self.appid >= id.AppID_SpectraLow
-                and self.appid < id.AppID_SpectraLow + NPRODUCTS
-            )
-            self.priority = 3
-            self.product = self.appid - id.AppID_SpectraLow
+        appids = self.schema.appids
+        families = [
+            ("AppID_SpectraHigh", 1),
+            ("AppID_SpectraMed", 2),
+            ("AppID_SpectraLow", 3),
+            ("AppID_SpectraVeryLow", 4),
+        ]
+        for name, priority in families:
+            base = getattr(appids, name, None)
+            if base is not None and base <= self.appid < base + NPRODUCTS:
+                self.priority = priority
+                self.product = self.appid - base
+                return
+        raise ValueError(
+            f"AppID 0x{self.appid:03X} is not a spectrum in binding "
+            f"{self.schema.binding_key}"
+        )
 
     def parse_spectra(self):
-        if self.meta.format == cl.OUTPUT_32BIT and len(self._blob[8:]) // 4 > NCHANNELS:
-            print("Spurious data, trimming!!!")
-            self._blob = self._blob[: 8 + NCHANNELS * 4]
-
+        payload = self._blob[8:]
+        pystruct = self.schema.pystruct
         fmt, ptype = self.get_fmt_and_ptype()
+        expected = self.meta.expected_frequency_count
+        navg2_shift = self.meta.base.Navg2_shift
+        weight = self.meta.weight
+        if weight == 0:
+            self._fail("payload_decode_failed", "metadata weight is zero")
+            return False
 
-        if self.meta.format == cl.OUTPUT_32BIT:
-            Ndata = len(self._blob[8:]) // 4
-            try:
-                data = struct.unpack(f"<{Ndata}{fmt}", self._blob[8:])
-            except:
-                self.error_data_read = True
-                data = np.zeros(Ndata)
-        elif self.meta.format in [cl.OUTPUT_16BIT_10_PLUS_6, cl.OUTPUT_16BIT_4_TO_5]:
-            Ndata = len(self._blob[8:]) // 2
-            try:
-                compressed_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
-                compressed_data = np.array(compressed_data, dtype=np.uint16)
-            except:
-                print("ERROR unpacking byte sequence")
-                self.error_data_read = True
-                compressed_data = np.zeros(Ndata, dtype=np.uint16)
-            try:
-                if self.meta.format == cl.OUTPUT_16BIT_10_PLUS_6:
-                    data = decode_10plus6(compressed_data)
-                else:
-                    assert self.meta.format == cl.OUTPUT_16BIT_4_TO_5
-                    data = decode_5_into_4(compressed_data)
-            except:
-                print("ERROR calling decode function")
-                self.error_data_read = True
-                data = np.zeros(Ndata // 2, dtype=np.int32)
+        if self.meta.format == pystruct.OUTPUT_32BIT:
+            expected_bytes = 4 * expected
+            if not self._validate_length(8 + expected_bytes, allow_cdi_padding=False):
+                return False
+            dtype = "<u4" if fmt == "I" else "<i4"
+            data = np.frombuffer(payload, dtype=dtype, count=expected)
+        elif self.meta.format == pystruct.OUTPUT_16BIT_10_PLUS_6:
+            expected_bytes = 2 * expected
+            if not self._validate_length(8 + expected_bytes, allow_cdi_padding=False):
+                return False
+            compressed_data = np.frombuffer(payload, dtype="<u2", count=expected)
+            data = decode_10plus6(compressed_data)
+        elif self.meta.format == pystruct.OUTPUT_16BIT_4_TO_5:
+            expected_words = expected // 4 * 5
+            expected_bytes = 2 * expected_words
+            if not self._validate_length(8 + expected_bytes, allow_cdi_padding=False):
+                return False
+            compressed_data = np.frombuffer(payload, dtype="<u2", count=expected_words)
+            data = decode_5_into_4(compressed_data)
         else:
-            raise NotImplementedError(f"Format {self.meta.format} is not supported")
+            self._fail(
+                "unsupported_format",
+                f"spectrum format {self.meta.format} is not supported",
+            )
+            return False
 
-        self.data = np.array(data, dtype=ptype).astype(np.float64)/self.meta.weight*(1<<self.meta.base.Navg2_shift)
-        
+        self._crc_payload_size = expected_bytes
+        self.data = data.astype(ptype).astype(np.float64) / weight * (1 << navg2_shift)
+        return True
+
 
 
 class Packet_TR_Spectrum(Packet_SpectrumBase):
     def set_priority(self):
-        if (
-            self.appid >= id.AppID_SpectraTRHigh
-            and self.appid < id.AppID_SpectraTRHigh + NPRODUCTS
-        ):
-            self.priority = 1
-            self.product = self.appid - id.AppID_SpectraTRHigh
-        elif (
-            self.appid >= id.AppID_SpectraTRMed
-            and self.appid < id.AppID_SpectraTRMed + NPRODUCTS
-        ):
-            self.priority = 2
-            self.product = self.appid - id.AppID_SpectraTRMed
-        else:
-            assert (
-                self.appid >= id.AppID_SpectraTRLow
-                and self.appid < id.AppID_SpectraTRLow + NPRODUCTS
-            )
-            self.priority = 3
-            self.product = self.appid - id.AppID_SpectraTRLow
+        appids = self.schema.appids
+        families = [
+            ("AppID_SpectraTRHigh", 1),
+            ("AppID_SpectraTRMed", 2),
+            ("AppID_SpectraTRLow", 3),
+        ]
+        for name, priority in families:
+            base = getattr(appids, name, None)
+            if base is not None and base <= self.appid < base + NPRODUCTS:
+                self.priority = priority
+                self.product = self.appid - base
+                return
+        raise ValueError(
+            f"AppID 0x{self.appid:03X} is not a TR spectrum in binding "
+            f"{self.schema.binding_key}"
+        )
 
     def parse_spectra(self):
-        # TODO: check length?
-        # if self.meta.format==0 and len(self._blob[8:])//4>NCHANNELS:
-        #     print ("Spurious data, trimming!!!")
-        #     self._blob = self._blob[:8 + NCHANNELS * 4]
-
-        #if self.meta.format == 0:
-            # data consists of uint16_t, _blob has type int32_t
-
-        
-        Ndata = len(self._blob[8:]) // 2
-        try:
-            enc_data = struct.unpack(f"<{Ndata}H", self._blob[8:])
-            enc_data = np.array(enc_data, dtype=np.uint16)
-            data = decode_10plus6(enc_data)
-        except:
-            self.error_data_read = True
-            data = np.zeros(Ndata, dtype=np.int32)
-        #else:
-        #    raise NotImplementedError("Only format 0 is supported")
-        self.data = np.array(data, dtype=np.int32)
-        if self.meta is not None:
-            Nbins = (self.meta.base.tr_stop-self.meta.base.tr_start)//(1<<self.meta.base.tr_avg_shift)
-            self.data = self.data.reshape((-1,Nbins))
+        start = self.meta.base.tr_start
+        stop = self.meta.base.tr_stop
+        avg_shift = self.meta.base.tr_avg_shift
+        navg2_shift = self.meta.base.Navg2_shift
+        if (
+            start < 0
+            or stop <= start
+            or stop > NCHANNELS
+            or not 0 <= avg_shift <= 15
+            or not 0 <= navg2_shift <= 15
+        ):
+            self._fail(
+                "payload_decode_failed",
+                f"invalid TR geometry start={start}, stop={stop}, avg_shift={avg_shift}, Navg2_shift={navg2_shift}",
+            )
+            return False
+        span = stop - start
+        average = 1 << avg_shift
+        if span % average:
+            self._fail(
+                "payload_decode_failed",
+                f"TR span {span} is not divisible by averaging factor {average}",
+            )
+            return False
+        Nbins = span // average
+        Navg2 = 1 << navg2_shift
+        expected = Navg2 * Nbins
+        if not self._validate_length(8 + 2 * expected):
+            return False
+        enc_data = np.frombuffer(self._blob, dtype="<u2", offset=8, count=expected)
+        data = decode_10plus6(enc_data)
+        self._crc_payload_size = 2 * expected
+        self.data = data.reshape(Navg2, Nbins)
+        return True
 
 class Packet_Grimm(PacketBase):
     @property
@@ -262,11 +293,29 @@ class Packet_Grimm(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        self.unique_packet_id = struct.unpack("<I", self._blob[:4])
-        Ndata = len(self._blob[4:]) // 2
-        data = np.array(struct.unpack(f"<{Ndata}H", self._blob[4: 4 + Ndata * 2]),dtype=np.uint16)
-        self.data = decode_5_into_4(data).reshape((-1, NPRODUCTS, 4))
+        if not self._validate_min_length(4):
+            return
+        self.unique_packet_id = struct.unpack_from("<I", self._blob, 0)[0]
+        payload = self._blob[4:]
+        if len(payload) % 2:
+            self._fail("bad_blob_length", "Grimm payload byte count must be even")
+            return
+        compressed_data = np.frombuffer(payload, dtype="<u2")
+        if compressed_data.size % 5:
+            self._fail(
+                "payload_decode_failed",
+                "Grimm compressed word count must be divisible by five",
+            )
+            return
+        data = decode_5_into_4(compressed_data)
+        values_per_average = NPRODUCTS * 4
+        if data.size == 0 or data.size % values_per_average:
+            self._fail(
+                "payload_decode_failed",
+                f"decoded Grimm count {data.size} is not divisible by {values_per_average}",
+            )
+            return
+        self.data = data.reshape((-1, NPRODUCTS, 4))
         self._is_read = True
 
     def info(self):
@@ -274,4 +323,4 @@ class Packet_Grimm(PacketBase):
         desc = ""
         desc += f"packet_id : {self.unique_packet_id}\n"
         desc += f"Npoints: {len(self.data)}\n"
-        return desc    
+        return desc

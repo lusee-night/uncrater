@@ -1,7 +1,6 @@
 from tracemalloc import stop
-from .PacketBase import PacketBase, pystruct
+from .PacketBase import PacketBase
 from .utils import Time2Time, cordic2rad, rle_decode
-from pycoreloop import appId as id
 import struct, ctypes
 import numpy as np
 
@@ -14,15 +13,27 @@ class Packet_Cal_Metadata(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()        
-        temp = pystruct.calibrator_metadata.from_buffer_copy(self._blob)               
+        temp = self._decode_struct(self.schema.pystruct.calibrator_metadata)
+        if temp is None:
+            return
+        if not self._check_declared_version(temp.version):
+            return
+        drift_raw = np.array(temp.drift).astype(np.int64)
+        if hasattr(temp, "drift_shift"):
+            drift_shift = temp.drift_shift
+            if not 0 <= drift_shift <= 16:
+                self._fail(
+                    "payload_decode_failed",
+                    f"invalid calibrator drift shift {drift_shift}",
+                )
+                return
+            drift_raw = np.repeat(drift_raw << drift_shift, 8)
         self.copy_attrs(temp)
         self.time = Time2Time(self.time_32, self.time_16)
-        self._is_read = True
-        self.drift_raw = np.array(self.drift).astype(np.int64)
-        self.drift_raw = (self.drift_raw << self.drift_shift)
-        self.drift = cordic2rad(np.repeat(self.drift_raw,8))
+        self.drift_raw = drift_raw
+        self.drift = cordic2rad(drift_raw)
         self.from_debug=False
+        self._is_read = True
 
     def info(self):
         self._read()
@@ -44,10 +55,11 @@ class Packet_Cal_RegisterDump(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()        
-        self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])        
-        self.registers = struct.unpack("<498I", self._blob[12:12+498*4])
+        if not self._validate_length(12 + 498 * 4, allow_cdi_padding=False):
+            return
+        self.unique_packet_id, time_32, time_16 = struct.unpack_from("<III", self._blob)
+        self.time = Time2Time(time_32, time_16)
+        self.registers = struct.unpack_from("<498I", self._blob, 12)
         self.reset = self.registers[0x00]
         self.Nac1 = self.registers[0x01]
         self.Nac2 = self.registers[0x02]
@@ -117,23 +129,29 @@ class Packet_Cal_Data(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
-        self.data_page = self.appid - id.AppID_Calibrator_Data
-        if (self.data_page>0) and (self.expected_id != self.unique_packet_id):
-            print("Packet ID mismatch!!")
-            self.packed_id_mismatch = True
+        self.data_page = self.appid - self.schema.appids.AppID_Calibrator_Data
+        if self.data_page > 0 and not hasattr(self, "expected_id"):
+            self._fail("orphan_multipart_page", "calibrator continuation has no start page")
+            return
+        expected_size = (8204, 8204, 4112)[self.data_page]
+        if not self._validate_length(expected_size, allow_cdi_padding=False):
+            return
+        self.unique_packet_id, time_32, time_16 = struct.unpack_from("<III", self._blob)
+        self.time = Time2Time(time_32, time_16)
+        if self.data_page > 0 and self.expected_id != self.unique_packet_id:
+            self._issue(
+                "unique_packet_id_mismatch",
+                f"packet UID {self.unique_packet_id} does not match multipart UID {self.expected_id}",
+                details={"expected_uid": self.expected_id,
+                         "packet_uid": self.unique_packet_id},
+            )
 
-
-        data = struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])
+        data = np.frombuffer(self._blob, dtype="<i4", offset=12)
         if self.data_page < 2:
-            assert(len(data) == 2048)
-            
-            self.data = np.array(data).reshape(4,512)
+            self.data = data.copy().reshape(4,512)
         else:
-            self.gNacc = data[0]
-            self.gphase = np.array(data[1:1025])
+            self.gNacc = int(data[0])
+            self.gphase = data[1:].copy()
             self.data = (self.gNacc, self.gphase)
 
         self._is_read = True
@@ -157,18 +175,27 @@ class Packet_Cal_RawPFB(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        self.channel = (self.appid-id.AppID_Calibrator_RawPFB)//2
-        self.part = (self.appid-id.AppID_Calibrator_RawPFB)%2
-        self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
+        page = self.appid - self.schema.appids.AppID_Calibrator_RawPFB
+        self.channel = page//2
+        self.part = page%2
+        if page > 0 and not hasattr(self, "expected_id"):
+            self._fail("orphan_multipart_page", "raw-PFB continuation has no start page")
+            return
+        if not self._validate_length(8204, allow_cdi_padding=False):
+            return
+        self.unique_packet_id, time_32, time_16 = struct.unpack_from("<III", self._blob)
+        self.time = Time2Time(time_32, time_16)
 
-        if (self.appid-id.AppID_Calibrator_RawPFB>0) and (self.expected_id != self.unique_packet_id):
-            print("Packet ID mismatch!!")
-            self.packed_id_mismatch = True
+        if page > 0 and self.expected_id != self.unique_packet_id:
+            self._issue(
+                "unique_packet_id_mismatch",
+                f"packet UID {self.unique_packet_id} does not match multipart UID {self.expected_id}",
+                details={"expected_uid": self.expected_id,
+                         "packet_uid": self.unique_packet_id},
+            )
 
-        self.data = struct.unpack(f"<{len(self._blob[12:])//4}i", self._blob[12:])
-        self.data = self.data[:2048]
+        self.data = np.frombuffer(self._blob, dtype="<i4", offset=12,
+                                  count=2048).copy()
         self._is_read = True
 
     def info(self):
@@ -192,30 +219,25 @@ class Packet_Cal_Debug(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.time = Time2Time(struct.unpack("<I", self._blob[4:8])[0], struct.unpack("<I", self._blob[8:12])[0])  
+        self.debug_page = self.appid - self.schema.appids.AppID_Calibrator_Debug
+        if self.debug_page > 0 and not hasattr(self, "expected_id"):
+            self._fail("orphan_multipart_page", "calibrator debug continuation has no start page")
+            return
+        if not self._validate_min_length(12):
+            return
+        self.unique_packet_id, time_32, time_16 = struct.unpack_from("<III", self._blob)
+        self.time = Time2Time(time_32, time_16)
 
-        payload = self._blob[12:]
-        if len(payload)<3*1024*4:
-            # let's to to RLE decode it
+        if self.debug_page > 0 and self.unique_packet_id != self.expected_id:
+            self._issue(
+                "unique_packet_id_mismatch",
+                f"packet UID {self.unique_packet_id} does not match multipart UID {self.expected_id}",
+                details={"expected_uid": self.expected_id,
+                         "packet_uid": self.unique_packet_id},
+            )
 
-
-            payload = rle_decode(payload, original_size = 3*1024*4)
-            if len(payload)<3*1024*4 or len(payload)>3*1024*4+3:
-                print (f"RLE decode failed, size = {len(payload)}")
-                raise Exception("RLE decode failed")
-                #return
-            payload = payload[:3*1024*4] # trim any extra bytes due to CDI padding
-
-
-        self.debug_page = self.appid - id.AppID_Calibrator_Debug
-        if (self.debug_page>0) and (self.unique_packet_id != self.expected_id):
-            print("Packet ID mismatch!!")
-            self.packed_id_mismatch = True
-        
-        if len(payload)!=3*1024*4:
-            print (f"Bad packet size. size = {len(self.blob)} appid = {self.appid:x} page = {self.debug_page}")
+        payload = self._decode_debug_payload(self._blob[12:])
+        if payload is None:
             return
 
         datai = np.array(struct.unpack(f"<{len(payload)//4}i", payload)).reshape(3,1024)
@@ -225,13 +247,20 @@ class Packet_Cal_Debug(PacketBase):
         # the reason we do it this way is because some numbers are unsigned and some are signed
         # now based on page we interpret it right
         if self.debug_page == 0:
+            metadata_type = self.schema.pystruct.calibrator_metadata
+            metadata_size = ctypes.sizeof(metadata_type)
+            metadata = metadata_type.from_buffer_copy(payload[2*1024:2*1024+metadata_size])
+            if not self._check_declared_version(metadata.version):
+                return
             self.have_lock = dataw[0] & 0xFF
             self.lock_ant = (dataw[0] >> 8) & 0xFF
             ## the actual metadata packet that would come is hidden in here
-            self.metadata = pystruct.calibrator_metadata.from_buffer_copy(payload[2*1024:2*1024+ctypes.sizeof(pystruct.calibrator_metadata)])
-            self.metadata.unique_packet_id = self.unique_packet_id
-            self.metadata.time = Time2Time(self.metadata.time_32, self.metadata.time_16)
-            self.metadata._from_debug = True
+            metadata.unique_packet_id = self.unique_packet_id
+            metadata.time = Time2Time(metadata.time_32, metadata.time_16)
+            # Keep the old underscored marker while publishing the canonical flag
+            metadata._from_debug = True
+            metadata.from_debug = True
+            self.metadata = metadata
             self.drift = cordic2rad(datau[1])
             self.powertop0 = datau[2]
         elif self.debug_page == 1:
@@ -263,6 +292,40 @@ class Packet_Cal_Debug(PacketBase):
             self.snr1 = (datau[0] / 16.0)
             self.snr2 = (datau[1] / 16.0)
             self.snr3 = (datau[2] / 16.0)
+        self._is_read = True
+
+    def _decode_debug_payload(self, encoded):
+        expected = 3*1024*4
+        if len(encoded) == expected:
+            return encoded
+        if len(encoded) > expected:
+            self._fail(
+                "bad_blob_length",
+                f"debug payload exceeds {expected} bytes",
+                details={"actual": len(encoded), "maximum": expected},
+            )
+            return None
+
+        # CDI does not retain the compressed length before its 0-3 padding bytes.
+        # Accept only one exact-size decode so padding cannot become payload data.
+        padding_options = range(4) if len(encoded)%4 == 0 else (0,)
+        candidates = []
+        for padding in padding_options:
+            candidate = encoded if padding == 0 else encoded[:-padding]
+            try:
+                decoded = rle_decode(candidate, original_size=expected)
+            except ValueError:
+                continue
+            if len(decoded) == expected:
+                candidates.append(decoded)
+        if len(candidates) != 1:
+            self._fail(
+                "payload_decode_failed",
+                f"debug RLE produced {len(candidates)} exact-size candidates",
+            )
+            return None
+        return candidates[0]
+
     def info(self):
         self._read()
         desc = " Calibrator Debug\n"
@@ -278,34 +341,20 @@ class Packet_Cal_ZoomSpectra(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
 
         fft_size = 64
         # ch1 autocorr + ch2 autocorr + ch12 corr real/imaginary parts = 4 arrays in total
         total_entries = fft_size * 4  ## 6 bytes for header
-        use_float = True
-        self.unique_packet_id = struct.unpack("<I", self._blob[0:4])[0]
-        self.pfb_bin = struct.unpack("<H", self._blob[4:6])[0]
-        blob = self._blob[6:-2]  # last 2 bytes are padding to make it multiple of 4 bytes
-        if len(blob) == total_entries * 4:
-            if use_float:
-                data = struct.unpack(f"<{total_entries}f", blob)
-                dtype = np.float32
-            else:
-                data = struct.unpack(f"<{total_entries}i", blob)
-                dtype = np.int32
+        if not self._validate_length(6 + total_entries * 4):
+            return
+        self.unique_packet_id, self.pfb_bin = struct.unpack_from("<IH", self._blob)
+        data = np.frombuffer(self._blob, dtype="<f4", offset=6,
+                             count=total_entries).copy()
 
-            # we always use float32 in NumPy, dtype is just for conversion from raw byte array
-            self.AA = np.array(data[0:fft_size], dtype=dtype).astype(np.float32)
-            self.BB = np.array(data[fft_size:2*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
-            self.ABR = np.array(data[2*fft_size:3*fft_size], dtype=dtype).astype(np.float32).astype(np.float32)
-            self.ABI = np.array(data[3*fft_size:], dtype=dtype).astype(np.float32).astype(np.float32)
-        else:
-            print(f"ERROR in ZoomSpectrum packet size: expected {total_entries * 4} bytes, got {len(blob)} bytes.")
-            self.AA = np.zeros(fft_size, dtype=np.float32)
-            self.BB = np.zeros(fft_size, dtype=np.float32)
-            self.ABR = np.zeros(fft_size, dtype=np.float32)
-            self.ABI = np.zeros(fft_size, dtype=np.float32)
+        self.AA = data[0:fft_size]
+        self.BB = data[fft_size:2*fft_size]
+        self.ABR = data[2*fft_size:3*fft_size]
+        self.ABI = data[3*fft_size:]
 
         self._is_read = True
 

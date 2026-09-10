@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase, pystruct
+from .PacketBase import PacketBase
 from .utils import Time2Time
 import struct
 
@@ -10,9 +10,9 @@ class Packet_Watchdog(PacketBase):
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-
-        temp = pystruct.watchdog_packet.from_buffer_copy(self._blob)
+        temp = self._decode_struct(self.schema.pystruct.watchdog_packet)
+        if temp is None:
+            return
         self.copy_attrs(temp)
         self.time = Time2Time(self.uC_time & 0xFFFFFFFF, (self.uC_time >> 32) & 0xFFFF)
         self._is_read = True

@@ -2,6 +2,50 @@
 import numpy as np
 
 
+_APPID_EXPORTS = (
+    "normalize_dcb_appid",
+    "appid_to_str",
+    "appid_is_hello",
+    "appid_is_metadata",
+    "appid_is_housekeeping",
+    "appid_is_heartbeat",
+    "appid_is_watchdog",
+    "appid_is_fw_watchdog",
+    "appid_is_spectrum",
+    "appid_is_tr_spectrum",
+    "appid_is_zoom_spectrum",
+    "appid_is_grimm_spectrum",
+    "appid_is_cal_metadata",
+    "appid_is_cal_data",
+    "appid_is_cal_data_start",
+    "appid_is_cal_raw_pfb",
+    "appid_is_cal_raw_pfb_start",
+    "appid_is_cal_debug",
+    "appid_is_cal_debug_start",
+    "appid_is_cal_segmented_payload",
+    "appid_is_calibrator_product",
+    "appid_is_fw_direct_spectrum",
+    "appid_is_raw_adc",
+    "appid_is_waveform",
+    "appid_is_raw_adc_metadata",
+    "appid_is_cal_any",
+    "appid_is_rawPFB",
+    "appid_is_rawPFB_start",
+    "appid_is_cal_zoom",
+)
+
+__all__ = [
+    "Time2Time",
+    "process_ADC_stats",
+    "process_telemetry",
+    "cordic2rad",
+    "rad2cordic",
+    "cordic_add",
+    "rle_decode",
+    *_APPID_EXPORTS,
+]
+
+
 def Time2Time(time1, time2):
     """Converts the the two time values to a single time expressed in seconds.
     Magic 244us is the tick time according to grande Jack.   
@@ -133,3 +177,15 @@ def rle_decode(stream, original_size):
             result.append(byte)
             i += 1
     return bytes(result)
+
+
+def __getattr__(name):
+    # AppID helpers used to be imported from utils. Resolve and cache them only
+    # on demand so utils does not reintroduce the old packet/appid import cycle
+    if name not in _APPID_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from . import appids
+
+    value = getattr(appids, name)
+    globals()[name] = value
+    return value

@@ -1,4 +1,4 @@
-from .PacketBase import PacketBase, pystruct, pystruct_203, pystruct_305, pystruct_307
+from .PacketBase import PacketBase
 from .utils import Time2Time, process_ADC_stats, process_telemetry
 import struct
 import numpy as np
@@ -11,71 +11,86 @@ class Packet_Housekeep(PacketBase):
     def desc(self):
         return "Housekeeping"
 
-    # TODO: fix the housekeeping type logic
     def _read(self):
         if self._is_read:
             return
-        super()._read()
-        # fmt = "<H I I H"
-        # cs,ce = 0,struct.calcsize(fmt)
-        # self.version, self.unique_packet_id, self.errors, self.housekeeping_type = struct.unpack(fmt, self.blob[cs:ce])
-        
-        # Select the appropriate pystruct based on version
-        if self._version==0x203:
-            ps = pystruct_203
-        elif self._version==0x305:
-            ps = pystruct_305
-        elif self._version==0x307:
-            ps = pystruct_307
-        else:
-            ps = pystruct
-            
-        temp = ps.housekeeping_data_base.from_buffer_copy(self._blob)
+        # Reported 0x306 has two ABIs, selected from packet evidence before decoding
+        ps = self.schema.pystruct
+        temp = self._decode_prefix_struct(ps.housekeeping_data_base)
+        if temp is None:
+            return
+
+        hk_type = temp.housekeeping_type
+        version = temp.version
+        unique_packet_id = temp.unique_packet_id
+        errors = temp.errors
+        if not self._check_declared_version(version):
+            return
+
+        if hk_type not in self.valid_types:
+            self._fail(
+                "unsupported_format",
+                f"housekeeping type {hk_type} is not recognized",
+            )
+            return
+        struct_type = getattr(ps, f"housekeeping_data_{hk_type}", None)
+        if struct_type is None:
+            self._fail(
+                "unsupported_format",
+                f"housekeeping type {hk_type} is unavailable in binding {self.schema.binding_key}",
+            )
+            return
+        attrs = self._decode_struct(struct_type)
+        if attrs is None:
+            return
+
+        gains = None
+        if hk_type == 1:
+            gains = []
+            for value in attrs.actual_gain:
+                if value >= 3:
+                    self._fail(
+                        "payload_decode_failed",
+                        f"invalid actual gain value {value}",
+                    )
+                    return
+                gains.append("LMH"[value])
+
+        # Common decoding handles every valid type; the branches below add derived fields for 0-2
+        self.copy_attrs(attrs)
         self.time = 0
-        self.hk_type = temp.housekeeping_type
-        self.version = temp.version
-        self.unique_packet_id = temp.unique_packet_id
-        self.errors = temp.errors
-        if self.version != ps.VERSION_ID:
-            print("WARNING: Version ID mismatch")
+        self.hk_type = hk_type
+        self.version = version
+        self.unique_packet_id = unique_packet_id
+        self.errors = errors
 
-        if temp.housekeeping_type not in self.valid_types:
-            print("HK type = ", temp.housekeeping_type)
-            print("HK type not recognized, corrupter HK packet?")
-
-
-        if temp.housekeeping_type == 0:
-            self.copy_attrs(ps.housekeeping_data_0.from_buffer_copy(self._blob))
+        if hk_type == 0:
             self.time = Time2Time(
                 self.core_state.base.time_32, self.core_state.base.time_16
             )
-            adc = process_ADC_stats(self.core_state.base.ADC_stat)
-            for k, v in adc.items():
-                setattr(self, k, v)
-            telemetry = process_telemetry(self.core_state.base.TVS_sensors)
-            for k, v in telemetry.items():
-                setattr(self, "telemetry_" + k, v)
-        elif temp.housekeeping_type == 1:
-            self.copy_attrs(ps.housekeeping_data_1.from_buffer_copy(self._blob))
-            adc = process_ADC_stats(self.ADC_stat)
-            for k, v in adc.items():
-                setattr(self, k, v)
-            self.actual_gain = ["LMH"[i] for i in self.actual_gain]
-        elif temp.housekeeping_type == 2:
-            self.copy_attrs(ps.housekeeping_data_2.from_buffer_copy(self._blob))
+            self._set_adc_stats(self.core_state.base.ADC_stat)
+            self._set_telemetry(self.core_state.base.TVS_sensors)
+        elif hk_type == 1:
+            self._set_adc_stats(self.ADC_stat)
+            self.actual_gain = gains
+        elif hk_type == 2:
             self.ok = (self.heartbeat.magic == b'BRNMRL')
+            if not self.ok:
+                self._issue("invalid_magic", "housekeeping heartbeat magic does not match BRNMRL")
             self.time = Time2Time(self.heartbeat.time_32, self.heartbeat.time_16)
-            self.telemetry = process_telemetry(self.heartbeat.TVS_sensors)
+            self._set_telemetry(self.heartbeat.TVS_sensors)
 
-        elif temp.housekeeping_type == 3:
-            self.copy_attrs(ps.housekeeping_data_3.from_buffer_copy(self._blob))
-
-        elif temp.housekeeping_type == 100:
-            self.copy_attrs(ps.housekeeping_data_100.from_buffer_copy(self._blob))
-        elif temp.housekeeping_type == 101:
-            self.copy_attrs(ps.housekeeping_data_101.from_buffer_copy(self._blob))
-        
         self._is_read = True
+
+    def _set_adc_stats(self, stats):
+        for k, v in process_ADC_stats(stats).items():
+            setattr(self, k, v)
+            setattr(self, "adc_" + k, v)
+
+    def _set_telemetry(self, sensors):
+        self.telemetry = process_telemetry(sensors)
+        for k, v in self.telemetry.items():
+            setattr(self, "telemetry_" + k, v)
 
     def info(self):
         self._read()

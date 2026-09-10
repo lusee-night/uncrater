@@ -1,0 +1,7 @@
+include LICENSE
+include README.md
+include scripts/vendor_coreloop.py
+# Only test/standalone is portable; the rest of test/ is the lab hardware harness
+prune test
+recursive-include test/standalone *.py
+recursive-include tests *.c *.py
