@@ -2,6 +2,7 @@ from tracemalloc import stop
 from .PacketBase import PacketBase
 from .utils import Time2Time, cordic2rad, rle_decode
 from .normalization import normalize_zoom
+from .constants import ZOOM_BINS, ZOOM_COMPONENTS
 import struct, ctypes
 import numpy as np
 
@@ -343,9 +344,9 @@ class Packet_Cal_ZoomSpectra(PacketBase):
         if self._is_read:
             return
 
-        fft_size = 64
+        fft_size = ZOOM_BINS
         # ch1 autocorr + ch2 autocorr + ch12 corr real/imaginary parts = 4 arrays in total
-        total_entries = fft_size * 4  ## 6 bytes for header
+        total_entries = fft_size * ZOOM_COMPONENTS  ## 6 bytes for header
         if not self._validate_length(6 + total_entries * 4):
             return
         self.unique_packet_id, self.pfb_bin = struct.unpack_from("<IH", self._blob)

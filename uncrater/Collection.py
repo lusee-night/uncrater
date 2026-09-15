@@ -15,7 +15,7 @@ from datetime import datetime
 from .Packet import *
 
 from .error_utils import *
-from .constants import NPRODUCTS, NCHANNELS
+from .constants import NPRODUCTS, NCHANNELS, ZOOM_BINS, ZOOM_COMPONENTS
 from .decode_status import DecodeStatus, PacketDecodeError
 from .normalization import normalize_zoom
 from .schema_registry import SchemaEvidence, SchemaResolutionError, resolve_wire_version, resolve_packet_stream
@@ -798,7 +798,9 @@ class Collection:
         an array of shape (0, 4, 64).
         """
         if not self.zoom_spectra_packets:
-            return normalize_zoom(np.empty((0, 4, 64)), convention=convention)
+            return normalize_zoom(
+                np.empty((0, ZOOM_COMPONENTS, ZOOM_BINS)), convention=convention,
+            )
         return np.stack([
             packet.normalized_zoom(convention=convention)
             for packet in self.zoom_spectra_packets
