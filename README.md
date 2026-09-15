@@ -41,6 +41,30 @@ packet decoding.
 
 ## Decoder behavior
 
+### Explicit zoom normalization
+
+Decoded zoom packets retain their native `float32` arrays. To obtain a
+normalized copy, use:
+
+```python
+zoom_sdu = collection.normalized_zoom()  # (N, 4, 64): AA, BB, ABR, ABI
+one_packet_sdu = collection.zoom_spectra_packets[0].normalized_zoom()
+zoom_pfb = collection.normalized_zoom(convention="pfb")
+```
+
+The default `sdu` convention divides every component by `2**37`, matching
+normal spectra restored to bit-31 SDU. The `pfb` convention divides by `64`;
+normal decoded products must then be multiplied by `2**actual_bitslice` for
+comparison. `uncrater.normalize_zoom(array, convention="sdu")` provides the
+same conversion for native arrays of shape `(..., 4, 64)`.
+
+Results are `float64`; packet fields and source bytes remain unchanged.
+No metadata, neighboring packet, or additional zoom-averaging factor is
+needed. These are relative power conventions, not absolute calibration.
+Any white-noise notch correction belongs separately on the normal spectrum.
+
+### Schema and packet handling
+
 Packets are dispatched using both their AppID and selected wire schema. The
 package contains frozen bindings for `0x203`, `0x305`, the verified early and
 final `0x306` layouts, and the latest shipped `0x307` layout. Known but

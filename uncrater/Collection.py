@@ -17,6 +17,7 @@ from .Packet import *
 from .error_utils import *
 from .constants import NPRODUCTS, NCHANNELS
 from .decode_status import DecodeStatus, PacketDecodeError
+from .normalization import normalize_zoom
 from .schema_registry import SchemaEvidence, SchemaResolutionError, resolve_wire_version, resolve_packet_stream
 from .waveform_association import associate_waveforms
 
@@ -788,6 +789,20 @@ class Collection:
         if intro:
             return self._intro(i) + self.cont[i].xxd()
         return self.cont[i].xxd()
+
+    def normalized_zoom(self, *, convention="sdu"):
+        """Return (N, 4, 64) normalized zoom power in collection order.
+
+        ``sdu`` matches bit-31 normal SDU; ``pfb`` returns raw PFB power.
+        Native packet fields remain unchanged. An empty collection returns
+        an array of shape (0, 4, 64).
+        """
+        if not self.zoom_spectra_packets:
+            return normalize_zoom(np.empty((0, 4, 64)), convention=convention)
+        return np.stack([
+            packet.normalized_zoom(convention=convention)
+            for packet in self.zoom_spectra_packets
+        ])
 
     def np_spectra(self, ndx=None, channel=None):
         """Return normal spectra, optionally selecting one group or channel."""

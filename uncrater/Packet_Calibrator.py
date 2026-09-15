@@ -1,6 +1,7 @@
 from tracemalloc import stop
 from .PacketBase import PacketBase
 from .utils import Time2Time, cordic2rad, rle_decode
+from .normalization import normalize_zoom
 import struct, ctypes
 import numpy as np
 
@@ -357,6 +358,20 @@ class Packet_Cal_ZoomSpectra(PacketBase):
         self.ABI = data[3*fft_size:]
 
         self._is_read = True
+
+    def normalized_zoom(self, *, convention="sdu"):
+        """Return normalized (4, 64) power without changing decoded fields.
+
+        ``sdu`` matches bit-31 normal SDU; ``pfb`` returns raw PFB power.
+        Metadata and neighboring packets are not needed for either scale.
+        """
+        self.read()
+        if any(issue.fatal for issue in self.decode_status.issues):
+            raise ValueError("cannot normalize an invalid zoom packet")
+        return normalize_zoom(
+            np.stack([self.AA, self.BB, self.ABR, self.ABI]),
+            convention=convention,
+        )
 
     def info(self):
         self._read()

@@ -13,6 +13,7 @@ import uncrater.utils as utils
 EXPECTED_PUBLIC_NAMES = {
     "Packet",
     "Collection",
+    "normalize_zoom",
     "PacketBase",
     "Packet_Bootloader",
     "Packet_Cal_Data",

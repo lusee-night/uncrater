@@ -54,6 +54,7 @@ from .Packet import (
 )
 from .Collection import Collection
 from .constants import NCHANNELS, NPRODUCTS
+from .normalization import normalize_zoom
 from .utils import (
     Time2Time,
     cordic2rad,
@@ -70,6 +71,7 @@ __version__ = "1.0.0"
 __all__ = [
     "Packet",
     "Collection",
+    "normalize_zoom",
     "PacketBase",
     "Packet_Bootloader",
     "Packet_Cal_Data",
